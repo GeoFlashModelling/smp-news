@@ -41,6 +41,7 @@ If the token ever leaks, click **Delete** on the token page immediately, then cr
 - **CI** (`.github/workflows/ci.yml`) runs the type check and a test edition on every push. A red cross on a commit means something broke.
 - **Dependabot** opens at most one grouped pull request per month for npm packages and one for GitHub Actions. Merge them if CI is green.
 - **Secret scanning with push protection** blocks any push that contains a recognisable password or token.
+- **Snapshot (step 0.7)** (`.github/workflows/snapshot.yml`) captures every feed's items hourly into the private `smp-news-state` repo (`snapshots/step-0.7/`) until `SNAPSHOT_UNTIL`, then does nothing. `runs.csv` there records how late each scheduled run started. Once the window has passed, turn it off: Actions → Snapshot (step 0.7) → ⋯ → Disable workflow. Run one locally with `npm run snapshot` (writes to `.cache/snapshots/`).
 
 ## Recipes
 
