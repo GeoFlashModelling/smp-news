@@ -1,4 +1,4 @@
-export const USER_AGENT = "SMPNewsBot/0.1 (+https://news.duringgames.com)";
+export const USER_AGENT = "SMPNewsBot/0.1 (+https://thesmpnews.com)";
 
 export const FEED_ACCEPT =
   "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.9, */*;q=0.5";
