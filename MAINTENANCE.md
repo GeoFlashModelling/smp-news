@@ -79,8 +79,8 @@ All sources live in `config/sources.json`. Each source has:
 | Field | Meaning |
 |---|---|
 | `id` | Short lowercase name, e.g. `perthnow` |
-| `lean` | `left`, `centre-left`, `centre`, `centre-right` or `right` (`null` only for feel-good sources). The coverage bar folds this to left / centre / right |
-| `content_type` | `news`, `analysis`, `opinion` (not counted towards agreement) or `feel-good` |
+| `lean` | `left`, `centre-left`, `centre`, `centre-right` or `right`, or `null` (see below). The coverage bar folds this to left / centre / right |
+| `content_type` | `news`, `analysis`, `opinion` (not counted towards agreement), `feel-good`, `community` (local/suburban/student papers, community radio: unrated, shown as "local / unrated" in the bar) or `official` (government, police, universities: lean must be `null`, never in the bar, labelled "Official statement") |
 | `owner_group` | Parent company, e.g. `News Corp`. Outlets with the same owner count once for independence |
 | `paywall` | `free`, `partial` or `paywalled` |
 | `region_of_rating` | Where the lean rating comes from: `AU`, `US` or `UK` |
@@ -93,7 +93,7 @@ To **disable** a source: set `"enabled": false` and add a `notes` line saying wh
 To **fix a broken feed**: find the outlet's new feed address, replace `url`, then run `npm run check-feeds`.
 To **add a source**: copy an existing entry, change every field, then run `npm run validate-config`, `npm run check-terms` and `npm run check-feeds`.
 
-`lean` may be `null` only for sources that publish only in sport, science-tech, entertainment or feel-good; those sources don't appear in the coverage bar.
+`lean` may be `null` for `community` and `official` sources, or for sources that publish only in sport, science-tech, entertainment or feel-good; those sources don't appear in the left / centre / right part of the bar. If a lean isn't from AllSides or Media Bias/Fact Check, say so in `notes` ("Lean is editorial judgement").
 
 Valid sections: `local-wa`, `australia`, `world`, `politics`, `business`, `sport`, `science-tech`, `entertainment`, `feel-good`. CI rejects any push where `sources.json` is invalid.
 

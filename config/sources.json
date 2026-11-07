@@ -1137,28 +1137,6 @@
       ]
     },
     {
-      "id": "newsweek",
-      "name": "Newsweek",
-      "homepage": "https://www.newsweek.com",
-      "lean": "centre",
-      "content_type": "news",
-      "owner_group": "Newsweek",
-      "paywall": "free",
-      "region_of_rating": "US",
-      "enabled": true,
-      "full_text_allowed": false,
-      "ai_input_allowed": true,
-      "feeds": [
-        {
-          "url": "https://www.newsweek.com/rss",
-          "sections": [
-            "world"
-          ],
-          "via": "direct"
-        }
-      ]
-    },
-    {
       "id": "vox",
       "name": "Vox",
       "homepage": "https://www.vox.com",
@@ -1947,30 +1925,6 @@
       "notes": "Public-health journalism. Lean is editorial judgement (not rated by AllSides/MBFC)."
     },
     {
-      "id": "national-indigenous-times",
-      "name": "National Indigenous Times",
-      "homepage": "https://nit.com.au",
-      "lean": "centre-left",
-      "content_type": "news",
-      "owner_group": "National Indigenous Times",
-      "paywall": "free",
-      "region_of_rating": "AU",
-      "enabled": true,
-      "full_text_allowed": false,
-      "ai_input_allowed": true,
-      "feeds": [
-        {
-          "url": "https://nit.com.au/feed/articles",
-          "sections": [
-            "australia",
-            "politics"
-          ],
-          "via": "direct"
-        }
-      ],
-      "notes": "Indigenous-owned national news. Lean is editorial judgement (not rated by AllSides/MBFC)."
-    },
-    {
       "id": "koori-mail",
       "name": "Koori Mail",
       "homepage": "https://koorimail.com",
@@ -2042,54 +1996,6 @@
       "notes": "Christian conservative commentary. Lean is editorial judgement (not rated by AllSides/MBFC)."
     },
     {
-      "id": "cis",
-      "name": "Centre for Independent Studies",
-      "homepage": "https://www.cis.org.au",
-      "lean": "centre-right",
-      "content_type": "analysis",
-      "owner_group": "Centre for Independent Studies",
-      "paywall": "free",
-      "region_of_rating": "AU",
-      "enabled": true,
-      "full_text_allowed": false,
-      "ai_input_allowed": true,
-      "feeds": [
-        {
-          "url": "https://www.cis.org.au/feed/",
-          "sections": [
-            "australia",
-            "politics"
-          ],
-          "via": "direct"
-        }
-      ],
-      "notes": "Classical-liberal think tank. Lean is editorial judgement (not rated by AllSides/MBFC)."
-    },
-    {
-      "id": "australia-institute",
-      "name": "The Australia Institute",
-      "homepage": "https://australiainstitute.org.au",
-      "lean": "centre-left",
-      "content_type": "analysis",
-      "owner_group": "The Australia Institute",
-      "paywall": "free",
-      "region_of_rating": "AU",
-      "enabled": true,
-      "full_text_allowed": false,
-      "ai_input_allowed": true,
-      "feeds": [
-        {
-          "url": "https://australiainstitute.org.au/feed/",
-          "sections": [
-            "australia",
-            "politics"
-          ],
-          "via": "direct"
-        }
-      ],
-      "notes": "Progressive think tank. Lean is editorial judgement (not rated by AllSides/MBFC)."
-    },
-    {
       "id": "lowy-interpreter",
       "name": "The Interpreter (Lowy Institute)",
       "homepage": "https://www.lowyinstitute.org/the-interpreter",
@@ -2159,28 +2065,6 @@
         }
       ],
       "notes": "Canberra and regional NSW local news."
-    },
-    {
-      "id": "citynews-canberra",
-      "name": "CityNews Canberra",
-      "homepage": "https://citynews.com.au",
-      "lean": null,
-      "content_type": "community",
-      "owner_group": "CityNews",
-      "paywall": "free",
-      "region_of_rating": "AU",
-      "enabled": true,
-      "full_text_allowed": false,
-      "ai_input_allowed": true,
-      "feeds": [
-        {
-          "url": "https://citynews.com.au/feed/",
-          "sections": [
-            "australia"
-          ],
-          "via": "direct"
-        }
-      ]
     },
     {
       "id": "tasmanian-times",
@@ -2460,6 +2344,124 @@
       ],
       "stale_hours": 168,
       "notes": "University research news."
+    },
+    {
+      "id": "newsweek",
+      "name": "Newsweek",
+      "homepage": "https://www.newsweek.com",
+      "lean": "centre",
+      "content_type": "news",
+      "owner_group": "Newsweek",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": false,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.newsweek.com/rss",
+          "sections": [
+            "world"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Excluded: HTTP 404 from GitHub runners in 2 of 3 checks (works from home internet), 7 Nov 2026. Not worked around; could ask the publisher to allow SMPNewsBot."
+    },
+    {
+      "id": "national-indigenous-times",
+      "name": "National Indigenous Times",
+      "homepage": "https://nit.com.au",
+      "lean": "centre-left",
+      "content_type": "news",
+      "owner_group": "National Indigenous Times",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": false,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://nit.com.au/feed/articles",
+          "sections": [
+            "australia",
+            "politics"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Excluded: HTTP 403 from GitHub runners (data-centre IP block), 7 Nov 2026. Not worked around; could ask the publisher to allow SMPNewsBot. Indigenous-owned national news. Lean is editorial judgement (not rated by AllSides/MBFC)."
+    },
+    {
+      "id": "cis",
+      "name": "Centre for Independent Studies",
+      "homepage": "https://www.cis.org.au",
+      "lean": "centre-right",
+      "content_type": "analysis",
+      "owner_group": "Centre for Independent Studies",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": false,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.cis.org.au/feed/",
+          "sections": [
+            "australia",
+            "politics"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Excluded: HTTP 403 from GitHub runners (data-centre IP block), 7 Nov 2026. Not worked around; could ask the publisher to allow SMPNewsBot. Classical-liberal think tank. Lean is editorial judgement (not rated by AllSides/MBFC)."
+    },
+    {
+      "id": "australia-institute",
+      "name": "The Australia Institute",
+      "homepage": "https://australiainstitute.org.au",
+      "lean": "centre-left",
+      "content_type": "analysis",
+      "owner_group": "The Australia Institute",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": false,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://australiainstitute.org.au/feed/",
+          "sections": [
+            "australia",
+            "politics"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Excluded: HTTP 403 from GitHub runners (data-centre IP block), 7 Nov 2026. Not worked around; could ask the publisher to allow SMPNewsBot. Progressive think tank. Lean is editorial judgement (not rated by AllSides/MBFC)."
+    },
+    {
+      "id": "citynews-canberra",
+      "name": "CityNews Canberra",
+      "homepage": "https://citynews.com.au",
+      "lean": null,
+      "content_type": "community",
+      "owner_group": "CityNews",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": false,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://citynews.com.au/feed/",
+          "sections": [
+            "australia"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Excluded: HTTP 403 from GitHub runners (data-centre IP block), 7 Nov 2026. Not worked around; could ask the publisher to allow SMPNewsBot."
     },
     {
       "id": "australian-geographic",
