@@ -391,6 +391,20 @@
             "feel-good"
           ],
           "via": "direct"
+        },
+        {
+          "url": "https://www.goodnewsnetwork.org/category/news/animals/feed/",
+          "sections": [
+            "feel-good"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://www.goodnewsnetwork.org/category/news/inspiring/feed/",
+          "sections": [
+            "feel-good"
+          ],
+          "via": "direct"
         }
       ]
     },
@@ -1707,6 +1721,169 @@
       ]
     },
     {
+      "id": "fix-the-news",
+      "name": "Fix The News",
+      "homepage": "https://fixthenews.com",
+      "lean": null,
+      "content_type": "feel-good",
+      "owner_group": "Fix The News",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://substack.fixthenews.com/feed",
+          "sections": [
+            "feel-good"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Australian-founded newsletter of good news on health, climate and progress. Weekly-ish; may show as stale between issues."
+    },
+    {
+      "id": "dailygood",
+      "name": "DailyGood",
+      "homepage": "https://www.dailygood.org",
+      "lean": null,
+      "content_type": "feel-good",
+      "owner_group": "ServiceSpace",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.dailygood.org/feed/",
+          "sections": [
+            "feel-good"
+          ],
+          "via": "direct"
+        }
+      ]
+    },
+    {
+      "id": "my-modern-met",
+      "name": "My Modern Met",
+      "homepage": "https://mymodernmet.com",
+      "lean": null,
+      "content_type": "feel-good",
+      "owner_group": "My Modern Met",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://mymodernmet.com/feed/",
+          "sections": [
+            "feel-good",
+            "entertainment"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Art, design, photography and uplifting human-interest stories."
+    },
+    {
+      "id": "atlas-obscura",
+      "name": "Atlas Obscura",
+      "homepage": "https://www.atlasobscura.com",
+      "lean": null,
+      "content_type": "feel-good",
+      "owner_group": "Atlas Obscura",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.atlasobscura.com/feeds/latest",
+          "sections": [
+            "feel-good"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Curious places, history and wonder."
+    },
+    {
+      "id": "smithsonian",
+      "name": "Smithsonian Magazine",
+      "homepage": "https://www.smithsonianmag.com",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "Smithsonian Institution",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.smithsonianmag.com/rss/smart-news/",
+          "sections": [
+            "science-tech",
+            "feel-good"
+          ],
+          "via": "direct"
+        }
+      ]
+    },
+    {
+      "id": "nasa-image-of-the-day",
+      "name": "NASA Image of the Day",
+      "homepage": "https://www.nasa.gov",
+      "lean": null,
+      "content_type": "feel-good",
+      "owner_group": "NASA",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.nasa.gov/feeds/iotd-feed/",
+          "sections": [
+            "feel-good",
+            "science-tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Public domain (US Government work)."
+    },
+    {
+      "id": "australian-geographic",
+      "name": "Australian Geographic",
+      "homepage": "https://www.australiangeographic.com.au",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "Australian Geographic",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": false,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.australiangeographic.com.au/feed/",
+          "sections": [
+            "feel-good",
+            "science-tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Excluded: robots.txt disallows /feed/ for all agents (7 Nov 2026). Content-Signal ai-input=yes, so it can be re-enabled if they open the feed."
+    },
+    {
       "id": "innovationaus",
       "name": "InnovationAus",
       "homepage": "https://www.innovationaus.com",
@@ -2149,21 +2326,6 @@
       "ai_input_allowed": false,
       "feeds": [],
       "notes": "Wire service with no public RSS. Google News RSS not permitted for public sites. Wire copy is still detected via bylines in other outlets."
-    },
-    {
-      "id": "au-feel-good",
-      "name": "Australian feel-good source",
-      "homepage": "https://www.abc.net.au/news",
-      "lean": null,
-      "content_type": "feel-good",
-      "owner_group": "ABC",
-      "paywall": "free",
-      "region_of_rating": "AU",
-      "enabled": false,
-      "full_text_allowed": false,
-      "ai_input_allowed": false,
-      "feeds": [],
-      "notes": "Unavailable: no Australian feel-good feed found yet. Feel Good page uses Good News Network and Positive News until one is found."
     }
   ]
 }

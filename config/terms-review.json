@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-07T11:38:13.536Z",
+  "reviewed_at": "2026-11-07T11:54:40.010Z",
   "user_agent": "SMPNewsBot/0.1 (+https://news.duringgames.com)",
   "results": [
     {
@@ -428,29 +428,6 @@
       ]
     },
     {
-      "source": "innovationaus",
-      "robots_status": 200,
-      "feeds_allowed": true,
-      "blocked_feeds": [],
-      "ai_agents_blocked": [
-        "GPTBot",
-        "ClaudeBot",
-        "CCBot",
-        "Google-Extended",
-        "Applebot-Extended",
-        "Bytespider",
-        "meta-externalagent"
-      ],
-      "content_signal_ai_input": null,
-      "collection_banned": false,
-      "ai_use_banned": false,
-      "notices": [
-        "include providing AI-generated search summaries.",
-        "ai-input: inputting content into one or more AI models (e.g., retrieval",
-        "generative AI search answers)."
-      ]
-    },
-    {
       "source": "itnews",
       "robots_status": 200,
       "feeds_allowed": true,
@@ -750,22 +727,6 @@
       "notices": []
     },
     {
-      "source": "axios",
-      "robots_status": 200,
-      "feeds_allowed": false,
-      "blocked_feeds": [
-        "https://api.axios.com/feed/"
-      ],
-      "ai_agents_blocked": [
-        "CCBot",
-        "Bytespider"
-      ],
-      "content_signal_ai_input": null,
-      "collection_banned": false,
-      "ai_use_banned": false,
-      "notices": []
-    },
-    {
       "source": "newsweek",
       "robots_status": 200,
       "feeds_allowed": true,
@@ -866,19 +827,6 @@
       "ai_agents_blocked": [
         "CCBot",
         "Bytespider"
-      ],
-      "content_signal_ai_input": null,
-      "collection_banned": false,
-      "ai_use_banned": false,
-      "notices": []
-    },
-    {
-      "source": "washington-times",
-      "robots_status": 200,
-      "feeds_allowed": true,
-      "blocked_feeds": [],
-      "ai_agents_blocked": [
-        "CCBot"
       ],
       "content_signal_ai_input": null,
       "collection_banned": false,
@@ -1101,22 +1049,6 @@
       ]
     },
     {
-      "source": "espn",
-      "robots_status": 200,
-      "feeds_allowed": true,
-      "blocked_feeds": [],
-      "ai_agents_blocked": [
-        "GPTBot",
-        "CCBot",
-        "Google-Extended",
-        "Bytespider"
-      ],
-      "content_signal_ai_input": null,
-      "collection_banned": false,
-      "ai_use_banned": false,
-      "notices": []
-    },
-    {
       "source": "variety",
       "robots_status": 200,
       "feeds_allowed": true,
@@ -1209,6 +1141,80 @@
     },
     {
       "source": "optimist-daily",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "fix-the-news",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "dailygood",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "my-modern-met",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "atlas-obscura",
+      "robots_status": 403,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "smithsonian",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "nasa-image-of-the-day",
       "robots_status": 200,
       "feeds_allowed": true,
       "blocked_feeds": [],
