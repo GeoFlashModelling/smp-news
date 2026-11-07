@@ -1,0 +1,1222 @@
+{
+  "reviewed_at": "2026-11-07T11:38:13.536Z",
+  "user_agent": "SMPNewsBot/0.1 (+https://news.duringgames.com)",
+  "results": [
+    {
+      "source": "abc",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "sbs",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": true,
+      "notices": [
+        "SBS AI CRAWLER POLICY",
+        "Version: 1.0 | Date: 2026-09-18 | Owner: AI Program, SBS",
+        "- AI search and retrieval services that discover and cite SBS content"
+      ]
+    },
+    {
+      "source": "guardian-au",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "ClaudeBot",
+        "CCBot",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": true,
+      "notices": [
+        "Any other uses are not permitted, incl. but not limited to: for large language",
+        "models (LLMs), machine learning and/or artificial intelligence-related"
+      ]
+    },
+    {
+      "source": "the-conversation-au",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "crikey",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "Block Perplexity AI",
+        "Block Anthropic AI"
+      ]
+    },
+    {
+      "source": "7news",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "watoday",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": true,
+      "notices": [
+        "Nine Entertainment Co expressly prohibits the use of any Nine",
+        "learning and/or artificial intelligence including for the purposes",
+        "of training or development of AI technology, tools and machine"
+      ]
+    },
+    {
+      "source": "perthnow",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "spectator-au",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "quadrant",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "include providing AI-generated search summaries.",
+        "ai-input: inputting content into one or more AI models (e.g., retrieval",
+        "generative AI search answers)."
+      ]
+    },
+    {
+      "source": "npr-world",
+      "robots_status": 404,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "fox-world",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "good-news-network",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "positive-news",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "smh",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": true,
+      "notices": [
+        "Nine Entertainment Co expressly prohibits the use of any Nine",
+        "learning and/or artificial intelligence including for the purposes",
+        "of training or development of AI technology, tools and machine"
+      ]
+    },
+    {
+      "source": "the-age",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": true,
+      "notices": [
+        "Nine Entertainment Co expressly prohibits the use of any Nine",
+        "learning and/or artificial intelligence including for the purposes",
+        "of training or development of AI technology, tools and machine"
+      ]
+    },
+    {
+      "source": "brisbane-times",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": true,
+      "notices": [
+        "Nine Entertainment Co expressly prohibits the use of any Nine",
+        "learning and/or artificial intelligence including for the purposes",
+        "of training or development of AI technology, tools and machine"
+      ]
+    },
+    {
+      "source": "afr",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": true,
+      "notices": [
+        "Nine Entertainment Co expressly prohibits the use of any Nine",
+        "learning and/or artificial intelligence including for the purposes",
+        "of training or development of AI technology, tools and machine"
+      ]
+    },
+    {
+      "source": "the-west",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "canberra-times",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": true,
+      "notices": [
+        "Australian Community Media expressly prohibits the use of any ACM",
+        "learning and/or artificial intelligence purposes, including the",
+        "training, development, or operation of AI technologies, tools, or"
+      ]
+    },
+    {
+      "source": "renew-economy",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "the-mandarin",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "Block Perplexity AI",
+        "Block Anthropic AI"
+      ]
+    },
+    {
+      "source": "smartcompany",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "Block Perplexity AI",
+        "Block Anthropic AI"
+      ]
+    },
+    {
+      "source": "innovationaus",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "include providing AI-generated search summaries.",
+        "ai-input: inputting content into one or more AI models (e.g., retrieval",
+        "generative AI search answers)."
+      ]
+    },
+    {
+      "source": "itnews",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "pearls-and-irritations",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "ClaudeBot",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "Deny AI scrapers and aggressive SEO bots"
+      ]
+    },
+    {
+      "source": "caldron-pool",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "sciencealert",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "afl",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "rnz",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "Block AI bots"
+      ]
+    },
+    {
+      "source": "nz-herald",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": true,
+      "notices": [
+        "Any other uses are not permitted, incl. but not limited to: for large language",
+        "models (LLMs), machine learning and/or artificial intelligence-related",
+        "Anthropic (Claude and Claude.ai interfaces)"
+      ]
+    },
+    {
+      "source": "stuff-nz",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "cna",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "scmp",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "japan-times",
+      "robots_status": 403,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "times-of-india",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "france24",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "PerplexityBot"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "## AI Bots blocking"
+      ]
+    },
+    {
+      "source": "euronews",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "CCBot"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "ai bots allowed",
+        "ai bots disallowed"
+      ]
+    },
+    {
+      "source": "sky-news-uk",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "independent-uk",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "gb-news",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "the-critic",
+      "robots_status": 404,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "washington-post",
+      "robots_status": 404,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "ClaudeBot",
+        "CCBot",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "the-hill",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "politico",
+      "robots_status": 404,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "axios",
+      "robots_status": 200,
+      "feeds_allowed": false,
+      "blocked_feeds": [
+        "https://api.axios.com/feed/"
+      ],
+      "ai_agents_blocked": [
+        "CCBot",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "newsweek",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "vox",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "the-intercept",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "CCBot",
+        "Google-Extended",
+        "PerplexityBot"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "Start Block AI Crawlers",
+        "End Block AI Crawlers"
+      ]
+    },
+    {
+      "source": "mother-jones",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "huffpost",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "washington-examiner",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "CCBot",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "washington-times",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "CCBot"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "national-review",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "daily-wire",
+      "robots_status": 404,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "breitbart",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "the-free-press",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": "yes",
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "reason",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "post-millennial",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "cnbc",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "business-insider",
+      "robots_status": 404,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "ClaudeBot",
+        "CCBot",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "mining-weekly",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "phys-org",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "sciencedaily",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "ars-technica",
+      "robots_status": 404,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "the-verge",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "wired",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "space-com",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "Applebot-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "AI crawlers"
+      ]
+    },
+    {
+      "source": "espn",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "CCBot",
+        "Google-Extended",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "variety",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "deadline",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "rolling-stone",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "upworthy",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "reasons-to-be-cheerful",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "Block AI and LLM bots"
+      ]
+    },
+    {
+      "source": "optimist-daily",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    }
+  ]
+}

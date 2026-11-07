@@ -1,10 +1,11 @@
 import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 
 export const LEANS = ["left", "centre-left", "centre", "centre-right", "right"] as const;
 export const CONTENT_TYPES = ["news", "analysis", "opinion", "feel-good"] as const;
 export const PAYWALLS = ["free", "partial", "paywalled"] as const;
 export const RATING_REGIONS = ["AU", "US", "UK"] as const;
-export const FEED_VIA = ["direct", "google-news"] as const;
+export const FEED_VIA = ["direct"] as const;
 export const SECTIONS = [
   "local-wa",
   "australia",
@@ -16,6 +17,8 @@ export const SECTIONS = [
   "entertainment",
   "feel-good",
 ] as const;
+/** Sections where a source may have no political lean (it is then left out of the coverage bar). */
+export const NON_POLITICAL_SECTIONS: readonly Section[] = ["sport", "science-tech", "entertainment", "feel-good"];
 
 export type Lean = (typeof LEANS)[number];
 export type BarLean = "left" | "centre" | "right";
@@ -37,6 +40,10 @@ export interface Source {
   paywall: (typeof PAYWALLS)[number];
   region_of_rating: (typeof RATING_REGIONS)[number];
   enabled: boolean;
+  /** Whether article text beyond the feed's title + description may be fetched and processed (step 0.5). */
+  full_text_allowed: boolean;
+  /** Whether this source's titles/descriptions may be sent to AI models (embeddings, summaries). False = headline + link only. */
+  ai_input_allowed: boolean;
   feeds: Feed[];
   notes?: string;
 }
@@ -87,13 +94,19 @@ export function validateSources(config: unknown): string[] {
     if (typeof s.name !== "string" || !s.name) problems.push(`${at}: name missing`);
     if (!isHttpsUrl(s.homepage)) problems.push(`${at}: homepage must be an https URL`);
     if (!isOneOf(CONTENT_TYPES, s.content_type)) problems.push(`${at}: content_type must be one of ${CONTENT_TYPES.join(", ")}`);
-    if (s.content_type === "feel-good" ? s.lean !== null : !isOneOf(LEANS, s.lean)) {
-      problems.push(`${at}: lean must be one of ${LEANS.join(", ")} (or null for feel-good sources only)`);
+    if (s.lean === null) {
+      const political = (s.feeds ?? []).flatMap((f) => f?.sections ?? []).filter((x) => !NON_POLITICAL_SECTIONS.includes(x));
+      if (political.length > 0) problems.push(`${at}: lean is required for sources in ${[...new Set(political)].join(", ")}`);
+    } else if (!isOneOf(LEANS, s.lean)) {
+      problems.push(`${at}: lean must be one of ${LEANS.join(", ")} or null`);
     }
     if (typeof s.owner_group !== "string" || !s.owner_group) problems.push(`${at}: owner_group missing`);
     if (!isOneOf(PAYWALLS, s.paywall)) problems.push(`${at}: paywall must be one of ${PAYWALLS.join(", ")}`);
     if (!isOneOf(RATING_REGIONS, s.region_of_rating)) problems.push(`${at}: region_of_rating must be one of ${RATING_REGIONS.join(", ")}`);
     if (typeof s.enabled !== "boolean") problems.push(`${at}: enabled must be true or false`);
+    if (typeof s.full_text_allowed !== "boolean") problems.push(`${at}: full_text_allowed must be true or false`);
+    if (typeof s.ai_input_allowed !== "boolean") problems.push(`${at}: ai_input_allowed must be true or false`);
+    if (s.full_text_allowed && !s.ai_input_allowed) problems.push(`${at}: full_text_allowed requires ai_input_allowed`);
     if (!Array.isArray(s.feeds)) return problems.push(`${at}: feeds must be an array`);
     if (s.enabled && s.feeds.length === 0) problems.push(`${at}: enabled source has no feeds (set enabled to false and note why)`);
     s.feeds.forEach((f, j) => {
@@ -115,7 +128,7 @@ export async function loadSources(path: URL = SOURCES_PATH): Promise<SourcesConf
   const config: unknown = JSON.parse(await readFile(path, "utf8"));
   const problems = validateSources(config);
   if (problems.length > 0) {
-    throw new Error(`Invalid ${path.pathname}:\n  - ${problems.join("\n  - ")}`);
+    throw new Error(`Invalid ${fileURLToPath(path)}:\n  - ${problems.join("\n  - ")}`);
   }
   return config as SourcesConfig;
 }
