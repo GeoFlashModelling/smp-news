@@ -1,0 +1,55 @@
+name: Snapshot (step 0.7)
+
+# Hourly capture of feed items into the private state repo, for test fixtures and cron-lateness data.
+# Stops itself after SNAPSHOT_UNTIL; disable the workflow once the window has passed.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: state-repo
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      SNAPSHOT_UNTIL: "2026-11-08T12:30:00Z"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: GeoFlashModelling/smp-news-state
+          token: ${{ secrets.STATE_REPO_TOKEN }}
+          path: state
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run snapshot
+        env:
+          SNAPSHOT_DIR: state/snapshots/step-0.7
+          SCHEDULE: ${{ github.event.schedule }}
+      - name: Commit to state repo
+        working-directory: state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -q -m "Snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
+          for attempt in 1 2 3; do
+            git push -q && exit 0
+            sleep $((attempt * 5))
+            git pull -q --rebase
+          done
+          exit 1

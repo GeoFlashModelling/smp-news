@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "validate-config": "tsx src/tools/validate-config.ts",
     "check-feeds": "tsx src/tools/check-feeds.ts",
-    "check-terms": "tsx src/tools/check-terms.ts"
+    "check-terms": "tsx src/tools/check-terms.ts",
+    "snapshot": "tsx src/tools/snapshot.ts"
   },
   "devDependencies": {
     "@types/node": "24.19.2",
