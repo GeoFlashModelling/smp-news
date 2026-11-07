@@ -9,7 +9,9 @@
   },
   "scripts": {
     "edition": "tsx src/edition.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "validate-config": "tsx src/tools/validate-config.ts",
+    "check-feeds": "tsx src/tools/check-feeds.ts"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

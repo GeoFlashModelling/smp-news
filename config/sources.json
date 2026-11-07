@@ -1,0 +1,411 @@
+{
+  "version": 1,
+  "checked": "2026-11-07",
+  "sources": [
+    {
+      "id": "abc",
+      "name": "ABC News",
+      "homepage": "https://www.abc.net.au/news",
+      "lean": "centre-left",
+      "content_type": "news",
+      "owner_group": "ABC",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://www.abc.net.au/news/feed/10719986/rss.xml", "sections": ["australia"], "via": "direct" },
+        { "url": "https://www.abc.net.au/news/feed/5313390/rss.xml", "sections": ["local-wa"], "via": "direct" },
+        { "url": "https://www.abc.net.au/news/feed/104217382/rss.xml", "sections": ["world"], "via": "direct" },
+        { "url": "https://www.abc.net.au/news/feed/104217372/rss.xml", "sections": ["politics"], "via": "direct" },
+        { "url": "https://www.abc.net.au/news/feed/51892/rss.xml", "sections": ["business"], "via": "direct" },
+        { "url": "https://www.abc.net.au/news/feed/2298/rss.xml", "sections": ["science-tech"], "via": "direct" },
+        { "url": "https://www.abc.net.au/news/feed/2942460/rss.xml", "sections": ["sport"], "via": "direct" }
+      ],
+      "notes": "ABC no longer advertises feeds (2024) but topic feeds still update. IDs from james.cridland.net list. World/Politics feeds hold only ~4 items."
+    },
+    {
+      "id": "sbs",
+      "name": "SBS News",
+      "homepage": "https://www.sbs.com.au/news",
+      "lean": "centre-left",
+      "content_type": "news",
+      "owner_group": "SBS",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://www.sbs.com.au/news/topic/australia/feed", "sections": ["australia", "politics"], "via": "direct" },
+        { "url": "https://www.sbs.com.au/news/topic/world/feed", "sections": ["world"], "via": "direct" }
+      ],
+      "notes": "The main /news/feed stopped updating around Aug 2026; topic feeds are current. Inkline records SBS as blocking AI crawlers (check in step 0.5)."
+    },
+    {
+      "id": "guardian-au",
+      "name": "The Guardian Australia",
+      "homepage": "https://www.theguardian.com/au",
+      "lean": "left",
+      "content_type": "news",
+      "owner_group": "Guardian Media Group",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://www.theguardian.com/australia-news/rss", "sections": ["australia"], "via": "direct" },
+        { "url": "https://www.theguardian.com/australia-news/australian-politics/rss", "sections": ["politics"], "via": "direct" },
+        { "url": "https://www.theguardian.com/world/rss", "sections": ["world"], "via": "direct" },
+        { "url": "https://www.theguardian.com/science/rss", "sections": ["science-tech"], "via": "direct" }
+      ]
+    },
+    {
+      "id": "the-conversation-au",
+      "name": "The Conversation (AU)",
+      "homepage": "https://theconversation.com/au",
+      "lean": "centre-left",
+      "content_type": "analysis",
+      "owner_group": "The Conversation",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://theconversation.com/au/articles.atom", "sections": ["science-tech", "politics", "business"], "via": "direct" }
+      ],
+      "notes": "Academic authors; CC BY-ND licence (record terms in step 0.5)."
+    },
+    {
+      "id": "the-new-daily",
+      "name": "The New Daily",
+      "homepage": "https://thenewdaily.com.au",
+      "lean": "centre-left",
+      "content_type": "news",
+      "owner_group": "Industry Super Holdings",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://news.google.com/rss/search?q=site:thenewdaily.com.au+when:2d&hl=en-AU&gl=AU&ceid=AU:en", "sections": ["australia", "politics", "business"], "via": "google-news" }
+      ],
+      "notes": "Own feed (/feed/) blocked by a Cloudflare bot challenge (403). Headline fallback via Google News."
+    },
+    {
+      "id": "michael-west-media",
+      "name": "Michael West Media",
+      "homepage": "https://michaelwest.com.au",
+      "lean": "left",
+      "content_type": "news",
+      "owner_group": "Michael West Media",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://news.google.com/rss/search?q=site:michaelwest.com.au+when:3d&hl=en-AU&gl=AU&ceid=AU:en", "sections": ["politics", "business"], "via": "google-news" }
+      ],
+      "notes": "Own feed returns 403 to any non-browser client. Headline fallback via Google News. Independent investigative."
+    },
+    {
+      "id": "crikey",
+      "name": "Crikey",
+      "homepage": "https://www.crikey.com.au",
+      "lean": "left",
+      "content_type": "news",
+      "owner_group": "Private Media",
+      "paywall": "partial",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://www.crikey.com.au/feed/", "sections": ["politics"], "via": "direct" }
+      ],
+      "notes": "Mostly paywalled: counts towards coverage, headline only."
+    },
+    {
+      "id": "9news",
+      "name": "9News",
+      "homepage": "https://www.nine.com.au",
+      "lean": "centre",
+      "content_type": "news",
+      "owner_group": "Nine",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://news.google.com/rss/search?q=site:nine.com.au+when:1d&hl=en-AU&gl=AU&ceid=AU:en", "sections": ["australia", "world", "sport", "entertainment"], "via": "google-news" }
+      ],
+      "notes": "9news.com.au now redirects to nine.com.au; /rss has returned 404 since June 2026. Headline fallback via Google News (includes non-news Nine content). Nine is also covered by WAtoday."
+    },
+    {
+      "id": "7news",
+      "name": "7News",
+      "homepage": "https://7news.com.au",
+      "lean": "centre",
+      "content_type": "news",
+      "owner_group": "Seven West Media",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://7news.com.au/rss", "sections": ["australia", "world", "sport", "entertainment"], "via": "direct" }
+      ]
+    },
+    {
+      "id": "watoday",
+      "name": "WAtoday",
+      "homepage": "https://www.watoday.com.au",
+      "lean": "centre",
+      "content_type": "news",
+      "owner_group": "Nine",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://www.watoday.com.au/rss/feed.xml", "sections": ["local-wa"], "via": "direct" },
+        { "url": "https://www.watoday.com.au/rss/national.xml", "sections": ["australia"], "via": "direct" }
+      ]
+    },
+    {
+      "id": "perthnow",
+      "name": "PerthNow",
+      "homepage": "https://www.perthnow.com.au",
+      "lean": "centre-right",
+      "content_type": "news",
+      "owner_group": "Seven West Media",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://www.perthnow.com.au/news/feed", "sections": ["local-wa", "australia", "sport", "entertainment"], "via": "direct" }
+      ]
+    },
+    {
+      "id": "news-com-au",
+      "name": "news.com.au",
+      "homepage": "https://www.news.com.au",
+      "lean": "centre-right",
+      "content_type": "news",
+      "owner_group": "News Corp",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://news.google.com/rss/search?q=site:news.com.au+when:1d&hl=en-AU&gl=AU&ceid=AU:en", "sections": ["australia", "world", "entertainment", "sport", "business"], "via": "google-news" }
+      ],
+      "notes": "News Corp sites send non-browser clients to a cookie wall (/nocookies); own feeds return empty or 403. Headline fallback via Google News."
+    },
+    {
+      "id": "news24",
+      "name": "News24 (formerly Sky News Australia)",
+      "homepage": "https://www.news24.com.au",
+      "lean": "right",
+      "content_type": "news",
+      "owner_group": "News Corp",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://news.google.com/rss/search?q=site:news24.com.au+when:1d&hl=en-AU&gl=AU&ceid=AU:en", "sections": ["australia", "politics", "world"], "via": "google-news" }
+      ],
+      "notes": "Sky News Australia rebranded as News24 on 27 July 2026; skynews.com.au redirects. News Corp cookie wall blocks feeds. Headline fallback via Google News."
+    },
+    {
+      "id": "spectator-au",
+      "name": "The Spectator Australia",
+      "homepage": "https://www.spectator.com.au",
+      "lean": "right",
+      "content_type": "opinion",
+      "owner_group": "Press Holdings",
+      "paywall": "partial",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://www.spectator.com.au/feed/", "sections": ["politics"], "via": "direct" }
+      ],
+      "notes": "Opinion-heavy: excluded from agreement counting."
+    },
+    {
+      "id": "quadrant",
+      "name": "Quadrant Online",
+      "homepage": "https://quadrant.org.au",
+      "lean": "right",
+      "content_type": "opinion",
+      "owner_group": "Quadrant",
+      "paywall": "partial",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://quadrant.org.au/feed/", "sections": ["politics"], "via": "direct" }
+      ],
+      "notes": "Opinion-heavy: excluded from agreement counting."
+    },
+    {
+      "id": "the-australian",
+      "name": "The Australian",
+      "homepage": "https://www.theaustralian.com.au",
+      "lean": "centre-right",
+      "content_type": "news",
+      "owner_group": "News Corp",
+      "paywall": "paywalled",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://news.google.com/rss/search?q=site:theaustralian.com.au+when:1d&hl=en-AU&gl=AU&ceid=AU:en", "sections": ["politics", "business"], "via": "google-news" }
+      ],
+      "notes": "Paywalled: headline-only coverage counting. Own feed blocked by News Corp cookie wall."
+    },
+    {
+      "id": "daily-telegraph",
+      "name": "Daily Telegraph (Sydney)",
+      "homepage": "https://www.dailytelegraph.com.au",
+      "lean": "right",
+      "content_type": "news",
+      "owner_group": "News Corp",
+      "paywall": "paywalled",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://news.google.com/rss/search?q=site:dailytelegraph.com.au+when:1d&hl=en-AU&gl=AU&ceid=AU:en", "sections": ["australia"], "via": "google-news" }
+      ],
+      "notes": "Paywalled: headline-only coverage counting. Own feed blocked by News Corp cookie wall."
+    },
+    {
+      "id": "bbc-world",
+      "name": "BBC News World",
+      "homepage": "https://www.bbc.com/news/world",
+      "lean": "centre",
+      "content_type": "news",
+      "owner_group": "BBC",
+      "paywall": "free",
+      "region_of_rating": "UK",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "sections": ["world"], "via": "direct" }
+      ]
+    },
+    {
+      "id": "al-jazeera",
+      "name": "Al Jazeera English",
+      "homepage": "https://www.aljazeera.com",
+      "lean": "centre-left",
+      "content_type": "news",
+      "owner_group": "Al Jazeera Media Network",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://www.aljazeera.com/xml/rss/all.xml", "sections": ["world"], "via": "direct" }
+      ],
+      "notes": "Lean taken from US-based ratings (no AU rating available)."
+    },
+    {
+      "id": "npr-world",
+      "name": "NPR World",
+      "homepage": "https://www.npr.org/sections/world/",
+      "lean": "centre-left",
+      "content_type": "news",
+      "owner_group": "NPR",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://feeds.npr.org/1004/rss.xml", "sections": ["world"], "via": "direct" }
+      ]
+    },
+    {
+      "id": "fox-world",
+      "name": "Fox News World",
+      "homepage": "https://www.foxnews.com/world",
+      "lean": "right",
+      "content_type": "news",
+      "owner_group": "Fox Corporation",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://moxie.foxnews.com/google-publisher/world.xml", "sections": ["world"], "via": "direct" }
+      ]
+    },
+    {
+      "id": "ny-post",
+      "name": "New York Post",
+      "homepage": "https://nypost.com",
+      "lean": "right",
+      "content_type": "news",
+      "owner_group": "News Corp",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://nypost.com/feed/", "sections": ["world", "entertainment"], "via": "direct" }
+      ],
+      "notes": "Same owner group as news.com.au, The Australian, Daily Telegraph and News24: counts once for independence."
+    },
+    {
+      "id": "reuters",
+      "name": "Reuters",
+      "homepage": "https://www.reuters.com",
+      "lean": "centre",
+      "content_type": "news",
+      "owner_group": "Thomson Reuters",
+      "paywall": "free",
+      "region_of_rating": "UK",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://news.google.com/rss/search?q=site:reuters.com+when:1d&hl=en-AU&gl=AU&ceid=AU:en", "sections": ["world", "business"], "via": "google-news" }
+      ],
+      "notes": "Wire service, no official public RSS. Headline fallback via Google News. Wire copy reused by other outlets is de-duplicated."
+    },
+    {
+      "id": "ap",
+      "name": "Associated Press",
+      "homepage": "https://apnews.com",
+      "lean": "centre",
+      "content_type": "news",
+      "owner_group": "Associated Press",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://news.google.com/rss/search?q=site:apnews.com+when:1d&hl=en-AU&gl=AU&ceid=AU:en", "sections": ["world"], "via": "google-news" }
+      ],
+      "notes": "Wire service, no official public RSS. Headline fallback via Google News."
+    },
+    {
+      "id": "good-news-network",
+      "name": "Good News Network",
+      "homepage": "https://www.goodnewsnetwork.org",
+      "lean": null,
+      "content_type": "feel-good",
+      "owner_group": "Good News Network",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://www.goodnewsnetwork.org/feed/", "sections": ["feel-good"], "via": "direct" }
+      ]
+    },
+    {
+      "id": "positive-news",
+      "name": "Positive News",
+      "homepage": "https://www.positive.news",
+      "lean": null,
+      "content_type": "feel-good",
+      "owner_group": "Positive News",
+      "paywall": "free",
+      "region_of_rating": "UK",
+      "enabled": true,
+      "feeds": [
+        { "url": "https://www.positive.news/feed/", "sections": ["feel-good"], "via": "direct" }
+      ]
+    },
+    {
+      "id": "au-feel-good",
+      "name": "Australian feel-good source",
+      "homepage": "https://www.abc.net.au/news",
+      "lean": null,
+      "content_type": "feel-good",
+      "owner_group": "ABC",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": false,
+      "feeds": [],
+      "notes": "Unavailable: no Australian feel-good feed found yet. Feel Good page uses Good News Network and Positive News until one is found."
+    }
+  ]
+}

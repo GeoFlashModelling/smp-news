@@ -44,4 +44,34 @@ If the token ever leaks, click **Delete** on the token page immediately, then cr
 
 ## Recipes
 
-*Added as each part of the pipeline is built:* pausing and resuming the site, re-running a failed edition, switching AI provider, adding or disabling a source, taking down a story, rotating keys, rolling back, reading a failed Actions log.
+### Check which news feeds are working
+
+```
+cd "D:\Cursor Projects\SMP_News\app"
+npm run check-feeds
+```
+
+Prints a table: ✅ / ❌ per feed, HTTP status, item count, age of the newest item and the problem if any. A feed whose newest item is over 48 hours old is flagged **stale** (a feed can keep answering long after the outlet stops updating it). Full results are saved to `.cache/feed-check.json`.
+
+### Add, fix or disable a source
+
+All sources live in `config/sources.json`. Each source has:
+
+| Field | Meaning |
+|---|---|
+| `id` | Short lowercase name, e.g. `perthnow` |
+| `lean` | `left`, `centre-left`, `centre`, `centre-right` or `right` (`null` only for feel-good sources). The coverage bar folds this to left / centre / right |
+| `content_type` | `news`, `analysis`, `opinion` (not counted towards agreement) or `feel-good` |
+| `owner_group` | Parent company, e.g. `News Corp`. Outlets with the same owner count once for independence |
+| `paywall` | `free`, `partial` or `paywalled` |
+| `region_of_rating` | Where the lean rating comes from: `AU`, `US` or `UK` |
+| `enabled` | `false` switches the source off without deleting it |
+| `feeds` | One or more `{ url, sections, via }`. `via` is `direct` (the outlet's own feed) or `google-news` (headline-only fallback when the outlet blocks automated feed readers) |
+
+To **disable** a source: set `"enabled": false` and add a `notes` line saying why.
+To **fix a broken feed**: find the outlet's new feed address, replace `url`, then run `npm run check-feeds`.
+To **add a source**: copy an existing entry, change every field, then run `npm run validate-config` and `npm run check-feeds`.
+
+Valid sections: `local-wa`, `australia`, `world`, `politics`, `business`, `sport`, `science-tech`, `entertainment`, `feel-good`. CI rejects any push where `sources.json` is invalid.
+
+*Still to come as the pipeline is built:* pausing and resuming the site, re-running a failed edition, switching AI provider, taking down a story, rotating keys, rolling back, reading a failed Actions log.
