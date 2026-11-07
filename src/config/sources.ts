@@ -2,7 +2,14 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 export const LEANS = ["left", "centre-left", "centre", "centre-right", "right"] as const;
-export const CONTENT_TYPES = ["news", "analysis", "opinion", "feel-good"] as const;
+/**
+ * `community`: local/suburban/regional papers, student papers, community radio. Unrated (lean null allowed anywhere);
+ *   shown in the coverage bar as a separate "local / unrated" segment.
+ * `official`: government, police, university newsrooms. Lean must be null; never counted in the coverage bar.
+ */
+export const CONTENT_TYPES = ["news", "analysis", "opinion", "feel-good", "community", "official"] as const;
+/** Content types that may have no lean in any section. */
+export const UNRATED_CONTENT_TYPES: readonly (typeof CONTENT_TYPES)[number][] = ["community", "official"];
 export const PAYWALLS = ["free", "partial", "paywalled"] as const;
 export const RATING_REGIONS = ["AU", "US", "UK"] as const;
 export const FEED_VIA = ["direct"] as const;
@@ -45,6 +52,8 @@ export interface Source {
   /** Whether this source's titles/descriptions may be sent to AI models (embeddings, summaries). False = headline + link only. */
   ai_input_allowed: boolean;
   feeds: Feed[];
+  /** Hours without a new item before a feed counts as stale; for outlets that publish weekly. Default 48. */
+  stale_hours?: number;
   notes?: string;
 }
 
@@ -94,10 +103,12 @@ export function validateSources(config: unknown): string[] {
     if (typeof s.name !== "string" || !s.name) problems.push(`${at}: name missing`);
     if (!isHttpsUrl(s.homepage)) problems.push(`${at}: homepage must be an https URL`);
     if (!isOneOf(CONTENT_TYPES, s.content_type)) problems.push(`${at}: content_type must be one of ${CONTENT_TYPES.join(", ")}`);
-    if (s.lean === null) {
+    if (s.content_type === "official" && s.lean !== null) {
+      problems.push(`${at}: official sources must have lean null`);
+    } else if (s.lean === null && !UNRATED_CONTENT_TYPES.includes(s.content_type)) {
       const political = (s.feeds ?? []).flatMap((f) => f?.sections ?? []).filter((x) => !NON_POLITICAL_SECTIONS.includes(x));
       if (political.length > 0) problems.push(`${at}: lean is required for sources in ${[...new Set(political)].join(", ")}`);
-    } else if (!isOneOf(LEANS, s.lean)) {
+    } else if (s.lean !== null && !isOneOf(LEANS, s.lean)) {
       problems.push(`${at}: lean must be one of ${LEANS.join(", ")} or null`);
     }
     if (typeof s.owner_group !== "string" || !s.owner_group) problems.push(`${at}: owner_group missing`);
@@ -107,6 +118,7 @@ export function validateSources(config: unknown): string[] {
     if (typeof s.full_text_allowed !== "boolean") problems.push(`${at}: full_text_allowed must be true or false`);
     if (typeof s.ai_input_allowed !== "boolean") problems.push(`${at}: ai_input_allowed must be true or false`);
     if (s.full_text_allowed && !s.ai_input_allowed) problems.push(`${at}: full_text_allowed requires ai_input_allowed`);
+    if (s.stale_hours !== undefined && !(Number.isInteger(s.stale_hours) && s.stale_hours > 0)) problems.push(`${at}: stale_hours must be a positive whole number`);
     if (!Array.isArray(s.feeds)) return problems.push(`${at}: feeds must be an array`);
     if (s.enabled && s.feeds.length === 0) problems.push(`${at}: enabled source has no feeds (set enabled to false and note why)`);
     s.feeds.forEach((f, j) => {

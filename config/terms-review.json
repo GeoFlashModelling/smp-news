@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-07T11:54:40.010Z",
+  "reviewed_at": "2026-11-07T12:13:21.736Z",
   "user_agent": "SMPNewsBot/0.1 (+https://news.duringgames.com)",
   "results": [
     {
@@ -1215,6 +1215,385 @@
     },
     {
       "source": "nasa-image-of-the-day",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "inside-story",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "include providing AI-generated search summaries.",
+        "ai-input: inputting content into one or more AI models (e.g., retrieval",
+        "generative AI search answers)."
+      ]
+    },
+    {
+      "source": "the-klaxon",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "croakey",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "include providing AI-generated search summaries.",
+        "ai-input: inputting content into one or more AI models (e.g., retrieval",
+        "generative AI search answers)."
+      ]
+    },
+    {
+      "source": "national-indigenous-times",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "prohibited except (1) for the purpose of search engine indexing or",
+        "artificial intelligence retrieval augmented generation or (2) with express",
+        "Search engines & AI assistants — explicitly welcome"
+      ]
+    },
+    {
+      "source": "koori-mail",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "include providing AI-generated search summaries.",
+        "ai-input: inputting content into one or more AI models (e.g., retrieval",
+        "generative AI search answers)."
+      ]
+    },
+    {
+      "source": "epoch-times-au",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "daily-declaration",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "cis",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "australia-institute",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "include providing AI-generated search summaries.",
+        "ai-input: inputting content into one or more AI models (e.g., retrieval",
+        "generative AI search answers)."
+      ]
+    },
+    {
+      "source": "lowy-interpreter",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "aspi-strategist",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "region",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "citynews-canberra",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "include providing AI-generated search summaries.",
+        "ai-input: inputting content into one or more AI models (e.g., retrieval",
+        "generative AI search answers)."
+      ]
+    },
+    {
+      "source": "tasmanian-times",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "CCBot",
+        "Google-Extended"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "=== Block AI training bots ===",
+        "=== Explicitly allow AI retrieval/search bots ==="
+      ]
+    },
+    {
+      "source": "pulse-tasmania",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "star-weekly",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "include providing AI-generated search summaries.",
+        "ai-input: inputting content into one or more AI models (e.g., retrieval",
+        "generative AI search answers)."
+      ]
+    },
+    {
+      "source": "newcastle-weekly",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "honi-soit",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "mumbrella",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "community-news-wa",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "business-news-wa",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "Google-Extended"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "mandurah-mail",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": true,
+      "notices": [
+        "Australian Community Media expressly prohibits the use of any ACM",
+        "learning and/or artificial intelligence purposes, including the",
+        "training, development, or operation of AI technologies, tools, or"
+      ]
+    },
+    {
+      "source": "rtrfm",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "pm-gov-au",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "monash-lens",
       "robots_status": 200,
       "feeds_allowed": true,
       "blocked_feeds": [],

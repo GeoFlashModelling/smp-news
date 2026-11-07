@@ -47,7 +47,7 @@ async function checkFeed(source: Source, feed: Feed): Promise<FeedResult> {
     let problem: string | null = null;
     if (!res.ok) problem = `HTTP ${res.status}`;
     else if (items === 0) problem = "no items (not a feed, or empty)";
-    else if (age !== null && age > STALE_HOURS) problem = `stale (newest item ${age} h old)`;
+    else if (age !== null && age > (source.stale_hours ?? STALE_HOURS)) problem = `stale (newest item ${age} h old)`;
     if (problem === null && res.url !== feed.url && new URL(res.url).host !== new URL(feed.url).host) {
       problem = `redirected to ${new URL(res.url).host}`;
     }

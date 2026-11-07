@@ -63,6 +63,13 @@
             "sport"
           ],
           "via": "direct"
+        },
+        {
+          "url": "https://www.abc.net.au/news/feed/8057540/rss.xml",
+          "sections": [
+            "australia"
+          ],
+          "via": "direct"
         }
       ],
       "notes": "ABC no longer advertises feeds (2024) but topic feeds still update. IDs from james.cridland.net list. World/Politics feeds hold only ~4 items."
@@ -554,6 +561,13 @@
           "sections": [
             "local-wa",
             "australia"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://www.thewest.com.au/news/regional/rss",
+          "sections": [
+            "local-wa"
           ],
           "via": "direct"
         }
@@ -1741,6 +1755,7 @@
           "via": "direct"
         }
       ],
+      "stale_hours": 168,
       "notes": "Australian-founded newsletter of good news on health, climate and progress. Weekly-ish; may show as stale between issues."
     },
     {
@@ -1858,6 +1873,593 @@
         }
       ],
       "notes": "Public domain (US Government work)."
+    },
+    {
+      "id": "inside-story",
+      "name": "Inside Story",
+      "homepage": "https://insidestory.org.au",
+      "lean": "centre-left",
+      "content_type": "analysis",
+      "owner_group": "Inside Story (Swinburne)",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://insidestory.org.au/feed/",
+          "sections": [
+            "australia",
+            "politics"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Lean is editorial judgement (not rated by AllSides/MBFC)."
+    },
+    {
+      "id": "the-klaxon",
+      "name": "The Klaxon",
+      "homepage": "https://theklaxon.com.au",
+      "lean": "centre",
+      "content_type": "news",
+      "owner_group": "The Klaxon",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://theklaxon.com.au/feed/",
+          "sections": [
+            "australia",
+            "politics"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Independent investigative outlet. Lean is editorial judgement (not rated by AllSides/MBFC)."
+    },
+    {
+      "id": "croakey",
+      "name": "Croakey Health Media",
+      "homepage": "https://www.croakey.org",
+      "lean": "centre-left",
+      "content_type": "analysis",
+      "owner_group": "Croakey Health Media",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.croakey.org/feed/",
+          "sections": [
+            "australia",
+            "science-tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Public-health journalism. Lean is editorial judgement (not rated by AllSides/MBFC)."
+    },
+    {
+      "id": "national-indigenous-times",
+      "name": "National Indigenous Times",
+      "homepage": "https://nit.com.au",
+      "lean": "centre-left",
+      "content_type": "news",
+      "owner_group": "National Indigenous Times",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://nit.com.au/feed/articles",
+          "sections": [
+            "australia",
+            "politics"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Indigenous-owned national news. Lean is editorial judgement (not rated by AllSides/MBFC)."
+    },
+    {
+      "id": "koori-mail",
+      "name": "Koori Mail",
+      "homepage": "https://koorimail.com",
+      "lean": null,
+      "content_type": "community",
+      "owner_group": "Koori Mail",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://koorimail.com/feed/",
+          "sections": [
+            "australia"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Aboriginal-owned national newspaper."
+    },
+    {
+      "id": "epoch-times-au",
+      "name": "The Epoch Times (Australia)",
+      "homepage": "https://www.theepochtimes.com/world/australia",
+      "lean": "right",
+      "content_type": "news",
+      "owner_group": "Epoch Media Group",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.theepochtimes.com/world/australia/feed",
+          "sections": [
+            "australia",
+            "politics"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "AllSides: Lean Right. MBFC rates factual reporting as mixed; one of few right-leaning outlets reporting Australian news daily."
+    },
+    {
+      "id": "daily-declaration",
+      "name": "The Daily Declaration",
+      "homepage": "https://dailydeclaration.org.au",
+      "lean": "right",
+      "content_type": "opinion",
+      "owner_group": "Australian Christian Lobby",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://dailydeclaration.org.au/feed/",
+          "sections": [
+            "australia",
+            "politics"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Christian conservative commentary. Lean is editorial judgement (not rated by AllSides/MBFC)."
+    },
+    {
+      "id": "cis",
+      "name": "Centre for Independent Studies",
+      "homepage": "https://www.cis.org.au",
+      "lean": "centre-right",
+      "content_type": "analysis",
+      "owner_group": "Centre for Independent Studies",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.cis.org.au/feed/",
+          "sections": [
+            "australia",
+            "politics"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Classical-liberal think tank. Lean is editorial judgement (not rated by AllSides/MBFC)."
+    },
+    {
+      "id": "australia-institute",
+      "name": "The Australia Institute",
+      "homepage": "https://australiainstitute.org.au",
+      "lean": "centre-left",
+      "content_type": "analysis",
+      "owner_group": "The Australia Institute",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://australiainstitute.org.au/feed/",
+          "sections": [
+            "australia",
+            "politics"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Progressive think tank. Lean is editorial judgement (not rated by AllSides/MBFC)."
+    },
+    {
+      "id": "lowy-interpreter",
+      "name": "The Interpreter (Lowy Institute)",
+      "homepage": "https://www.lowyinstitute.org/the-interpreter",
+      "lean": "centre",
+      "content_type": "analysis",
+      "owner_group": "Lowy Institute",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.lowyinstitute.org/the-interpreter/rss.xml",
+          "sections": [
+            "world",
+            "politics"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Foreign-policy analysis. Lean is editorial judgement (not rated by AllSides/MBFC)."
+    },
+    {
+      "id": "aspi-strategist",
+      "name": "The Strategist (ASPI)",
+      "homepage": "https://www.aspistrategist.org.au",
+      "lean": "centre-right",
+      "content_type": "analysis",
+      "owner_group": "Australian Strategic Policy Institute",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.aspistrategist.org.au/feed/",
+          "sections": [
+            "world",
+            "politics"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Defence and security analysis. Lean is editorial judgement (not rated by AllSides/MBFC)."
+    },
+    {
+      "id": "region",
+      "name": "Region (RiotACT)",
+      "homepage": "https://region.com.au",
+      "lean": null,
+      "content_type": "community",
+      "owner_group": "Region Group",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://region.com.au/feed/",
+          "sections": [
+            "australia"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Canberra and regional NSW local news."
+    },
+    {
+      "id": "citynews-canberra",
+      "name": "CityNews Canberra",
+      "homepage": "https://citynews.com.au",
+      "lean": null,
+      "content_type": "community",
+      "owner_group": "CityNews",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://citynews.com.au/feed/",
+          "sections": [
+            "australia"
+          ],
+          "via": "direct"
+        }
+      ]
+    },
+    {
+      "id": "tasmanian-times",
+      "name": "Tasmanian Times",
+      "homepage": "https://tasmaniantimes.com",
+      "lean": null,
+      "content_type": "community",
+      "owner_group": "Tasmanian Times",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://tasmaniantimes.com/feed/",
+          "sections": [
+            "australia"
+          ],
+          "via": "direct"
+        }
+      ]
+    },
+    {
+      "id": "pulse-tasmania",
+      "name": "Pulse Tasmania",
+      "homepage": "https://pulsetasmania.com.au",
+      "lean": null,
+      "content_type": "community",
+      "owner_group": "Pulse Tasmania",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://pulsetasmania.com.au/feed/",
+          "sections": [
+            "australia"
+          ],
+          "via": "direct"
+        }
+      ]
+    },
+    {
+      "id": "star-weekly",
+      "name": "Star Weekly",
+      "homepage": "https://starweekly.com.au",
+      "lean": null,
+      "content_type": "community",
+      "owner_group": "Star Weekly",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://starweekly.com.au/feed/",
+          "sections": [
+            "australia"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Melbourne north and west suburban papers."
+    },
+    {
+      "id": "newcastle-weekly",
+      "name": "Newcastle Weekly",
+      "homepage": "https://newcastleweekly.com.au",
+      "lean": null,
+      "content_type": "community",
+      "owner_group": "Newcastle Weekly",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://newcastleweekly.com.au/feed/",
+          "sections": [
+            "australia"
+          ],
+          "via": "direct"
+        }
+      ]
+    },
+    {
+      "id": "honi-soit",
+      "name": "Honi Soit",
+      "homepage": "https://honisoit.com",
+      "lean": null,
+      "content_type": "community",
+      "owner_group": "University of Sydney SRC",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://honisoit.com/feed/",
+          "sections": [
+            "australia"
+          ],
+          "via": "direct"
+        }
+      ],
+      "stale_hours": 336,
+      "notes": "Student newspaper."
+    },
+    {
+      "id": "mumbrella",
+      "name": "Mumbrella",
+      "homepage": "https://mumbrella.com.au",
+      "lean": null,
+      "content_type": "community",
+      "owner_group": "Focal Attractions",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://mumbrella.com.au/feed",
+          "sections": [
+            "business",
+            "entertainment"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Media and marketing industry news."
+    },
+    {
+      "id": "community-news-wa",
+      "name": "Community News (Perth)",
+      "homepage": "https://www.communitynews.com.au",
+      "lean": null,
+      "content_type": "community",
+      "owner_group": "Seven West Media",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.communitynews.com.au/feed/",
+          "sections": [
+            "local-wa"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Perth suburban papers; same owner as The West, so not an independent voice."
+    },
+    {
+      "id": "business-news-wa",
+      "name": "Business News WA",
+      "homepage": "https://www.businessnews.com.au",
+      "lean": null,
+      "content_type": "community",
+      "owner_group": "Business News",
+      "paywall": "partial",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.businessnews.com.au/rssfeed/latest.rss",
+          "sections": [
+            "local-wa",
+            "business"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "WA business news."
+    },
+    {
+      "id": "mandurah-mail",
+      "name": "Mandurah Mail",
+      "homepage": "https://www.mandurahmail.com.au",
+      "lean": null,
+      "content_type": "community",
+      "owner_group": "Australian Community Media",
+      "paywall": "partial",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": false,
+      "feeds": [
+        {
+          "url": "https://www.mandurahmail.com.au/rss.xml",
+          "sections": [
+            "local-wa"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "ACM title; ACM terms ban AI use, so headline only."
+    },
+    {
+      "id": "rtrfm",
+      "name": "RTRFM 92.1",
+      "homepage": "https://rtrfm.com.au",
+      "lean": null,
+      "content_type": "community",
+      "owner_group": "RTRFM",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://rtrfm.com.au/feed/",
+          "sections": [
+            "local-wa",
+            "entertainment"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Perth community radio (music and arts)."
+    },
+    {
+      "id": "pm-gov-au",
+      "name": "Prime Minister of Australia (media)",
+      "homepage": "https://www.pm.gov.au",
+      "lean": null,
+      "content_type": "official",
+      "owner_group": "Australian Government",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.pm.gov.au/rss.xml",
+          "sections": [
+            "politics",
+            "australia"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Official statements; shown as the government's own words, never counted in the coverage bar."
+    },
+    {
+      "id": "monash-lens",
+      "name": "Monash Lens",
+      "homepage": "https://lens.monash.edu",
+      "lean": null,
+      "content_type": "official",
+      "owner_group": "Monash University",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://lens.monash.edu/rss",
+          "sections": [
+            "science-tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "stale_hours": 168,
+      "notes": "University research news."
     },
     {
       "id": "australian-geographic",
