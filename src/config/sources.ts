@@ -54,6 +54,8 @@ export interface Source {
   feeds: Feed[];
   /** Hours without a new item before a feed counts as stale; for outlets that publish weekly. Default 48. */
   stale_hours?: number;
+  /** Shown next to the source on story pages, e.g. "Mixed factual reliability (Media Bias/Fact Check)". */
+  reliability_note?: string;
   notes?: string;
 }
 
@@ -118,6 +120,7 @@ export function validateSources(config: unknown): string[] {
     if (typeof s.full_text_allowed !== "boolean") problems.push(`${at}: full_text_allowed must be true or false`);
     if (typeof s.ai_input_allowed !== "boolean") problems.push(`${at}: ai_input_allowed must be true or false`);
     if (s.full_text_allowed && !s.ai_input_allowed) problems.push(`${at}: full_text_allowed requires ai_input_allowed`);
+    if (s.reliability_note !== undefined && (typeof s.reliability_note !== "string" || !s.reliability_note.trim())) problems.push(`${at}: reliability_note must be non-empty text`);
     if (s.stale_hours !== undefined && !(Number.isInteger(s.stale_hours) && s.stale_hours > 0)) problems.push(`${at}: stale_hours must be a positive whole number`);
     if (!Array.isArray(s.feeds)) return problems.push(`${at}: feeds must be an array`);
     if (s.enabled && s.feeds.length === 0) problems.push(`${at}: enabled source has no feeds (set enabled to false and note why)`);
