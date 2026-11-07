@@ -2,43 +2,10 @@ import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
-import { loadSources, type Feed, type Source } from "../config/sources.js";
-import { parseFeed, type FeedItem } from "../lib/feed-parse.js";
-import { FEED_ACCEPT, USER_AGENT, mapLimit } from "../lib/http.js";
+import { loadSources } from "../config/sources.js";
+import { fetchAllFeeds } from "../lib/fetch-feeds.js";
 
-const TIMEOUT_MS = 20_000;
-const CONCURRENCY = 6;
 const RUNS_HEADER = "taken_at,event,expected_at,lateness_s,feeds_ok,feeds_total,items\n";
-
-interface FeedSnapshot {
-  source: string;
-  url: string;
-  sections: string[];
-  status: number | null;
-  ok: boolean;
-  problem: string | null;
-  latency_ms: number;
-  items: FeedItem[];
-}
-
-async function snapshotFeed(source: Source, feed: Feed): Promise<FeedSnapshot> {
-  const started = Date.now();
-  const base = { source: source.id, url: feed.url, sections: feed.sections };
-  try {
-    const res = await fetch(feed.url, {
-      headers: { "user-agent": USER_AGENT, accept: FEED_ACCEPT },
-      redirect: "follow",
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    const items = res.ok ? parseFeed(await res.text()) : [];
-    const problem = !res.ok ? `HTTP ${res.status}` : items.length === 0 ? "no items" : null;
-    return { ...base, status: res.status, ok: problem === null, problem, latency_ms: Date.now() - started, items };
-  } catch (err) {
-    const e = err as Error & { cause?: { code?: string } };
-    const problem = e.name === "TimeoutError" ? `timeout after ${TIMEOUT_MS / 1000} s` : (e.cause?.code ?? e.message);
-    return { ...base, status: null, ok: false, problem, latency_ms: Date.now() - started, items: [] };
-  }
-}
 
 /** For an hourly cron ("M * * * *"), the most recent scheduled time at or before `now`. */
 export function expectedRunTime(schedule: string | undefined, now: Date): Date | null {
@@ -60,8 +27,7 @@ async function main(): Promise<void> {
 
   const dir = pathToFileURL(`${resolve(process.env.SNAPSHOT_DIR ?? ".cache/snapshots")}/`);
   const config = await loadSources();
-  const jobs = config.sources.filter((s) => s.enabled).flatMap((s) => s.feeds.map((f) => ({ s, f })));
-  const feeds = await mapLimit(jobs, CONCURRENCY, ({ s, f }) => snapshotFeed(s, f));
+  const feeds = await fetchAllFeeds(config.sources);
 
   const takenAt = now.toISOString();
   const event = process.env.GITHUB_EVENT_NAME ?? "local";

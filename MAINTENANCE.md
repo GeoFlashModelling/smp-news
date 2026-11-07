@@ -41,9 +41,28 @@ If the token ever leaks, click **Delete** on the token page immediately, then cr
 - **CI** (`.github/workflows/ci.yml`) runs the type check and a test edition on every push. A red cross on a commit means something broke.
 - **Dependabot** opens at most one grouped pull request per month for npm packages and one for GitHub Actions. Merge them if CI is green.
 - **Secret scanning with push protection** blocks any push that contains a recognisable password or token.
+- **Edition** (`.github/workflows/edition.yml`) builds the site from live feeds at :47 past every hour (and on every push that changes code or config) and publishes it to GitHub Pages at `https://thesmpnews.com`. If a build fails (for example fewer than 10 stories covered by two or more owners), nothing is deployed and the previous edition stays up. To rebuild now: Actions → Edition → **Run workflow**.
 - **Snapshot (step 0.7)** (`.github/workflows/snapshot.yml`) captures every feed's items hourly into the private `smp-news-state` repo (`snapshots/step-0.7/`) until `SNAPSHOT_UNTIL`, then does nothing. `runs.csv` there records how late each scheduled run started. Once the window has passed, turn it off: Actions → Snapshot (step 0.7) → ⋯ → Disable workflow. Run one locally with `npm run snapshot` (writes to `.cache/snapshots/`).
 
 ## Recipes
+
+### Take a story or link down
+
+Edit `config/blocklist.json` on GitHub (the mobile app works): add the article link to `urls`, or a distinctive part of its headline to `phrases` (case-insensitive). Commit to `main`; the Edition workflow rebuilds the site within a few minutes. Remove the entry later if it was a mistake.
+
+### Check how stories are being grouped
+
+```
+cd "D:\Cursor Projects\SMP_News\app"
+npm run snapshot
+npm run cluster-report -- .cache/snapshots/<file>.json.gz 0.32
+```
+
+Lists every story covered by two or more owners, with the headlines grouped into it. The second number is the similarity threshold (higher = stricter grouping); the live value is `DEFAULT_CLUSTER_OPTIONS` in `src/lib/cluster.ts`.
+
+### The domain (thesmpnews.com)
+
+Registered with Cloudflare Registrar (renews **7 Nov each year**; keep auto-renew on). DNS lives in Cloudflare: the apex `A`/`AAAA` records point to GitHub Pages and `www` is a `CNAME` to `geoflashmodelling.github.io`, all **DNS only** (grey cloud). The `TXT` record `_github-pages-challenge-GeoFlashModelling` proves ownership to GitHub; don't delete it. The custom domain is set in `smp-news` → Settings → Pages, which must show **Enforce HTTPS** ticked.
 
 ### Check which news feeds are working
 

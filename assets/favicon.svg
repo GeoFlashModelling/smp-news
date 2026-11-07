@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1D3A4D"/><stop offset="1" stop-color="#162939"/></linearGradient>
+    <radialGradient id="paper" cx="0.35" cy="0.3" r="0.9"><stop offset="0" stop-color="#8CC0DB"/><stop offset="0.45" stop-color="#3E8AB4"/><stop offset="1" stop-color="#2E6E93"/></radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#936C1C"/><stop offset="0.5" stop-color="#D9C08A"/><stop offset="1" stop-color="#B8A37C"/></linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#tile)"/>
+  <path d="M120 132h220a28 28 0 0 1 28 28v220a28 28 0 0 1-28 28H148a28 28 0 0 1-28-28z" fill="url(#paper)"/>
+  <path d="M368 196h24a20 20 0 0 1 20 20v164a28 28 0 0 1-28 28h-16z" fill="#2E6E93"/>
+  <rect x="150" y="166" width="188" height="40" rx="10" fill="url(#gold)"/>
+  <circle cx="338" cy="186" r="22" fill="url(#gold)" stroke="#162939" stroke-width="8"/>
+  <g fill="#DCEBF3" opacity="0.6"><rect x="150" y="236" width="188" height="18" rx="9"/><rect x="150" y="276" width="188" height="18" rx="9"/><rect x="150" y="316" width="120" height="18" rx="9"/></g>
+</svg>

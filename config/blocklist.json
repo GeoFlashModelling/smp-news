@@ -1,0 +1,5 @@
+{
+  "about": "Takedown list. Any item whose link is in `urls`, or whose headline contains a phrase in `phrases` (case-insensitive), is left out of the next edition. Edit on GitHub (phone app works); the site updates within the hour.",
+  "urls": [],
+  "phrases": []
+}
