@@ -1,0 +1,19 @@
+{
+  "name": "smp-news",
+  "version": "0.1.0",
+  "description": "S.M.P. News: free Australian news that shows what independent sources across the political spectrum agree on.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "edition": "tsx src/edition.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  }
+}
