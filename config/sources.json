@@ -638,29 +638,6 @@
       ]
     },
     {
-      "id": "innovationaus",
-      "name": "InnovationAus",
-      "homepage": "https://www.innovationaus.com",
-      "lean": "centre",
-      "content_type": "news",
-      "owner_group": "InnovationAus",
-      "paywall": "partial",
-      "region_of_rating": "AU",
-      "enabled": true,
-      "full_text_allowed": false,
-      "ai_input_allowed": true,
-      "feeds": [
-        {
-          "url": "https://www.innovationaus.com/feed/",
-          "sections": [
-            "science-tech",
-            "business"
-          ],
-          "via": "direct"
-        }
-      ]
-    },
-    {
       "id": "itnews",
       "name": "iTnews",
       "homepage": "https://www.itnews.com.au",
@@ -1264,28 +1241,6 @@
       ]
     },
     {
-      "id": "washington-times",
-      "name": "The Washington Times",
-      "homepage": "https://www.washingtontimes.com",
-      "lean": "right",
-      "content_type": "news",
-      "owner_group": "Operations Holdings",
-      "paywall": "free",
-      "region_of_rating": "US",
-      "enabled": true,
-      "full_text_allowed": false,
-      "ai_input_allowed": true,
-      "feeds": [
-        {
-          "url": "https://www.washingtontimes.com/rss/headlines/news/world/",
-          "sections": [
-            "world"
-          ],
-          "via": "direct"
-        }
-      ]
-    },
-    {
       "id": "national-review",
       "name": "National Review",
       "homepage": "https://www.nationalreview.com",
@@ -1620,28 +1575,6 @@
       ]
     },
     {
-      "id": "espn",
-      "name": "ESPN",
-      "homepage": "https://www.espn.com",
-      "lean": null,
-      "content_type": "news",
-      "owner_group": "Disney",
-      "paywall": "free",
-      "region_of_rating": "US",
-      "enabled": true,
-      "full_text_allowed": false,
-      "ai_input_allowed": true,
-      "feeds": [
-        {
-          "url": "https://www.espn.com/espn/rss/news",
-          "sections": [
-            "sport"
-          ],
-          "via": "direct"
-        }
-      ]
-    },
-    {
       "id": "variety",
       "name": "Variety",
       "homepage": "https://variety.com",
@@ -1772,6 +1705,76 @@
           "via": "direct"
         }
       ]
+    },
+    {
+      "id": "innovationaus",
+      "name": "InnovationAus",
+      "homepage": "https://www.innovationaus.com",
+      "lean": "centre",
+      "content_type": "news",
+      "owner_group": "InnovationAus",
+      "paywall": "partial",
+      "region_of_rating": "AU",
+      "enabled": false,
+      "full_text_allowed": false,
+      "ai_input_allowed": false,
+      "feeds": [
+        {
+          "url": "https://www.innovationaus.com/feed/",
+          "sections": [
+            "science-tech",
+            "business"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Excluded: HTTP 403 from GitHub runners (data-centre IP block), 7 Nov 2026. Works from home internet but the pipeline runs on GitHub; not worked around. Retry with the Feed check workflow."
+    },
+    {
+      "id": "washington-times",
+      "name": "The Washington Times",
+      "homepage": "https://www.washingtontimes.com",
+      "lean": "right",
+      "content_type": "news",
+      "owner_group": "Operations Holdings",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": false,
+      "full_text_allowed": false,
+      "ai_input_allowed": false,
+      "feeds": [
+        {
+          "url": "https://www.washingtontimes.com/rss/headlines/news/world/",
+          "sections": [
+            "world"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Excluded: HTTP 403 from GitHub runners (data-centre IP block), 7 Nov 2026. Works from home internet but the pipeline runs on GitHub; not worked around. Retry with the Feed check workflow."
+    },
+    {
+      "id": "espn",
+      "name": "ESPN",
+      "homepage": "https://www.espn.com",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "Disney",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": false,
+      "full_text_allowed": false,
+      "ai_input_allowed": false,
+      "feeds": [
+        {
+          "url": "https://www.espn.com/espn/rss/news",
+          "sections": [
+            "sport"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Excluded: Bot challenge (HTTP 202, empty body) from GitHub runners, 7 Nov 2026. Works from home internet but the pipeline runs on GitHub; not worked around. Retry with the Feed check workflow."
     },
     {
       "id": "axios",

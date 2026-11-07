@@ -34,7 +34,7 @@ function newestAgeHours(body: string): number | null {
 
 async function checkFeed(source: Source, feed: Feed): Promise<FeedResult> {
   const started = Date.now();
-  const base = { source: source.id, lean: source.lean ?? "feel-good", via: feed.via, url: feed.url };
+  const base = { source: source.id, lean: source.lean ?? "—", via: feed.via, url: feed.url };
   try {
     const res = await fetch(feed.url, {
       headers: { "user-agent": USER_AGENT, accept: FEED_ACCEPT },
