@@ -8,7 +8,7 @@ export interface FeedItem {
   published: string | null;
 }
 
-/** Full article bodies (`content:encoded`, Atom `<content>`) are never read: full_text_allowed is false. */
+/** Full article bodies (`content:encoded`, Atom `<content>`) are never read here, even for sources with full_text_allowed. */
 const SUMMARY_MAX_CHARS = 800;
 
 const NAMED_ENTITIES: Record<string, string> = {

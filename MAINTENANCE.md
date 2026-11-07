@@ -85,7 +85,8 @@ All sources live in `config/sources.json`. Each source has:
 | `paywall` | `free`, `partial` or `paywalled` |
 | `region_of_rating` | Where the lean rating comes from: `AU`, `US` or `UK` |
 | `enabled` | `false` switches the source off without deleting it |
-| `full_text_allowed` | Whether full article text may be fetched. `false` for every source for now: only the feed's title and description are used |
+| `full_text_allowed` | Whether the full article may be fetched and used as research for our own long-form stories. `true` only where the outlet's licence or terms allow it (7 sources as of 7 Nov 2026); everything else uses only the feed's title and description |
+| `terms_url`, `full_text_basis` | Required when `full_text_allowed` is `true`: the terms or licence page, and the reason in a few words (e.g. "Creative Commons Attribution 4.0"). Re-check these yearly; outlets change their terms |
 | `ai_input_allowed` | Whether the feed's title/description may go to an AI model. Set by `npm run check-terms` |
 | `feeds` | One or more `{ url, sections, via }`. `via` is always `direct` (the outlet's own feed). Google News feeds are not allowed: their terms limit them to personal feed readers |
 

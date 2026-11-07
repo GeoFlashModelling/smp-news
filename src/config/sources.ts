@@ -56,6 +56,10 @@ export interface Source {
   stale_hours?: number;
   /** Shown next to the source on story pages, e.g. "Mixed factual reliability (Media Bias/Fact Check)". */
   reliability_note?: string;
+  /** The outlet's terms or licence page; required when full_text_allowed is true. */
+  terms_url?: string;
+  /** Why full text is allowed, e.g. "CC BY 4.0" or "terms read 7 Nov 2026: no scraping or AI clause". */
+  full_text_basis?: string;
   notes?: string;
 }
 
@@ -120,6 +124,9 @@ export function validateSources(config: unknown): string[] {
     if (typeof s.full_text_allowed !== "boolean") problems.push(`${at}: full_text_allowed must be true or false`);
     if (typeof s.ai_input_allowed !== "boolean") problems.push(`${at}: ai_input_allowed must be true or false`);
     if (s.full_text_allowed && !s.ai_input_allowed) problems.push(`${at}: full_text_allowed requires ai_input_allowed`);
+    if (s.terms_url !== undefined && !isHttpsUrl(s.terms_url)) problems.push(`${at}: terms_url must be an https URL`);
+    if (s.full_text_basis !== undefined && (typeof s.full_text_basis !== "string" || !s.full_text_basis.trim())) problems.push(`${at}: full_text_basis must be non-empty text`);
+    if (s.full_text_allowed && (s.terms_url === undefined || s.full_text_basis === undefined)) problems.push(`${at}: full_text_allowed requires terms_url and full_text_basis`);
     if (s.reliability_note !== undefined && (typeof s.reliability_note !== "string" || !s.reliability_note.trim())) problems.push(`${at}: reliability_note must be non-empty text`);
     if (s.stale_hours !== undefined && !(Number.isInteger(s.stale_hours) && s.stale_hours > 0)) problems.push(`${at}: stale_hours must be a positive whole number`);
     if (!Array.isArray(s.feeds)) return problems.push(`${at}: feeds must be an array`);

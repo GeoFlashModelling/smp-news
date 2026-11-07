@@ -165,7 +165,9 @@
       "paywall": "free",
       "region_of_rating": "AU",
       "enabled": true,
-      "full_text_allowed": false,
+      "full_text_allowed": true,
+      "terms_url": "https://theconversation.com/au/republishing-guidelines",
+      "full_text_basis": "Creative Commons Attribution-NoDerivatives 4.0 (republishing guidelines)",
       "ai_input_allowed": true,
       "feeds": [
         {
@@ -1700,7 +1702,9 @@
       "paywall": "free",
       "region_of_rating": "US",
       "enabled": true,
-      "full_text_allowed": false,
+      "full_text_allowed": true,
+      "terms_url": "https://www.optimistdaily.com/terms-and-conditions-2/",
+      "full_text_basis": "Terms read 7 Nov 2026: no content-use, scraping or AI clause; robots.txt allows articles",
       "ai_input_allowed": true,
       "feeds": [
         {
@@ -1838,7 +1842,9 @@
       "paywall": "free",
       "region_of_rating": "US",
       "enabled": true,
-      "full_text_allowed": false,
+      "full_text_allowed": true,
+      "terms_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "full_text_basis": "NASA material is generally not subject to US copyright (media usage guidelines)",
       "ai_input_allowed": true,
       "feeds": [
         {
@@ -2166,7 +2172,9 @@
       "paywall": "free",
       "region_of_rating": "AU",
       "enabled": true,
-      "full_text_allowed": false,
+      "full_text_allowed": true,
+      "terms_url": "https://honisoit.com/copyright-information/",
+      "full_text_basis": "Creative Commons Attribution 4.0",
       "ai_input_allowed": true,
       "feeds": [
         {
@@ -2284,7 +2292,9 @@
       "paywall": "free",
       "region_of_rating": "AU",
       "enabled": true,
-      "full_text_allowed": false,
+      "full_text_allowed": true,
+      "terms_url": "https://rtrfm.com.au/terms/",
+      "full_text_basis": "Terms read 7 Nov 2026: no content-use, scraping or AI clause; robots.txt allows articles",
       "ai_input_allowed": true,
       "feeds": [
         {
@@ -2308,7 +2318,9 @@
       "paywall": "free",
       "region_of_rating": "AU",
       "enabled": true,
-      "full_text_allowed": false,
+      "full_text_allowed": true,
+      "terms_url": "https://www.pm.gov.au/copyright",
+      "full_text_basis": "Creative Commons Attribution 4.0 (text only; excludes the Coat of Arms, photos and graphics)",
       "ai_input_allowed": true,
       "feeds": [
         {
@@ -2332,7 +2344,9 @@
       "paywall": "free",
       "region_of_rating": "AU",
       "enabled": true,
-      "full_text_allowed": false,
+      "full_text_allowed": true,
+      "terms_url": "https://lens.monash.edu/about",
+      "full_text_basis": "Creative Commons republishing licence on each article (no edits or shortening; credit Monash Lens and the author)",
       "ai_input_allowed": true,
       "feeds": [
         {
