@@ -36,7 +36,13 @@ async function summarise(model: string, blocks: SourceBlock[], headlines: string
   let result: ValidationResult = { summary: null, errors: [], dropped: 0, kept: 0 };
   let rawFailure: string | undefined;
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const reply = await callModel(model, SYSTEM_PROMPT, prompt);
+    let reply;
+    try {
+      reply = await callModel(model, SYSTEM_PROMPT, prompt);
+    } catch (err) {
+      result = { summary: null, errors: [`model call failed: ${err instanceof Error ? err.message : String(err)}`], dropped: 0, kept: 0 };
+      continue;
+    }
     ms += reply.ms;
     outputTokens += reply.outputTokens;
     result = reply.json === null ? { summary: null, errors: ["reply was not valid JSON"], dropped: 0, kept: 0 } : validateSummary(reply.json, blocks, headlines);

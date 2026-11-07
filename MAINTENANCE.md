@@ -26,6 +26,7 @@ npm run edition
 | Secret (in `smp-news` → Settings → Secrets and variables → Actions) | What it is | Expires |
 |---|---|---|
 | `STATE_REPO_TOKEN` | Fine-grained token `smp-news-state-writer`: Contents read/write on `smp-news-state` only | **6 Nov 2027** |
+| `GEMINI_API_KEY` | Google AI Studio key "SMP News (GitHub Actions)", free tier, no billing attached. Manage at aistudio.google.com → API keys. If it leaks: delete it there, create a new one, update this secret | No expiry |
 
 ### Renew `STATE_REPO_TOKEN` (before it expires)
 
@@ -62,7 +63,7 @@ Lists every story covered by two or more owners, with the headlines grouped into
 
 ### Test AI summaries on a saved snapshot (nothing is published)
 
-Needs Ollama running locally (`ollama pull gemma4:e4b`). For Gemini, put the key in the session first without displaying it: copy it, then `$env:GEMINI_API_KEY = Get-Clipboard` in PowerShell, and use model `gemini:<model name>`.
+Needs Ollama running locally (`ollama pull gemma4:e4b`). For Gemini, use model `gemini:gemini-3.5-flash`; the key is read from the `GEMINI_API_KEY` environment variable (set as a Windows user variable on the owner's PC; on another PC copy the key and run `$env:GEMINI_API_KEY = Get-Clipboard`, which never displays it).
 
 ```
 cd "D:\Cursor Projects\SMP_News\app"

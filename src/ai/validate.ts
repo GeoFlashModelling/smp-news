@@ -178,7 +178,7 @@ export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: 
   const result: ValidationResult = { summary: null, errors: [], dropped: 0, kept: 0 };
   if (typeof raw !== "object" || raw === null) return { ...result, errors: ["not a JSON object"] };
   const draft = raw as Partial<StorySummary>;
-  const allText = [...blocks.map((b) => `${b.item.title} ${b.text}`), ...headlines].join(" ");
+  const allText = [...blocks.map((b) => `${b.item.title} ${b.text} ${b.item.source.name}`), ...headlines].join(" ");
   const allWords = new Set(words(allText));
 
   const headline = typeof draft.headline === "string" ? stripLabels(draft.headline) : "";
