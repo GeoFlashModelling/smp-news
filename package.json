@@ -14,7 +14,8 @@
     "check-feeds": "tsx src/tools/check-feeds.ts",
     "check-terms": "tsx src/tools/check-terms.ts",
     "snapshot": "tsx src/tools/snapshot.ts",
-    "cluster-report": "tsx src/tools/cluster-report.ts"
+    "cluster-report": "tsx src/tools/cluster-report.ts",
+    "ai-test": "tsx src/tools/ai-test.ts"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

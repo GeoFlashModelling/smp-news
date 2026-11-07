@@ -60,6 +60,17 @@ npm run cluster-report -- .cache/snapshots/<file>.json.gz 0.32
 
 Lists every story covered by two or more owners, with the headlines grouped into it. The second number is the similarity threshold (higher = stricter grouping); the live value is `DEFAULT_CLUSTER_OPTIONS` in `src/lib/cluster.ts`.
 
+### Test AI summaries on a saved snapshot (nothing is published)
+
+Needs Ollama running locally (`ollama pull gemma4:e4b`). For Gemini, put the key in the session first without displaying it: copy it, then `$env:GEMINI_API_KEY = Get-Clipboard` in PowerShell, and use model `gemini:<model name>`.
+
+```
+cd "D:\Cursor Projects\SMP_News\app"
+npm run ai-test -- .cache/snapshots/<file>.json.gz gemma4:e4b 12
+```
+
+Writes a readable report to `.cache/ai-test/<model>.md`: each story's AI summary with the outlets it cites, the sentences the support check dropped and why, timing, the prompt-injection result, and the stories skipped as legal-risk. `OLLAMA_CPU=1` measures CPU-only speed (closer to a GitHub runner).
+
 ### The domain (thesmpnews.com)
 
 Registered with Cloudflare Registrar (renews **7 Nov each year**; keep auto-renew on). DNS lives in Cloudflare: the apex `A`/`AAAA` records point to GitHub Pages and `www` is a `CNAME` to `geoflashmodelling.github.io`, all **DNS only** (grey cloud). The `TXT` record `_github-pages-challenge-GeoFlashModelling` proves ownership to GitHub; don't delete it. The custom domain is set in `smp-news` → Settings → Pages, which must show **Enforce HTTPS** ticked.
