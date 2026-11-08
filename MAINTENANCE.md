@@ -122,6 +122,10 @@ Answers are cached for 7 days (`.cache/images.json`, kept between runs by GitHub
 - **Change a library photo:** find the file on commons.wikimedia.org, check its licence is CC BY, CC BY-SA, CC0 or public domain, and put its exact file name (without `File:`) in `TOPICS`.
 - **Turn the AI part off:** in `smp-news` → Settings → Secrets and variables → Actions → Variables, add `PHOTO_AI` = `off` (step 1 then uses headline names only and step 2 is skipped). Delete the variable to turn it back on. By default it uses `gemini-3.5-flash-lite`, then `gemini-3.1-flash-lite` when that one's share is used or it fails (both free, 500 requests a day each); the variable `PHOTO_AI_MODEL` forces a single model instead.
 
+### A story shows the section icon instead of a photo
+
+The edition log prints `No photo: <id> "<headline>" (idea …; places …)` for every multi-source story that ended with artwork. Usual causes: the photo idea only had incident-type searches ("earthquake damage", "collapsed building"), which are rejected on purpose; or the only place was a country (its Wikipedia image is a flag or map). The story's idea is re-asked once automatically in the next edition. If a topic keeps missing, add a hand-picked photo to `TOPICS` in `src/images/ideas.ts` (check the file name and licence on Commons first).
+
 ### How the front page is built
 
 In the reader's order (`frontPage` in `src/lib/stories.ts`, layout in `renderFront` in `src/site/render.ts`):

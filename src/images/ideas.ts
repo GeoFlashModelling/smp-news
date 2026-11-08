@@ -78,6 +78,7 @@ export const TOPICS: { match: RegExp; file: string; caption: string }[] = [
   { match: /\bschools?\b|\bteachers?\b|\bprincipals?\b/i, file: "Fairfield Public School classrooms.jpg", caption: "school classrooms in Fairfield, NSW" },
   { match: /\buniversit(y|ies)\b|\bTAFE\b/i, file: "Edith Cowan University, City Campus, May 2026 01.jpg", caption: "Edith Cowan University's city campus, Perth" },
   { match: /\bmines?\b|\bmining\b|\bminers?\b|\bgold price\b|\biron ore\b|\blithium\b/i, file: "Kalgoorlie Super Pit, October 2023 01.jpg", caption: "the Super Pit gold mine, Kalgoorlie" },
+  { match: /\btrade (war|deal|talks|pledges?|deficit|surplus)\b|\btariffs?\b|\bexports?\b|\bimports?\b/i, file: "MSC Meline, Fremantle, 2021 (06).jpg", caption: "a container ship at Fremantle" },
   { match: /\bpetrol\b|\bfuel prices?\b|\bdiesel\b/i, file: "Shell Service Station, Upper Swan, WA.jpg", caption: "a service station in Upper Swan, WA" },
   { match: /\belections?\b|\bvoters?\b|\bpolling\b|\bballots?\b|\bby-election\b/i, file: "Democracy Sausage.jpg", caption: "a democracy sausage at a polling place" },
   { match: /\bFederal Parliament\b|\bAlbanese\b|\bCanberra\b|\bSenate\b|\bfederal budget\b/i, file: "Parliament House at dusk, Canberra ACT.jpg", caption: "Parliament House, Canberra" },
