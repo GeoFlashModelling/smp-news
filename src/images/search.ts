@@ -13,7 +13,7 @@ const MIN_WIDTH = 800;
  * pictures whose titles describe an incident or show people at one are skipped; places, buildings and things remain.
  */
 const EVENT_PHOTO =
-  /\b(protests?|protesters?|demonstrations?|demonstrators?|manifestations?|manifestants?|rally|rallies|riots?|funerals?|vigils?|victims?|killed|dead|deaths?|corpses?|bod(y|ies)|murders?|massacre|shootings?|attacks?|(air)?strikes?|bomb(s|ed|ings?)?|missiles?|shelling|explosions?|destroyed|damaged?|ruins|war|battle|injured|wounded|blood|arrests?|arrested|mugshot|crash(es|ed)?|wreck(age)?|accidents?|hostages?|executions?|terror(ism|ist)?|aftermath|cremation|storming|stormed|insurrection|mob|marathon|parade|sponsors?|ceremony|celebrations?|vs|versus)\b/i;
+  /\b(protests?|protesters?|demonstrations?|demonstrators?|manifestations?|manifestants?|rally|rallies|riots?|funerals?|vigils?|victims?|killed|dead|deaths?|corpses?|bod(y|ies)|murders?|massacre|shootings?|attacks?|(air)?strikes?|bomb(s|ed|ings?)?|missiles?|shelling|explosions?|destroyed|damaged?|ruins|rubble|debris|collapsed?|war|battle|injured|wounded|blood|arrests?|arrested|mugshot|crash(es|ed)?|wreck(age)?|accidents?|hostages?|executions?|terror(ism|ist)?|aftermath|cremation|storming|stormed|insurrection|mob|marathon|parade|sponsors?|ceremony|celebrations?|vs|versus)\b/i;
 
 /** Searches are for places and things; a picture of a particular person could be taken for someone in the story. */
 const PERSON_PHOTO =

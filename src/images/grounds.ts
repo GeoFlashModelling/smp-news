@@ -66,6 +66,8 @@ const NOT_DISTINCTIVE = new Set([
   "the", "stadium", "ground", "park", "oval", "cricket", "football", "sports", "centre", "arena", "field", "international", "national", "memorial", "showground", "rectangular",
   "melbourne", "sydney", "perth", "adelaide", "brisbane", "canberra", "hobart", "darwin", "newcastle", "gold", "coast", "geelong", "western", "north", "south", "east", "west", "queensland", "victoria", "australia",
   "auckland", "wellington", "london", "cardiff", "dublin", "edinburgh", "paris",
+  "hospital", "court", "supreme", "district", "county", "magistrates", "royal", "port", "airport", "station", "square", "main", "old", "new", "town", "city", "hall", "house",
+  "parliament", "state", "library", "museum", "gallery", "university", "college", "school", "bridge", "beach", "river", "lake", "mine", "harbour", "bay", "island", "street", "road", "tower", "church", "cathedral", "palace", "high", "great", "saint",
 ]);
 
 /**

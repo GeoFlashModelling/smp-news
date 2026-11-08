@@ -103,15 +103,18 @@ Edit `config/blocklist.json` on GitHub (the mobile app works): add the article l
 
 ### Fix a wrong picture
 
-Pictures (`src/images/`, all free-licensed, never from news sites) are chosen for every shown story, first match wins:
+Pictures (`src/images/`, all free-licensed, never from news sites) are chosen for every shown story. Photos of a news event itself are nearly always copyright, so the rule for every topic is **most specific first: who or where the story is about, then a key object it discusses, then a broad picture of its topic**:
 
-1. **Named subject, then venue**: the Wikipedia lead photo of the story's main person, organisation or thing (Gemini suggests the article; names in the headlines are the backup), then of the ground or venue where its match, race, concert or festival was held. Court and crime stories skip the named subject.
-   - **Sport goes venue first.** Photos of the actual game are nearly all copyright, and free photos of teams are often decades old, so a current photo of the ground is the better picture. A venue Gemini suggests is used when the reports mention it; if they don't, the home ground of the first-named Australian AFL or NRL club is used (`src/images/grounds.ts`; club nicknames only count when the story mentions AFL or NRL), and only then Gemini's guess. The caption names the ground, not the match.
-   - **The general rule for hard-to-picture stories:** when the event itself can't be shown for copyright reasons, show where it happened (ground, building, town) rather than an old or generic photo.
-2. **Live search**: Gemini suggests 1–3 search phrases (a place, building or object, never people or incidents) and a "theme", a common thing that stands for the story's topic ("wild cat", "Wi-Fi router") as a near-certain backup; each is searched on Wikimedia Commons, then Openverse. Filters drop event photos (riots, crashes, matches…), people, scans and AI images, and Commons photos taken before 2005 (`OLDEST_YEAR` in `src/images/search.ts`, read from the file's "date taken").
-3. **Place**: the Wikipedia photo of a city, suburb or building named in the reports.
-4. **Topic library**: hand-picked Commons photos for broad topics (police, court, mining, rugby…) in `TOPICS` in `src/images/ideas.ts`.
-5. Otherwise the section artwork from `src/site/artwork.ts`.
+1. **Event** (who or where):
+   - the Wikipedia lead photo of the story's main person, organisation or product (Gemini suggests the article; names in the headlines are the backup). Court and crime stories skip this: a file photo next to an allegation can wrongly suggest who is accused;
+   - then the specific place it happened: the ground, venue, building, landmark or site Gemini names (only when the reports mention it, so a guessed place is never shown as fact);
+   - then a town or suburb named in the reports.
+   - **Sport puts the ground first**, since free photos of teams are often decades old. If the reports don't name the ground, the home ground of the first-named Australian AFL or NRL club is used (`src/images/grounds.ts`; club nicknames only count when the story mentions AFL or NRL), and only then Gemini's guess. The caption names the ground, not the match.
+2. **Key object**: Gemini suggests 1–3 search phrases for the object or setting the report discusses ("open pit gold mine", "Boeing 737 MAX"); each is searched on Wikimedia Commons, then Openverse.
+3. **Broad topic**: a "theme", a common thing that stands for the topic ("wild cat", "Wi-Fi router"), searched the same way; else a hand-picked Commons photo for the topic (police, court, mining, rugby…) from `TOPICS` in `src/images/ideas.ts`.
+4. Otherwise the section artwork from `src/site/artwork.ts`.
+
+Search filters drop event photos (riots, crashes, rubble, matches…), people, scans and AI images, and Commons photos taken before 2005 (`OLDEST_YEAR` in `src/images/search.ts`, read from the file's "date taken"). The edition log counts photos per level: `event`, `object`, `broad`.
 
 Answers are cached for 7 days (`.cache/images.json`, kept between runs by GitHub's cache), so each hour only new stories are asked about. Each run is capped (12 Gemini requests on each of two free models, 300 Commons and 15 Openverse searches); multi-source stories go first and any rest fill in over the next hour or two.
 
