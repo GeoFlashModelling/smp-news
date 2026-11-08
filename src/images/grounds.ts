@@ -61,13 +61,28 @@ function firstMention(club: Club, text: string, nicknamesOk: boolean): number {
   return at.length ? Math.min(...at) : -1;
 }
 
-const VENUE_WORDS = new Set(["the", "stadium", "ground", "park", "oval", "cricket", "football", "sports", "centre", "arena", "field", "international"]);
+/** Words that don't identify a venue on their own: "Melbourne" appears in reports about many things besides the MCG. */
+const NOT_DISTINCTIVE = new Set([
+  "the", "stadium", "ground", "park", "oval", "cricket", "football", "sports", "centre", "arena", "field", "international", "national", "memorial", "showground", "rectangular",
+  "melbourne", "sydney", "perth", "adelaide", "brisbane", "canberra", "hobart", "darwin", "newcastle", "gold", "coast", "geelong", "western", "north", "south", "east", "west", "queensland", "victoria", "australia",
+  "auckland", "wellington", "london", "cardiff", "dublin", "edinburgh", "paris",
+]);
 
-/** Whether the reports mention a suggested venue ("Ikon Park" needs "Ikon"), rather than the model guessing it. */
+/**
+ * Whether the reports name a suggested venue, rather than the model guessing it: its full name, its initials ("MCG")
+ * or a distinctive word ("Ikon", "Twickenham").
+ */
 export function venueMentioned(venue: string, story: Story): boolean {
-  const text = story.items.map((i) => `${i.title} ${i.summary}`).join(" ").toLowerCase();
-  const words = venue.replace(/\(.*\)/, "").toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3 && !VENUE_WORDS.has(w));
-  return words.length > 0 && words.some((w) => text.includes(w));
+  const name = venue.replace(/\s*\(.*\)/, "");
+  const text = story.items.map((i) => `${i.title} ${i.summary}`).join(" ");
+  const lower = text.toLowerCase();
+  const words = name.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3);
+  const initials = name.split(/\s+/).filter((w) => /^\p{Lu}/u.test(w)).map((w) => w[0]).join("");
+  return (
+    lower.includes(name.toLowerCase()) ||
+    (initials.length >= 3 && new RegExp(`\\b${initials}\\b`).test(text)) ||
+    words.some((w) => !NOT_DISTINCTIVE.has(w) && new RegExp(`\\b${w}\\b`).test(lower))
+  );
 }
 
 /** The home ground of the first club named in a sport story's headlines (the home side is usually named first), or null. */
