@@ -39,8 +39,8 @@ async function main(): Promise<void> {
   const stories = buildStories(clusterItems(items), now);
   const multi = stories.filter((s) => s.independent >= 2);
   let summaryNote = "summaries off";
+  const front = frontPage(stories, now, (s) => process.env.SUMMARIES !== "on" || summarisable(s) !== null);
   if (process.env.SUMMARIES === "on") {
-    const front = frontPage(stories, now);
     // The top stories and each section's first writable stories fill the front page's written slots.
     const slots = [...front.bySection.values()].flatMap((list) => sectionCards(list, front.top, (s) => summarisable(s) !== null));
     const important = new Set([...front.top, ...slots].map((s) => s.id));
@@ -55,7 +55,7 @@ async function main(): Promise<void> {
   for (const story of stories) story.photo = photos.get(story.id);
 
   const out = pathToFileURL(`${resolve(process.env.EDITION_OUT ?? "dist")}/`);
-  const files = await generateSite(out, stories, config.sources, now, await loadFacts(now));
+  const files = await generateSite(out, stories, front, config.sources, now, await loadFacts(now));
 
   console.log(`Edition ${now.toISOString()}: ${feeds.length - failed.length}/${feeds.length} feeds OK, ${items.length} items, ${stories.length} stories (${multi.length} multi-source), photos for ${photos.size} (event ${counts.event}, object ${counts.object}, broad ${counts.broad}; ${multi.filter((s) => s.photo).length}/${multi.length} multi-source), ${summaryNote}, ${files} files in ${Date.now() - started} ms.`);
   if (failed.length > 0) console.log(`Failed feeds: ${failed.map((f) => `${f.source} (${f.problem})`).join(", ")}`);

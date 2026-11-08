@@ -1,7 +1,7 @@
 import { copyFile, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { SECTIONS, type Source } from "../config/sources.js";
 import type { Facts } from "../lib/facts.js";
-import { frontPage, type Story } from "../lib/stories.js";
+import type { FrontPage, Story } from "../lib/stories.js";
 import { sectionArtwork } from "./artwork.js";
 import { SITE_HOST, SITE_NAME } from "./html.js";
 import { renderAbout, renderFront, renderNotFound, renderSection, renderStory } from "./render.js";
@@ -15,13 +15,12 @@ async function put(dir: URL, path: string, content: string): Promise<void> {
 }
 
 /** Writes the whole static site into `dir` (emptied first). Returns the number of files written. */
-export async function generateSite(dir: URL, stories: Story[], sources: Source[], updated: Date, facts: Facts): Promise<number> {
+export async function generateSite(dir: URL, stories: Story[], front: FrontPage, sources: Source[], updated: Date, facts: Facts): Promise<number> {
   await mkdir(dir, { recursive: true });
   for (const entry of await readdir(dir)) await rm(new URL(entry, dir), { recursive: true, force: true });
   await mkdir(new URL("assets/", dir), { recursive: true });
   for (const a of ASSETS) await copyFile(new URL(`../../assets/${a}`, import.meta.url), new URL(`assets/${a}`, dir));
 
-  const front = frontPage(stories, updated);
   let files = ASSETS.length;
   const write = async (path: string, content: string) => {
     await put(dir, path, content);

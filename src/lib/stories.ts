@@ -174,6 +174,8 @@ export function buildStories(clusters: Cluster[], now: Date): Story[] {
 export interface FrontPage {
   /** What's hot: led by Local WA, then Australia, then the world. */
   top: Story[];
+  /** The last of the top stories: an uplifting or curious one to finish on ("And finally"). */
+  finale: Story | null;
   /** Single-outlet stories high on a major outlet's homepage: what the big sites lead with that no one else has yet. */
   alsoLeading: Story[];
   /** Less prominent stories worth reading: science, good news, tech, business and entertainment, one per outlet. */
@@ -246,6 +248,11 @@ export function sectionCards(list: Story[], top: Story[], ok: (s: Story) => bool
     }
     cards.push(s);
   }
+  // Last resort: a thin section is filled from the same outlets rather than left short.
+  for (const s of list) {
+    if (cards.length >= SECTION_WRITTEN) break;
+    if (!top.includes(s) && !cards.includes(s) && ok(s)) cards.push(s);
+  }
   return cards;
 }
 
@@ -269,7 +276,7 @@ export function shownStories(stories: Story[]): Story[] {
  * and on gossip; then what the big sites lead with that only one outlet has; then less prominent stories worth
  * reading. Each section lists its multi-source stories in the same order, then its single-report headlines.
  */
-export function frontPage(stories: Story[], now: Date, size = TOP_STORIES): FrontPage {
+export function frontPage(stories: Story[], now: Date, writable: (s: Story) => boolean = () => true, size = TOP_STORIES - 1): FrontPage {
   const multi = stories.filter((s) => s.independent >= 2).sort((a, b) => b.lead - a.lead);
   const top: Story[] = [];
   const caps: Partial<Record<Section, number>> = { "feel-good": 1, entertainment: 1, sport: 2, "science-tech": 2, tech: 2, world: 3 };
@@ -287,6 +294,8 @@ export function frontPage(stories: Story[], now: Date, size = TOP_STORIES): Fron
   }
   if (science && !top.includes(science)) top.push(science);
   top.sort((a, b) => b.lead - a.lead);
+  const finale = andFinally(stories, top, now.getTime(), writable);
+  if (finale) top.push(finale);
   const bySection = new Map<Section, Story[]>(
     SECTIONS.map((sec) => {
       const inSection = stories.filter((s) => s.section === sec);
@@ -300,8 +309,36 @@ export function frontPage(stories: Story[], now: Date, size = TOP_STORIES): Fron
       .sort((a, b) => b.lead - a.lead),
     GOSSIP_TOP,
   ).slice(0, ALSO_LEADING);
-  return { top, alsoLeading, interesting: worthALook(stories, new Set([...top, ...alsoLeading]), now.getTime()), bySection };
+  return { top, finale, alsoLeading, interesting: worthALook(stories, new Set([...top, ...alsoLeading]), now.getTime()), bySection };
 }
+
+/** Sections the closing story comes from, in order of preference. */
+const FINALE_SECTIONS: readonly Section[] = ["feel-good", "science-tech", "local-wa", "australia", "entertainment"];
+const FINALE_MAX_AGE_HOURS = 24;
+
+/**
+ * The closing top story, like the heart-warming one at the end of the nightly news: uplifting or simply interesting,
+ * often not widely reported. No hard news, court or crime, gossip or opinion; must be one we can write up.
+ */
+function andFinally(stories: Story[], top: Story[], at: number, writable: (s: Story) => boolean): Story | null {
+  const ok = (s: Story) =>
+    !top.includes(s) &&
+    at - s.first.getTime() <= FINALE_MAX_AGE_HOURS * 3_600_000 &&
+    s.headline.source.content_type !== "opinion" &&
+    !isGossip(s) &&
+    !isLegalRisk(s.items) &&
+    !HARD_NEWS.test(s.headline.title) &&
+    writable(s);
+  for (const sec of FINALE_SECTIONS) {
+    // Outside Feel Good, only stories from uplifting outlets or plainly good-news headlines qualify.
+    const pool = stories.filter((s) => s.section === sec && ok(s) && (sec === "feel-good" || sec === "science-tech" || UPLIFTING.test(s.headline.title)));
+    const best = pool.sort((a, b) => b.score - a.score)[0];
+    if (best) return best;
+  }
+  return null;
+}
+
+const UPLIFTING = /\b(rescued?|saved?|reunit\w*|heart-?warming|kindness|volunteers?|donat\w*|celebrat\w*|record-breaking|first-ever|milestone|centenarian|100th birthday|good news|hero(es)?|bravery|inspir\w*|surviv\w*|recover\w*|adopt\w*)\b/i;
 
 /**
  * Less prominent stories worth reading, taken in turn from science, good news, tech, business and entertainment

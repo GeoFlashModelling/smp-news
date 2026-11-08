@@ -127,7 +127,17 @@ export function stripLabels(text: string): string {
     .trim();
 }
 
-function checkClaim(claim: Claim, list: ClaimList, blocks: SourceBlock[], storyWords: Set<string>): string[] {
+/**
+ * Court and crime stories: a sentence saying someone did something criminal, or is accused or suspected of it, must
+ * say who says so; and no one may be labelled as an offender. Plain facts (where, when, how many hurt) need neither.
+ */
+const ACCUSING =
+  /\b(stabb?(ed|ing)|shot|shoot(s|ing)? at|killed|kills|murder(ed|s)?|assault(ed|s)?|attack(ed|s)|robb(ed|s)|stole|steal(s|ing)|kidnapp\w*|abduct\w*|set fire|torched|rammed|opened fire|fired at|punch(ed|es)|threaten(ed|s)|defraud\w*|embezzl\w*|brib(ed|es|ery)|smuggl\w*|traffick\w*|charged|accused|suspect(s|ed)?|offend(ed|er|ers)|confess\w*|responsible for|carried out|gunman|attacker|assailant)\b/i;
+const ATTRIBUTION =
+  /\b(police|court|alleg\w*|accused|charged|charges?|reported|reports?|said|says|told|according|heard|prosecut\w*|magistrate|judge|jury|claim\w*|pleaded|plea|convicted|found guilty|sentenced|investigat\w*|detectives?|authorities|officials?|inquiry|coroner|inquest)\b/i;
+const OFFENDER_LABEL = /\b(murderers?|killers?|perpetrators?|criminals?|thugs?|monsters?|rapists?|predators?|culprits?)\b/i;
+
+function checkClaim(claim: Claim, list: ClaimList, blocks: SourceBlock[], storyWords: Set<string>, careful = false): string[] {
   const errors: string[] = [];
   const text = typeof claim.text === "string" ? stripLabels(claim.text) : "";
   claim.text = text;
@@ -135,6 +145,8 @@ function checkClaim(claim: Claim, list: ClaimList, blocks: SourceBlock[], storyW
   if (text.length > MAX_CLAIM_CHARS) errors.push("text too long");
   if (FORBIDDEN.test(text)) errors.push("link or markup in text");
   if (PROFANITY.test(text)) errors.push("profanity");
+  if (careful && ACCUSING.test(text) && !ATTRIBUTION.test(text)) errors.push("crime story: say who says so (police allege, the court heard, ... reported)");
+  if (careful && OFFENDER_LABEL.test(text)) errors.push("crime story: don't label anyone as an offender");
   if (!Array.isArray(claim.cites) || claim.cites.length === 0) return [...errors, "no citations"];
 
   const textWords = words(text);
@@ -177,7 +189,7 @@ function checkClaim(claim: Claim, list: ClaimList, blocks: SourceBlock[], storyW
 }
 
 /** `headlines` are every report's headline for the story; the new headline may use names and numbers from them. */
-export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: string[] = []): ValidationResult {
+export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: string[] = [], careful = false): ValidationResult {
   const result: ValidationResult = { summary: null, errors: [], dropped: 0, kept: 0 };
   if (typeof raw !== "object" || raw === null) return { ...result, errors: ["not a JSON object"] };
   const draft = raw as Partial<StorySummary>;
@@ -189,6 +201,7 @@ export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: 
   else {
     if (headline.length > MAX_HEADLINE_CHARS) result.errors.push("headline too long");
     if (FORBIDDEN.test(headline) || PROFANITY.test(headline)) result.errors.push("headline has a link, markup or profanity");
+    if (careful && OFFENDER_LABEL.test(headline)) result.errors.push("headline labels someone as an offender");
     for (const name of names(`X ${headline}`)) if (!nameSupported(name, allWords)) result.errors.push(`headline name "${name.join(" ")}" not in sources`);
     for (const num of headline.match(NUMBER) ?? []) if (!allText.replace(/,/g, "").includes(num.replace(/,/g, "").replace(/[.,]+$/, ""))) result.errors.push(`headline number ${num} not in sources`);
   }
@@ -199,7 +212,7 @@ export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: 
   for (const list of single ? (["summary"] as const) : CLAIM_LISTS) {
     const claims = Array.isArray(draft[list]) ? (draft[list] as Claim[]) : [];
     for (const claim of claims) {
-      const errors = checkClaim(claim, list, blocks, allWords);
+      const errors = checkClaim(claim, list, blocks, allWords, careful);
       if (errors.length === 0) {
         clean[list].push({ text: claim.text, cites: claim.cites });
         result.kept++;

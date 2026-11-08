@@ -65,7 +65,18 @@ export function selectSources(items: Item[]): SourceBlock[] {
   return picked.map((item, n) => ({ id: `S${n + 1}`, item, text: sourceText(item) }));
 }
 
-export function userPrompt(blocks: SourceBlock[]): string {
+/** Added for court and crime stories; validate.ts checks the attribution. */
+const CAREFUL_RULES = `This is a crime or court story. Extra rules:
+- Everyone is presumed innocent. Never state or imply that a person is guilty unless the reports say they were convicted or pleaded guilty.
+- Every sentence saying a person did something criminal, or is suspected of it, must say who says so (for example: "police allege", "the court heard", "prosecutors said", "ABC News reported"). Report charges as charges.
+- Leave out criminal history, character, alleged confessions and anything about what the evidence proves. Never speculate about the outcome.
+- Don't call anyone a murderer, killer, criminal or similar. Mention victims only as far as needed to understand the event.`;
+
+export function userPrompt(blocks: SourceBlock[], careful = false): string {
+  return careful ? `${CAREFUL_RULES}\n\n${eventPrompt(blocks)}` : eventPrompt(blocks);
+}
+
+function eventPrompt(blocks: SourceBlock[]): string {
   const body = blocks
     .map((b) => `<<<SOURCE ${b.id} | outlet: ${b.item.source.name}>>>\nTITLE: ${b.item.title.replace(/<<<|>>>/g, " ")}\nTEXT: ${b.text}\n<<<END ${b.id}>>>`)
     .join("\n\n");
