@@ -51,6 +51,10 @@ If the token ever leaks, click **Delete** on the token page immediately, then cr
 
 Edit `config/blocklist.json` on GitHub (the mobile app works): add the article link to `urls`, or a distinctive part of its headline to `phrases` (case-insensitive). Commit to `main`; the Edition workflow rebuilds the site within a few minutes. Remove the entry later if it was a mistake.
 
+### Fix a wrong picture
+
+Pictures come from Wikipedia (`src/images/`): each story looks up the names in its reports and uses the lead photo of the matching article if its licence is free. If a story shows the wrong person or place, add the headline phrase to `config/blocklist.json` only if the story itself must go; for the picture alone, add the misleading name to `GENERIC` in `src/images/entities.ts` and bump `RULES_VERSION` in `src/images/wikimedia.ts` (clears the cached answers). Stories without a match show the section artwork from `src/site/artwork.ts`.
+
 ### Check how stories are being grouped
 
 ```
