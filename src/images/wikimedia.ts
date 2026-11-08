@@ -46,10 +46,18 @@ function redirectOk(name: string, title: string): boolean {
   return title.toLowerCase().split(/[\s,()]+/).includes(name.toLowerCase());
 }
 
+/**
+ * A one-word name is only trusted when Wikipedia's short description says it is a named place, organisation or
+ * event: "Kyiv" (capital city), "Qantas" (airline), "Diwali" (festival); not "Arsenal" (military building) or
+ * "Television" (telecommunication medium) when the story means the football club or the band.
+ */
+const NAMED_THING =
+  /\b(city|capital|town|suburb|village|country|nation|state|territory|province|region|island|archipelago|peninsula|river|lake|mountain|volcano|strait|gulf|sea|ocean|desert|company|corporation|conglomerate|multinational|airline|carrier|bank|retailer|manufacturer|brand|startup|firm|festival|holiday|celebration|organi[sz]ation|agency|ministry|department|parliament|party|union|university|college|school|hospital|stadium|airport|museum|zoo|newspaper|broadcaster|network|programme|program|mission|spacecraft|telescope|rocket|satellite|league|tournament|championship|competition|cup|games)\b/i;
+
 type CacheEntry = { photo: Photo | null; checked: string };
 type Cache = Record<string, CacheEntry>;
 /** Bump when the matching rules change, so cached answers from older rules are discarded. */
-const RULES_VERSION = 4;
+const RULES_VERSION = 5;
 
 async function api(params: Record<string, string>): Promise<any> {
   const url = `${API}?${new URLSearchParams({ action: "query", format: "json", formatversion: "2", ...params })}`;
@@ -71,14 +79,16 @@ function artistName(raw: string): string {
 /** Looks up a batch of names: article (following redirects, skipping disambiguation pages) → free lead image → licence. */
 async function lookupBatch(names: string[]): Promise<Map<string, Photo | null>> {
   const found = new Map<string, Photo | null>(names.map((n) => [n, null]));
-  const pages = await api({ titles: names.join("|"), redirects: "1", prop: "pageimages|pageprops", piprop: "name", pilicense: "free", ppprop: "disambiguation" });
+  const pages = await api({ titles: names.join("|"), redirects: "1", prop: "pageimages|pageprops|description", piprop: "name", pilicense: "free", ppprop: "disambiguation" });
   const target = new Map<string, string>(names.map((n) => [n, n]));
   for (const step of [...(pages.query?.normalized ?? []), ...(pages.query?.redirects ?? [])] as { from: string; to: string }[]) {
     for (const [name, t] of target) if (t === step.from) target.set(name, step.to);
   }
   const fileOf = new Map<string, string>();
+  const description = new Map<string, string>();
   for (const p of pages.query?.pages ?? []) {
     if (p.missing || p.pageprops?.disambiguation !== undefined || !p.pageimage) continue;
+    description.set(p.title, p.description ?? "");
     if (NOT_A_PHOTO.test(p.pageimage.replace(/_/g, " "))) continue;
     fileOf.set(p.title, `File:${p.pageimage}`);
   }
@@ -89,6 +99,7 @@ async function lookupBatch(names: string[]): Promise<Map<string, Photo | null>> 
   for (const p of files.query?.pages ?? []) info.set(p.title.replace(/_/g, " "), p.imageinfo?.[0]);
   for (const [name, title] of target) {
     if (!properTitle(title) || !redirectOk(name, title)) continue;
+    if (!name.includes(" ") && !NAMED_THING.test(description.get(title) ?? "")) continue;
     const file = fileOf.get(title);
     const ii = file ? info.get(file.replace(/_/g, " ")) : undefined;
     if (!ii || !/^image\/(jpeg|png|webp)$/.test(ii.mime) || !ii.thumburl) continue;

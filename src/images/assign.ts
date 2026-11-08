@@ -12,7 +12,7 @@ export async function assignPhotos(stories: Story[], cacheFile: string, now: Dat
   const wanted = new Map<string, string[]>();
   for (const story of stories) {
     if (isLegalRisk(story.items)) continue;
-    const names = imageCandidates(story.items, story.independent >= 2 ? 3 : 2, story.section !== "sport");
+    const names = imageCandidates(story.items, story.independent >= 2 ? 3 : 2, story.section !== "sport", story.headline.title);
     if (names.length) wanted.set(story.id, names);
   }
   const photos = await findPhotos([...wanted.values()].flat(), cacheFile, now);

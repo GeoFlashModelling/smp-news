@@ -2,7 +2,7 @@ import type { Item } from "../lib/normalise.js";
 
 /** Leading words that are titles or headline furniture, not part of a name ("President Donald Trump" → "Donald Trump"). */
 const LEADING =
-  /^(?:(?:The|A|An|Watch|Live|Breaking|Exclusive|Video|Photos?|Analysis|Opinion|Explainer|Former|Ex|New|President|Vice|Prime|Minister|Premier|Treasurer|Senator|Sen|Rep|Governor|Gov|Mayor|Chancellor|King|Queen|Prince|Princess|Sir|Dame|Dr|Mr|Mrs|Ms|Coach|Captain|Chief|Leader|Opposition|Deputy|Justice|Judge|Detective|Inspector|Officer|Star|Actor|Singer|Rapper|Billionaire|Tech|CEO|Boss|Defender|Striker|Champion|Superstar|Legend|Veteran|Pop|US|UK|Australian|American|British|Chinese)\s+)+/;
+  /^(?:(?:The|A|An|Watch|Live|Breaking|Exclusive|Video|Photos?|Analysis|Opinion|Explainer|Former|Ex|President|Vice|Prime|Minister|Premier|Treasurer|Senator|Sen|Rep|Governor|Gov|Mayor|Chancellor|King|Queen|Prince|Princess|Sir|Dame|Dr|Mr|Mrs|Ms|Coach|Captain|Chief|Leader|Opposition|Deputy|Justice|Judge|Detective|Inspector|Officer|Star|Actor|Singer|Rapper|Billionaire|CEO|Boss|Defender|Striker|Champion|Superstar|Legend|Veteran)\s+)+/;
 
 /** Too broad to illustrate a story, or not a subject at all. */
 const GENERIC = new Set(
@@ -63,12 +63,12 @@ function usable(name: string): boolean {
 }
 
 /**
- * Names worth looking up for a story's picture, best first: mentioned by the most reports, multi-word names
- * (people, places, organisations) ahead of single words. A single-report story only offers multi-word names,
+ * Names worth looking up for a story's picture, best first: named in the story's headline, mentioned by the most
+ * reports, multi-word names (people, places, organisations) ahead of single words. A single-report story only offers multi-word names,
  * since one headline's single capitalised word is too often a sentence opener. `singleWords: false` is for
  * sport, where one-word names are mostly team nicknames ("Cats", "Roos").
  */
-export function imageCandidates(items: Item[], max = 3, singleWords = true): string[] {
+export function imageCandidates(items: Item[], max = 3, singleWords = true, headline = ""): string[] {
   const counts = new Map<string, number>();
   for (const item of items) {
     const seen = new Set<string>();
@@ -82,9 +82,10 @@ export function imageCandidates(items: Item[], max = 3, singleWords = true): str
   }
   const minWords = items.length === 1 || !singleWords ? 2 : 1;
   const minReports = items.length === 1 ? 1 : 2;
+  const weight = (name: string, n: number) => n * (name.includes(" ") ? 1.5 : 1) * (headline.includes(name) ? 3 : 1);
   return [...counts]
-    .filter(([name, n]) => n >= minReports && name.split(" ").length >= minWords)
-    .sort(([a, na], [b, nb]) => nb * (b.includes(" ") ? 1.5 : 1) - na * (a.includes(" ") ? 1.5 : 1))
+    .filter(([name, n]) => (n >= minReports || headline.includes(name)) && name.split(" ").length >= minWords)
+    .sort(([a, na], [b, nb]) => weight(b, nb) - weight(a, na))
     .slice(0, max)
     .map(([name]) => name);
 }
