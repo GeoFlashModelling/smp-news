@@ -122,6 +122,17 @@ Answers are cached for 7 days (`.cache/images.json`, kept between runs by GitHub
 - **Change a library photo:** find the file on commons.wikimedia.org, check its licence is CC BY, CC BY-SA, CC0 or public domain, and put its exact file name (without `File:`) in `TOPICS`.
 - **Turn the AI part off:** in `smp-news` → Settings → Secrets and variables → Actions → Variables, add `PHOTO_AI` = `off` (step 1 then uses headline names only and step 2 is skipped). Delete the variable to turn it back on. By default it uses `gemini-3.5-flash-lite`, then `gemini-3.1-flash-lite` when that one's share is used or it fails (both free, 500 requests a day each); the variable `PHOTO_AI_MODEL` forces a single model instead.
 
+### How the front page is built
+
+In the reader's order (`frontPage` in `src/lib/stories.ts`, layout in `renderFront` in `src/site/render.ts`):
+
+1. **Facts strip**: "On this day" (changes at midnight Perth time; an Australian anniversary when Wikipedia has a peaceful one, never a grim one) and "Fun fact" (a Wikipedia "Did you know…" fact, a different one each hourly edition). Both from Wikipedia under CC BY-SA 4.0, credited on the page; `src/lib/facts.ts`. If Wikipedia can't be reached the box is simply left out.
+2. **Top stories (what's hot)**: stories covered by 2+ owner groups, ranked by how many major Australian outlets (`agenda: true`) run them and how high they sit on ABC's Top Stories list (feeds flagged `top: true` must be in homepage order, not newest-first). 3 slots go to Local WA, up to 7 to Local WA + Australia + Politics; world stories capped at 3, sport 2, entertainment 1, and at most 1 celebrity/reality-TV gossip story (`GOSSIP` words).
+3. **Also in the headlines**: single-outlet stories in the first 6 of a top-stories feed.
+4. **Local WA, Australia, World** blocks.
+5. **Worth a look**: 8 less prominent stories taken in turn from Science, Feel Good, Tech, Business and Entertainment, one per outlet, no gossip, opinion, court/crime or violent stories.
+6. The remaining section blocks. Every section list keeps at most 2 gossip stories.
+
 ### Check how stories are being grouped
 
 ```

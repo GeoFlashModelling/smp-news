@@ -1,5 +1,6 @@
 import { copyFile, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { SECTIONS, type Source } from "../config/sources.js";
+import type { Facts } from "../lib/facts.js";
 import { frontPage, type Story } from "../lib/stories.js";
 import { sectionArtwork } from "./artwork.js";
 import { SITE_HOST, SITE_NAME } from "./html.js";
@@ -14,13 +15,13 @@ async function put(dir: URL, path: string, content: string): Promise<void> {
 }
 
 /** Writes the whole static site into `dir` (emptied first). Returns the number of files written. */
-export async function generateSite(dir: URL, stories: Story[], sources: Source[], updated: Date): Promise<number> {
+export async function generateSite(dir: URL, stories: Story[], sources: Source[], updated: Date, facts: Facts): Promise<number> {
   await mkdir(dir, { recursive: true });
   for (const entry of await readdir(dir)) await rm(new URL(entry, dir), { recursive: true, force: true });
   await mkdir(new URL("assets/", dir), { recursive: true });
   for (const a of ASSETS) await copyFile(new URL(`../../assets/${a}`, import.meta.url), new URL(`assets/${a}`, dir));
 
-  const front = frontPage(stories);
+  const front = frontPage(stories, updated);
   let files = ASSETS.length;
   const write = async (path: string, content: string) => {
     await put(dir, path, content);
@@ -28,7 +29,7 @@ export async function generateSite(dir: URL, stories: Story[], sources: Source[]
   };
 
   for (const sec of SECTIONS) await write(`assets/sections/${sec}.svg`, sectionArtwork(sec));
-  await write("index.html", renderFront(front, updated));
+  await write("index.html", renderFront(front, updated, facts));
   for (const sec of SECTIONS) await write(`${sec}/index.html`, renderSection(sec, front.bySection.get(sec) ?? [], updated));
   for (const story of stories.filter((s) => s.independent >= 2)) await write(`story/${story.id}/index.html`, renderStory(story, updated));
   await write("about/index.html", renderAbout(sources, updated));

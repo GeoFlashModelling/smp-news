@@ -3,6 +3,7 @@ import type { Claim, ClaimList } from "../ai/schema.js";
 import type { StoryWriteup } from "../ai/summarise.js";
 import type { Section, Source } from "../config/sources.js";
 import type { Photo } from "../images/wikimedia.js";
+import type { Fact, Facts } from "../lib/facts.js";
 import type { Item } from "../lib/normalise.js";
 import { coverageGroup, SECTION_HEADLINES, type CoverageGroup, type FrontPage, type Story } from "../lib/stories.js";
 import { CORRECTIONS_EMAIL, NAV_ORDER, SECTION_LABELS, SITE_NAME, SUMMARIES_ON, esc, page, plural, timeTag } from "./html.js";
@@ -82,10 +83,36 @@ function headlineList(stories: Story[], limit: number, root: string): string {
   return `<ul class="headlines">${rows.join("")}</ul>`;
 }
 
-export function renderFront(front: FrontPage, updated: Date): string {
+/** Stories of either kind as one list: multi-source ones open our story page, single reports open the outlet. */
+function mixedList(stories: Story[], root: string): string {
+  const rows = stories.map((s) => {
+    const multi = s.independent >= 2;
+    const href = multi ? `${root}story/${s.id}/` : s.headline.url;
+    const from = multi ? plural(new Set(s.items.map((i) => i.source.id)).size, "source") : `${s.headline.source.name}${s.headline.source.paywall === "paywalled" ? " · Paywall" : ""}`;
+    return `<li>${picture(s, root, "thumb")}<div><a href="${esc(href)}"${multi ? "" : ' rel="noopener"'}>${esc(storyTitle(s))}</a> <span class="src">${esc(SECTION_LABELS[s.section])} · ${esc(from)} · ${timeTag(s.last)}</span>${s.photo ? `<span class="thumb-credit">${photoCredit(s.photo)}</span>` : ""}</div></li>`;
+  });
+  return `<ul class="headlines">${rows.join("")}</ul>`;
+}
+
+const WIKIPEDIA_CREDIT = `<a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener license">CC BY-SA 4.0</a>`;
+
+/** "On this day" (changes daily) and "Fun fact" (changes hourly), from Wikipedia; a box is left out when its fact is missing. */
+function factsStrip(facts: Facts): string {
+  const box = (label: string, fact: Fact | null) =>
+    fact
+      ? `<div class="fact"><p class="fact-label">${esc(label)}</p><p>${esc(fact.text)}</p><p class="fact-credit"><a href="${esc(fact.url)}" rel="noopener">More on Wikipedia</a> · ${WIKIPEDIA_CREDIT}</p></div>`
+      : "";
+  const boxes = box(facts.onThisDay ? `On this day in ${facts.onThisDay.year}` : "", facts.onThisDay) + box("Fun fact", facts.funFact);
+  return boxes ? `<section class="facts" aria-label="Facts">${boxes}</section>` : "";
+}
+
+/** Sections shown before "Worth a look": the day's news in the reader's order (local, national, world). */
+const NEWS_FIRST: readonly Section[] = ["local-wa", "australia", "world"];
+
+export function renderFront(front: FrontPage, updated: Date, facts: Facts): string {
   const root = "";
   const top = front.top.map((s) => storyCard(s, root)).join("");
-  const sections = NAV_ORDER.map((sec) => {
+  const sectionBlock = (sec: Section) => {
     const all = front.bySection.get(sec) ?? [];
     const multi = all.filter((s) => s.independent >= 2 && !front.top.includes(s)).slice(0, 4);
     const singles = all.filter((s) => s.independent < 2);
@@ -96,11 +123,16 @@ export function renderFront(front: FrontPage, updated: Date): string {
   ${singles.length ? `<h3 class="more">More ${esc(SECTION_LABELS[sec])} headlines</h3>${headlineList(singles, sec === "science-tech" || sec === "tech" ? 10 : multi.length ? 5 : 8, root)}` : ""}
   <p class="all"><a href="${sec}/">All ${esc(SECTION_LABELS[sec])} →</a></p>
 </section>`;
-  }).join("");
+  };
+  const news = NAV_ORDER.filter((sec) => NEWS_FIRST.includes(sec)).map(sectionBlock).join("");
+  const rest = NAV_ORDER.filter((sec) => !NEWS_FIRST.includes(sec)).map(sectionBlock).join("");
   const body = `<h1 class="visually-hidden">${SITE_NAME}</h1>
+${factsStrip(facts)}
 <section aria-labelledby="h-top"><h2 id="h-top">Top stories</h2><div class="grid">${top}</div></section>
 ${front.alsoLeading.length ? `<section class="sec" aria-labelledby="h-leading"><h2 id="h-leading">Also in the headlines</h2><p class="note">Leading on major Australian news sites; only one outlet has reported it so far.</p>${headlineList(front.alsoLeading, front.alsoLeading.length, root)}</section>` : ""}
-${sections}`;
+${news}
+${front.interesting.length ? `<section class="sec" aria-labelledby="h-worth"><h2 id="h-worth">Worth a look</h2><p class="note">Less prominent stories from science, good news, tech, business and entertainment.</p>${mixedList(front.interesting, root)}</section>` : ""}
+${rest}`;
   return page({ title: `${SITE_NAME}: every side of the story`, description: "Free Australian news that shows how left, centre and right sources cover the same event.", root, body, updated });
 }
 

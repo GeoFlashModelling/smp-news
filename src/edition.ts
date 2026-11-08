@@ -7,6 +7,7 @@ import { loadSources } from "./config/sources.js";
 import { applyBlocklist, loadBlocklist } from "./lib/blocklist.js";
 import { assignPhotos } from "./images/assign.js";
 import { clusterItems } from "./lib/cluster.js";
+import { loadFacts } from "./lib/facts.js";
 import { fetchAllFeeds, type FeedSnapshot } from "./lib/fetch-feeds.js";
 import { normalise } from "./lib/normalise.js";
 import { buildStories, frontPage, shownStories } from "./lib/stories.js";
@@ -39,7 +40,7 @@ async function main(): Promise<void> {
   const multi = stories.filter((s) => s.independent >= 2);
   let summaryNote = "summaries off";
   if (process.env.SUMMARIES === "on") {
-    const front = frontPage(stories);
+    const front = frontPage(stories, now);
     const important = new Set([...front.top, ...[...front.bySection.values()].flatMap((list) => list.filter((s) => s.independent >= 2).slice(0, 4))].map((s) => s.id));
     const { writeups, counts: c } = await summariseStories(multi, important, resolve(process.env.SUMMARY_STATE ?? ".cache/summaries.json"), now);
     for (const story of stories) story.writeup = writeups.get(story.id);
@@ -51,7 +52,7 @@ async function main(): Promise<void> {
   for (const story of stories) story.photo = photos.get(story.id);
 
   const out = pathToFileURL(`${resolve(process.env.EDITION_OUT ?? "dist")}/`);
-  const files = await generateSite(out, stories, config.sources, now);
+  const files = await generateSite(out, stories, config.sources, now, await loadFacts(now));
 
   console.log(`Edition ${now.toISOString()}: ${feeds.length - failed.length}/${feeds.length} feeds OK, ${items.length} items, ${stories.length} stories (${multi.length} multi-source), photos for ${photos.size} (event ${counts.event}, object ${counts.object}, broad ${counts.broad}; ${multi.filter((s) => s.photo).length}/${multi.length} multi-source), ${summaryNote}, ${files} files in ${Date.now() - started} ms.`);
   if (failed.length > 0) console.log(`Failed feeds: ${failed.map((f) => `${f.source} (${f.problem})`).join(", ")}`);
