@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { gunzipSync } from "node:zlib";
-import { summariseStories } from "./ai/summarise.js";
+import { summarisable, summariseStories } from "./ai/summarise.js";
 import { loadSources } from "./config/sources.js";
 import { applyBlocklist, loadBlocklist } from "./lib/blocklist.js";
 import { assignPhotos } from "./images/assign.js";
@@ -10,7 +10,7 @@ import { clusterItems } from "./lib/cluster.js";
 import { loadFacts } from "./lib/facts.js";
 import { fetchAllFeeds, type FeedSnapshot } from "./lib/fetch-feeds.js";
 import { normalise } from "./lib/normalise.js";
-import { buildStories, frontPage, shownStories } from "./lib/stories.js";
+import { buildStories, frontPage, sectionCards, shownStories } from "./lib/stories.js";
 import { generateSite } from "./site/generate.js";
 
 /**
@@ -41,10 +41,13 @@ async function main(): Promise<void> {
   let summaryNote = "summaries off";
   if (process.env.SUMMARIES === "on") {
     const front = frontPage(stories, now);
-    const important = new Set([...front.top, ...[...front.bySection.values()].flatMap((list) => list.filter((s) => s.independent >= 2).slice(0, 4))].map((s) => s.id));
-    const { writeups, counts: c } = await summariseStories(multi, important, resolve(process.env.SUMMARY_STATE ?? ".cache/summaries.json"), now);
+    // The top stories and each section's first writable stories fill the front page's written slots.
+    const slots = [...front.bySection.values()].flatMap((list) => sectionCards(list, front.top, (s) => summarisable(s) !== null));
+    const important = new Set([...front.top, ...slots].map((s) => s.id));
+    const { writeups, counts: c } = await summariseStories(shownStories(stories), important, resolve(process.env.SUMMARY_STATE ?? ".cache/summaries.json"), now);
     for (const story of stories) story.writeup = writeups.get(story.id);
-    summaryNote = `summaries for ${writeups.size}/${multi.length} (new ${c.written}: free ${c.free}, paid ${c.paid}; kept ${c.kept}; failed checks ${c.failed}; waiting ${c.waiting}; paid A$${c.paidAud.toFixed(3)} this run, A$${c.dayAud.toFixed(2)} today)`;
+    const multiWritten = multi.filter((s) => writeups.has(s.id)).length;
+    summaryNote = `summaries for ${multiWritten}/${multi.length} multi-source + ${writeups.size - multiWritten} single-outlet (new ${c.written}: free ${c.free}, paid ${c.paid}; kept ${c.kept}; failed checks ${c.failed}; waiting ${c.waiting}; paid A$${c.paidAud.toFixed(3)} this run, A$${c.dayAud.toFixed(2)} today)`;
   }
 
   // After the summaries, so a sport photo can follow the headline readers see (the summary's, when there is one).

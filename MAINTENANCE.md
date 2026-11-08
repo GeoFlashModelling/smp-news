@@ -127,11 +127,13 @@ Answers are cached for 7 days (`.cache/images.json`, kept between runs by GitHub
 In the reader's order (`frontPage` in `src/lib/stories.ts`, layout in `renderFront` in `src/site/render.ts`):
 
 1. **Facts strip**: "On this day" (changes at midnight Perth time; an Australian anniversary when Wikipedia has a peaceful one, never a grim one) and "Fun fact" (a Wikipedia "Did you know…" fact, a different one each hourly edition). Both from Wikipedia under CC BY-SA 4.0, credited on the page; `src/lib/facts.ts`. If Wikipedia can't be reached the box is simply left out.
-2. **Top stories (what's hot)**: stories covered by 2+ owner groups, ranked by how many major Australian outlets (`agenda: true`) run them and how high they sit on ABC's Top Stories list (feeds flagged `top: true` must be in homepage order, not newest-first). 3 slots go to Local WA, up to 7 to Local WA + Australia + Politics; world stories capped at 3, sport 2, entertainment 1, and at most 1 celebrity/reality-TV gossip story (`GOSSIP` words).
-3. **Also in the headlines**: single-outlet stories in the first 6 of a top-stories feed.
+2. **Top stories (what's hot)**: 9 stories covered by 2+ owner groups, ranked by how many major Australian outlets (`agenda: true`) run them and how high they sit on ABC's Top Stories list (feeds flagged `top: true` must be in homepage order, not newest-first). 2 slots go to Local WA, up to 5 to Local WA + Australia + Politics; one science slot; world stories capped at 3, sport 2, entertainment 1, and at most 1 celebrity/reality-TV gossip story (`GOSSIP` words).
+3. **Also in the headlines**: 3 single-outlet stories in the first 6 of a top-stories feed.
 4. **Local WA, Australia, World** blocks.
-5. **Worth a look**: 8 less prominent stories taken in turn from Science, Feel Good, Tech, Business and Entertainment, one per outlet, no gossip, opinion, court/crime or violent stories.
+5. **Worth a look**: 6 less prominent stories taken in turn from Science, Feel Good, Tech, Business and Entertainment, one per outlet, no gossip, opinion, court/crime or violent stories.
 6. The remaining section blocks. Every section list keeps at most 2 gossip stories.
+
+Each section block shows 6 written stories (`SECTION_WRITTEN`), then 3 "More … headlines" links (`SECTION_LINKS`). `edition.ts` asks for summaries of the top stories plus each section's first 6 writable stories. A story covered by only one outlet is written too, if that outlet allows AI use and its description is at least 120 characters; it is marked "Only <outlet> so far", gets its own story page, and is rewritten as a comparison once a second owner group covers it. Court and crime stories are never written; multi-source ones still show as cards (coverage only). Written stories are kept 3 days, so section pages also show earlier write-ups at no extra cost.
 
 ### Check how stories are being grouped
 

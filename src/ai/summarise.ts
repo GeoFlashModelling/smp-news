@@ -37,6 +37,8 @@ interface State {
 const STATE_VERSION = 1;
 const KEEP_DAYS = 3;
 const MIN_SOURCES = 2;
+/** A single-outlet story needs a description of at least this length; a one-line teaser is too thin to write from. */
+const SINGLE_MIN_CHARS = 120;
 /** Rewrite when this many owner groups the summary didn't use have joined, at most once per gap. */
 const REWRITE_NEW_OWNERS = 2;
 const REWRITE_GAP_HOURS = 3;
@@ -98,15 +100,21 @@ async function loadState(file: string, now: Date): Promise<State> {
   return state;
 }
 
-/** Stories the model may summarise: not court or crime stories, and at least two usable reports. */
+/**
+ * Stories the model may summarise: not court or crime stories, and at least two usable reports; or, for a story only
+ * one outlet has covered, that outlet's report if it allows AI use and says enough to write from.
+ */
 export function summarisable(story: Story): SourceBlock[] | null {
-  if (story.independent < 2 || isLegalRisk(story.items)) return null;
+  if (isLegalRisk(story.items)) return null;
   const blocks = selectSources(story.items);
+  if (story.independent < 2) return blocks.length === 1 && blocks[0]!.text.length >= SINGLE_MIN_CHARS ? blocks : null;
   return blocks.length >= MIN_SOURCES ? blocks : null;
 }
 
 function needsWriting(prev: StoryWriteup | undefined, blocks: SourceBlock[], now: Date): boolean {
   if (!prev) return true;
+  // Written from one outlet and now covered by more: rewrite once as a comparison.
+  if (prev.owners.length < MIN_SOURCES && blocks.length >= MIN_SOURCES) return true;
   const used = new Set(prev.owners);
   const fresh = new Set(blocks.map((b) => b.item.source.owner_group).filter((o) => !used.has(o)));
   return fresh.size >= REWRITE_NEW_OWNERS && now.getTime() - Date.parse(prev.written) >= REWRITE_GAP_HOURS * 3_600_000;
@@ -183,6 +191,8 @@ export async function summariseStories(stories: Story[], important: Set<string>,
     const blocks = summarisable(story);
     if (!blocks) continue;
     const prev = state.writeups[story.id];
+    // Single-outlet stories are written only to fill a front-page slot; earlier ones are kept for the section pages.
+    if (story.independent < 2 && !prev && !important.has(story.id)) continue;
     if (needsWriting(prev, blocks, now)) queue.push({ story, blocks });
     else if (prev?.summary) {
       writeups.set(story.id, prev);

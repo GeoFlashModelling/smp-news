@@ -203,12 +203,12 @@ function limitGossip(list: Story[], max: number): Story[] {
 const INTERESTING_SECTIONS: readonly Section[] = ["science-tech", "feel-good", "tech", "business", "entertainment"];
 /** "Worth a look" is for curiosity, not more hard news. */
 const HARD_NEWS = /\b(kill(s|ed|ing)?|dead|deaths?|died|attack(s|ed)?|strikes?|war|bomb(s|ing)?|missiles?|shooting|stabbing|crash(es|ed)?|murder(ed)?|terror\w*|hostages?)\b/i;
-const INTERESTING = 8;
+const INTERESTING = 6;
 const INTERESTING_MAX_AGE_HOURS = 36;
 
 /** Homepage positions (0-based) that count as "leading with", and how many such headlines the front page lists. */
 const LEADING_RANK = 6;
-const ALSO_LEADING = 6;
+const ALSO_LEADING = 3;
 
 /** NASA, Phys.org, ScienceAlert and the like: every feed is science. General outlets' science feeds don't count. */
 function isScienceSource(source: Source): boolean {
@@ -221,10 +221,35 @@ function isScienceSource(source: Source): boolean {
  * lead mostly with Australian news.
  */
 const HOME_SECTIONS: readonly Section[] = ["australia", "local-wa", "politics"];
-const HOME_SLOTS = 7;
-const WA_SLOTS = 3;
+const HOME_SLOTS = 5;
+const WA_SLOTS = 2;
+const TOP_STORIES = 9;
 
-/** Single-report headlines listed on each section page (the front page lists fewer). */
+/** Each section on the front page: written stories, then links to more. */
+export const SECTION_WRITTEN = 6;
+export const SECTION_LINKS = 3;
+
+/** Single-outlet stories from any one outlet among a section's written stories, so one prolific outlet can't fill it. */
+const SINGLES_PER_OUTLET = 2;
+
+/** A section's written stories on the front page: the first `SECTION_WRITTEN` that `ok` accepts, outside the top stories. */
+export function sectionCards(list: Story[], top: Story[], ok: (s: Story) => boolean): Story[] {
+  const perOutlet = new Map<string, number>();
+  const cards: Story[] = [];
+  for (const s of list) {
+    if (cards.length >= SECTION_WRITTEN) break;
+    if (top.includes(s) || !ok(s)) continue;
+    if (s.independent < 2) {
+      const n = perOutlet.get(s.headline.source.id) ?? 0;
+      if (n >= SINGLES_PER_OUTLET) continue;
+      perOutlet.set(s.headline.source.id, n + 1);
+    }
+    cards.push(s);
+  }
+  return cards;
+}
+
+/** Single-report headlines listed on each section page. */
 export const SECTION_HEADLINES = 60;
 
 /** Stories that appear somewhere on the site: every multi-source story, and each section's top single-report headlines. */
@@ -244,7 +269,7 @@ export function shownStories(stories: Story[]): Story[] {
  * and on gossip; then what the big sites lead with that only one outlet has; then less prominent stories worth
  * reading. Each section lists its multi-source stories in the same order, then its single-report headlines.
  */
-export function frontPage(stories: Story[], now: Date, size = 12): FrontPage {
+export function frontPage(stories: Story[], now: Date, size = TOP_STORIES): FrontPage {
   const multi = stories.filter((s) => s.independent >= 2).sort((a, b) => b.lead - a.lead);
   const top: Story[] = [];
   const caps: Partial<Record<Section, number>> = { "feel-good": 1, entertainment: 1, sport: 2, "science-tech": 2, tech: 2, world: 3 };
@@ -265,7 +290,8 @@ export function frontPage(stories: Story[], now: Date, size = 12): FrontPage {
   const bySection = new Map<Section, Story[]>(
     SECTIONS.map((sec) => {
       const inSection = stories.filter((s) => s.section === sec);
-      return [sec, limitGossip([...inSection.filter((s) => s.independent >= 2).sort((a, b) => b.lead - a.lead), ...inSection.filter((s) => s.independent < 2)], GOSSIP_PER_LIST)];
+      const byLead = (a: Story, b: Story) => b.lead - a.lead;
+      return [sec, limitGossip([...inSection.filter((s) => s.independent >= 2).sort(byLead), ...inSection.filter((s) => s.independent < 2).sort(byLead)], GOSSIP_PER_LIST)];
     }),
   );
   const alsoLeading = limitGossip(

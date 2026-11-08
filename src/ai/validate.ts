@@ -50,6 +50,8 @@ function longestRun(a: string[], b: string[]): number {
 
 /** Our sentences must be our own words: this many consecutive words shared with a source counts as copying. */
 const COPY_RUN_WORDS = 9;
+/** Stricter when one outlet's report is the only source, so the result can't read as a reworded copy of it. */
+const COPY_RUN_WORDS_SINGLE = 7;
 const PROFANITY = /\b(fuck\w*|shit\w*|cunt\w*|bitch\w*|motherf\w*)\b/i;
 
 /** Finds a cited source by its label (S1) or, failing that, by outlet name, which small models often write instead. */
@@ -136,8 +138,9 @@ function checkClaim(claim: Claim, list: ClaimList, blocks: SourceBlock[], storyW
   if (!Array.isArray(claim.cites) || claim.cites.length === 0) return [...errors, "no citations"];
 
   const textWords = words(text);
+  const copyRun = blocks.length === 1 ? COPY_RUN_WORDS_SINGLE : COPY_RUN_WORDS;
   for (const block of blocks) {
-    if (longestRun(textWords, words(`${block.item.title} ${block.text}`)) >= COPY_RUN_WORDS) errors.push(`copies wording from ${block.id}`);
+    if (longestRun(textWords, words(`${block.item.title} ${block.text}`)) >= copyRun) errors.push(`copies wording from ${block.id}`);
   }
 
   const cited: SourceBlock[] = [];
@@ -191,7 +194,9 @@ export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: 
   }
 
   const clean: StorySummary = { headline, summary: [], agreed: [], differences: [], only_reported_by: [], conflicts: [] };
-  for (const list of CLAIM_LISTS) {
+  // With one report there is nothing to compare, so only the summary is kept.
+  const single = blocks.length === 1;
+  for (const list of single ? (["summary"] as const) : CLAIM_LISTS) {
     const claims = Array.isArray(draft[list]) ? (draft[list] as Claim[]) : [];
     for (const claim of claims) {
       const errors = checkClaim(claim, list, blocks, allWords);
@@ -206,6 +211,6 @@ export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: 
   }
 
   const total = result.kept + result.dropped;
-  const failed = !headline || result.errors.some((e) => e.startsWith("headline") || e.startsWith("link")) || clean.summary.length < 2 || (total > 0 && result.dropped / total > MAX_DROPPED_SHARE);
+  const failed = !headline || result.errors.some((e) => e.startsWith("headline") || e.startsWith("link")) || clean.summary.length < (single ? 1 : 2) || (total > 0 && result.dropped / total > MAX_DROPPED_SHARE);
   return { ...result, summary: failed ? null : clean };
 }

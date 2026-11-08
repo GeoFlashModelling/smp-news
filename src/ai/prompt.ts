@@ -69,5 +69,8 @@ export function userPrompt(blocks: SourceBlock[]): string {
   const body = blocks
     .map((b) => `<<<SOURCE ${b.id} | outlet: ${b.item.source.name}>>>\nTITLE: ${b.item.title.replace(/<<<|>>>/g, " ")}\nTEXT: ${b.text}\n<<<END ${b.id}>>>`)
     .join("\n\n");
+  if (blocks.length === 1) {
+    return `One report about a news event (no other outlet has covered it yet):\n\n${body}\n\nReturn the JSON object for this event. With a single report, write only the headline and a summary of 1 to 3 sentences; leave agreed, differences, only_reported_by and conflicts empty.`;
+  }
   return `Reports about one news event:\n\n${body}\n\nReturn the JSON object for this event.`;
 }

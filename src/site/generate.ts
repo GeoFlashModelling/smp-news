@@ -31,7 +31,7 @@ export async function generateSite(dir: URL, stories: Story[], sources: Source[]
   for (const sec of SECTIONS) await write(`assets/sections/${sec}.svg`, sectionArtwork(sec));
   await write("index.html", renderFront(front, updated, facts));
   for (const sec of SECTIONS) await write(`${sec}/index.html`, renderSection(sec, front.bySection.get(sec) ?? [], updated));
-  for (const story of stories.filter((s) => s.independent >= 2)) await write(`story/${story.id}/index.html`, renderStory(story, updated));
+  for (const story of stories.filter((s) => s.independent >= 2 || s.writeup?.summary)) await write(`story/${story.id}/index.html`, renderStory(story, updated));
   await write("about/index.html", renderAbout(sources, updated));
   await write("404.html", renderNotFound(updated));
   await write("robots.txt", "User-agent: *\nDisallow: /\n");

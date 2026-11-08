@@ -5,7 +5,7 @@ import type { Section, Source } from "../config/sources.js";
 import type { Photo } from "../images/wikimedia.js";
 import type { Fact, Facts } from "../lib/facts.js";
 import type { Item } from "../lib/normalise.js";
-import { coverageGroup, SECTION_HEADLINES, type CoverageGroup, type FrontPage, type Story } from "../lib/stories.js";
+import { coverageGroup, SECTION_HEADLINES, SECTION_LINKS, sectionCards, type CoverageGroup, type FrontPage, type Story } from "../lib/stories.js";
 import { CORRECTIONS_EMAIL, NAV_ORDER, SECTION_LABELS, SITE_NAME, SUMMARIES_ON, esc, page, plural, timeTag } from "./html.js";
 
 const GROUP_LABELS: Record<CoverageGroup, string> = {
@@ -70,8 +70,14 @@ function storyCard(story: Story, root: string, showSection = true): string {
   <h3><a href="${root}story/${story.id}/">${esc(storyTitle(story))}</a></h3>
   ${lead ? `<p class="dek">${esc(lead)}</p>` : ""}
   ${coverageBar(story)}${oneSidedNote(story)}
-  <p class="meta">${plural(sources, "source")} · ${plural(story.independent, "independent owner")} · updated ${timeTag(story.last)}</p>
+  <p class="meta">${story.independent < 2 ? `Only ${esc(story.headline.source.name)} so far` : `${plural(sources, "source")} · ${plural(story.independent, "independent owner")}`} · updated ${timeTag(story.last)}</p>
 </article>`;
+}
+
+/** Shown as a card: stories we've written, plus multi-source ones we deliberately don't write (court and crime) or can't yet (summaries off). */
+function isCard(story: Story): boolean {
+  if (story.writeup?.summary) return true;
+  return story.independent >= 2 && (!SUMMARIES_ON || isLegalRisk(story.items));
 }
 
 function headlineList(stories: Story[], limit: number, root: string): string {
@@ -84,12 +90,12 @@ function headlineList(stories: Story[], limit: number, root: string): string {
 }
 
 /** Stories of either kind as one list: multi-source ones open our story page, single reports open the outlet. */
-function mixedList(stories: Story[], root: string): string {
+function mixedList(stories: Story[], root: string, showSection = true): string {
   const rows = stories.map((s) => {
-    const multi = s.independent >= 2;
-    const href = multi ? `${root}story/${s.id}/` : s.headline.url;
-    const from = multi ? plural(new Set(s.items.map((i) => i.source.id)).size, "source") : `${s.headline.source.name}${s.headline.source.paywall === "paywalled" ? " · Paywall" : ""}`;
-    return `<li>${picture(s, root, "thumb")}<div><a href="${esc(href)}"${multi ? "" : ' rel="noopener"'}>${esc(storyTitle(s))}</a> <span class="src">${esc(SECTION_LABELS[s.section])} · ${esc(from)} · ${timeTag(s.last)}</span>${s.photo ? `<span class="thumb-credit">${photoCredit(s.photo)}</span>` : ""}</div></li>`;
+    const ours = s.independent >= 2 || Boolean(s.writeup?.summary);
+    const href = ours ? `${root}story/${s.id}/` : s.headline.url;
+    const from = s.independent >= 2 ? plural(new Set(s.items.map((i) => i.source.id)).size, "source") : `${s.headline.source.name}${s.headline.source.paywall === "paywalled" ? " · Paywall" : ""}`;
+    return `<li>${picture(s, root, "thumb")}<div><a href="${esc(href)}"${ours ? "" : ' rel="noopener"'}>${esc(storyTitle(s))}</a> <span class="src">${showSection ? `${esc(SECTION_LABELS[s.section])} · ` : ""}${esc(from)} · ${timeTag(s.last)}</span>${s.photo ? `<span class="thumb-credit">${photoCredit(s.photo)}</span>` : ""}</div></li>`;
   });
   return `<ul class="headlines">${rows.join("")}</ul>`;
 }
@@ -114,13 +120,13 @@ export function renderFront(front: FrontPage, updated: Date, facts: Facts): stri
   const top = front.top.map((s) => storyCard(s, root)).join("");
   const sectionBlock = (sec: Section) => {
     const all = front.bySection.get(sec) ?? [];
-    const multi = all.filter((s) => s.independent >= 2 && !front.top.includes(s)).slice(0, 4);
-    const singles = all.filter((s) => s.independent < 2);
-    if (multi.length === 0 && singles.length === 0) return "";
+    const cards = sectionCards(all, front.top, isCard);
+    const links = all.filter((s) => !front.top.includes(s) && !cards.includes(s)).slice(0, SECTION_LINKS);
+    if (cards.length === 0 && links.length === 0) return "";
     return `<section class="sec" aria-labelledby="h-${sec}">
   <h2 id="h-${sec}"><a href="${sec}/">${esc(SECTION_LABELS[sec])}</a></h2>
-  ${multi.length ? `<div class="grid">${multi.map((s) => storyCard(s, root, false)).join("")}</div>` : ""}
-  ${singles.length ? `<h3 class="more">More ${esc(SECTION_LABELS[sec])} headlines</h3>${headlineList(singles, sec === "science-tech" || sec === "tech" ? 10 : multi.length ? 5 : 8, root)}` : ""}
+  ${cards.length ? `<div class="grid">${cards.map((s) => storyCard(s, root, false)).join("")}</div>` : ""}
+  ${links.length ? `<h3 class="more">More ${esc(SECTION_LABELS[sec])} headlines</h3>${mixedList(links, root, false)}` : ""}
   <p class="all"><a href="${sec}/">All ${esc(SECTION_LABELS[sec])} →</a></p>
 </section>`;
   };
@@ -138,10 +144,10 @@ ${rest}`;
 
 export function renderSection(section: Section, stories: Story[], updated: Date): string {
   const root = "../";
-  const multi = stories.filter((s) => s.independent >= 2);
-  const singles = stories.filter((s) => s.independent < 2);
+  const cards = stories.filter((s) => s.independent >= 2 || s.writeup?.summary);
+  const singles = stories.filter((s) => !cards.includes(s));
   const body = `<h1>${esc(SECTION_LABELS[section])}</h1>
-${multi.length ? `<div class="grid">${multi.map((s) => storyCard(s, root, false)).join("")}</div>` : `<p>No stories covered by more than one outlet yet.</p>`}
+${cards.length ? `<div class="grid">${cards.map((s) => storyCard(s, root, false)).join("")}</div>` : `<p>No stories written yet.</p>`}
 ${singles.length ? `<h2 class="more">More headlines</h2><p class="note">Reported by one outlet so far.</p>${headlineList(singles, SECTION_HEADLINES, root)}` : ""}`;
   return page({ title: `${SECTION_LABELS[section]} | ${SITE_NAME}`, description: `${SECTION_LABELS[section]} stories from many sources.`, root, active: section, body, updated });
 }
@@ -204,7 +210,7 @@ export function renderStory(story: Story, updated: Date): string {
   const body = `<article class="story">
 <p class="kicker"><a href="${root}${story.section}/">${esc(SECTION_LABELS[story.section])}</a></p>
 <h1>${esc(storyTitle(story))}</h1>
-<p class="credit">${story.writeup?.summary ? `Summary of ${plural(Object.keys(story.writeup.sources).length, "report")}` : `Headline from ${esc(story.headline.source.name)}`}</p>
+<p class="credit">${story.writeup?.summary ? `Summary of ${plural(Object.keys(story.writeup.sources).length, "report")}${story.independent < 2 ? `: only ${esc(story.headline.source.name)} has reported this so far` : ""}` : `Headline from ${esc(story.headline.source.name)}`}</p>
 <figure class="hero">${picture(story, root, "hero-img", true)}${
     story.photo
       ? `<figcaption>${story.photo.kind === "named" ? `File photo of ${esc(story.photo.subject)}` : `File photo: ${esc(story.photo.subject)}`}, not taken at this event. ${photoCredit(story.photo)}.</figcaption>`
@@ -216,7 +222,7 @@ ${writeupBlock(story, root)}
 ${story.writeup?.summary ? `<h2>All coverage</h2>` : ""}
 ${groups}
 </article>`;
-  return page({ title: `${storyTitle(story)} | ${SITE_NAME}`, description: `How ${sources} outlets covered this story.`, root, active: story.section, body, updated });
+  return page({ title: `${storyTitle(story)} | ${SITE_NAME}`, description: `How ${plural(sources, "outlet")} covered this story.`, root, active: story.section, body, updated });
 }
 
 const LEAN_TEXT: Record<string, string> = { left: "Left", "centre-left": "Centre-left", centre: "Centre", "centre-right": "Centre-right", right: "Right" };
