@@ -148,8 +148,9 @@ Cloudflare Email Routing forwards mail; there is no mailbox. `admin@thesmpnews.c
 
 - **Change where mail goes:** Cloudflare → `thesmpnews.com` → Email → Email Routing → Destination addresses → add the new inbox (it must click Cloudflare's verification email), then edit both routing rules to use it.
 - **Add an address:** Routing rules → Create routing rule → type the name, Action "Send to an email", pick the destination.
-- **DNS:** Email Routing owns the three `MX` records (`route1/2/3.mx.cloudflare.net`), the `TXT` SPF record `v=spf1 include:_spf.mx.cloudflare.net ~all` and the DKIM `TXT` at `cf2024-1._domainkey`. Don't delete them; they don't affect the website.
-- **Replying as admin@:** forwarding only receives. To reply "from" `admin@thesmpnews.com`, add it in Gmail → Settings → Accounts → "Send mail as" (Gmail's SMTP server with a Google app password), then add `include:_spf.google.com` to the SPF record so replies aren't marked as spam.
+- **DNS:** Email Routing owns the three `MX` records (`route1/2/3.mx.cloudflare.net`) and the DKIM `TXT` at `cf2024-1._domainkey`. The `TXT` SPF record is `v=spf1 include:_spf.mx.cloudflare.net include:_spf.google.com ~all` (the Google part lets Gmail send as the domain). Don't delete them; they don't affect the website.
+- **Inbox:** a Gmail filter puts mail to `admin@` or `corrections@` under the label "SMP News", skips the inbox and never sends it to spam.
+- **Replying as admin@:** Gmail → Settings → Accounts → "Send mail as" has "S.M.P. News <admin@thesmpnews.com>", sent through `smtp.gmail.com` port 587 (TLS) with a Google app password, and "Reply from the same address the message was sent to" is on. If replies stop sending, the app password was probably revoked: make a new one at myaccount.google.com/apppasswords and paste it via "edit info" next to the address.
 
 ### Check which news feeds are working
 
