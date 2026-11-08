@@ -22,7 +22,7 @@ The site shows headlines, sources, coverage bars and photos. AI-written summarie
 | Service | Used for | Account | Cost |
 |---|---|---|---|
 | GitHub (`GeoFlashModelling`) | Code, workflows (Actions), hosting (Pages), secrets, private state and notes repos | Owner, 2FA on | Free (public repo) |
-| Cloudflare | Domain registration (`thesmpnews.com`), DNS, the hourly timer Worker | Owner, 2FA on | Domain ~US$10/yr; Worker free |
+| Cloudflare | Domain registration (`thesmpnews.com`), DNS, the hourly timer Worker, Email Routing (`admin@` and `corrections@` forward to the owner's inbox) | Owner, 2FA on | Domain ~US$10/yr; Worker and Email Routing free |
 | Google AI Studio / Google Cloud | Gemini API: free project for photos; separate paid project (billing linked, A$100/month cap) for future summaries | Owner's Google account, 2FA on | Free tier; paid project pay-as-you-go |
 | Wikipedia, Wikimedia Commons | Free-licensed photos (hot-linked, credited) | None (anonymous API) | Free |
 | Openverse | Free-licensed photos, mostly Flickr (credited) | None (anonymous API) | Free |
@@ -142,6 +142,15 @@ Writes a readable report to `.cache/ai-test/<model>.md`: each story's AI summary
 
 Registered with Cloudflare Registrar (renews **7 Nov each year**; keep auto-renew on). DNS lives in Cloudflare: the apex `A`/`AAAA` records point to GitHub Pages and `www` is a `CNAME` to `geoflashmodelling.github.io`, all **DNS only** (grey cloud). The `TXT` record `_github-pages-challenge-GeoFlashModelling` proves ownership to GitHub; don't delete it. The custom domain is set in `smp-news` → Settings → Pages, which must show **Enforce HTTPS** ticked.
 
+### Email (admin@ and corrections@thesmpnews.com)
+
+Cloudflare Email Routing forwards mail; there is no mailbox. `admin@thesmpnews.com` and `corrections@thesmpnews.com` both forward to the owner's personal inbox (the address is in the private notes, not here). The site's About page and every story link to `corrections@`, which is set once as `CORRECTIONS_EMAIL` in `src/site/html.ts`. The catch-all rule is off, so mail to any other address at the domain bounces.
+
+- **Change where mail goes:** Cloudflare → `thesmpnews.com` → Email → Email Routing → Destination addresses → add the new inbox (it must click Cloudflare's verification email), then edit both routing rules to use it.
+- **Add an address:** Routing rules → Create routing rule → type the name, Action "Send to an email", pick the destination.
+- **DNS:** Email Routing owns the three `MX` records (`route1/2/3.mx.cloudflare.net`), the `TXT` SPF record `v=spf1 include:_spf.mx.cloudflare.net ~all` and the DKIM `TXT` at `cf2024-1._domainkey`. Don't delete them; they don't affect the website.
+- **Replying as admin@:** forwarding only receives. To reply "from" `admin@thesmpnews.com`, add it in Gmail → Settings → Accounts → "Send mail as" (Gmail's SMTP server with a Google app password), then add `include:_spf.google.com` to the SPF record so replies aren't marked as spam.
+
 ### Check which news feeds are working
 
 ```
@@ -201,6 +210,7 @@ Valid sections: `local-wa`, `australia`, `world`, `politics`, `business`, `sport
 |---|---|---|
 | Weekly (5 min) | Open the site: is "Updated" within the last hour or two? Glance at a few stories and pictures. Check the Actions tab for red crosses | thesmpnews.com, GitHub |
 | When an email arrives | GitHub failed-run emails, Google budget alerts, Dependabot pull requests (merge if CI is green) | Email |
+| Within 48 hours of a reader email | Reply to anything sent to `corrections@` (the About page promises 48 hours); fix it with the recipes above | Owner's inbox |
 | Monthly | Google spend (once summaries use the paid key) | AI Studio → Spend |
 | By **6 Nov 2027** | Renew `STATE_REPO_TOKEN` and the scheduler's `GH_TOKEN` (steps above) | GitHub, Cloudflare |
 | **7 Nov each year** | Domain renews automatically; keep a valid card on Cloudflare | Cloudflare → Domains |

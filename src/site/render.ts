@@ -2,7 +2,7 @@ import type { Section, Source } from "../config/sources.js";
 import type { Photo } from "../images/wikimedia.js";
 import type { Item } from "../lib/normalise.js";
 import { coverageGroup, SECTION_HEADLINES, type CoverageGroup, type FrontPage, type Story } from "../lib/stories.js";
-import { NAV_ORDER, SECTION_LABELS, SITE_NAME, esc, page, plural, timeTag } from "./html.js";
+import { CORRECTIONS_EMAIL, NAV_ORDER, SECTION_LABELS, SITE_NAME, esc, page, plural, timeTag } from "./html.js";
 
 const GROUP_LABELS: Record<CoverageGroup, string> = {
   left: "Left",
@@ -164,7 +164,7 @@ export function renderAbout(sources: Source[], updated: Date): string {
 <h2>Preview edition</h2>
 <p>This is an early preview. Stories are grouped automatically and can include a report that doesn't belong. Written summaries of what all sides report, where coverage differs and what only one side mentions are being built next; they will be machine-written from the linked sources, with every fact cited.</p>
 <h2 id="corrections">Corrections and takedowns</h2>
-<p>A private corrections address is being set up before full launch. Wrongly grouped reports and takedown requests are acted on within 48 hours.</p>
+<p>Email <a href="mailto:${CORRECTIONS_EMAIL}">${CORRECTIONS_EMAIL}</a> if a report is wrongly grouped, a picture is wrong for a story, an outlet's details are out of date, or you want something taken down. Please include the story's web address. We reply within 48 hours.</p>
 <h2>Sources</h2>
 <div class="table-wrap"><table><thead><tr><th>Outlet</th><th>Lean</th><th>Owner</th><th>Access</th></tr></thead><tbody>${rows}</tbody></table></div>
 </article>`;

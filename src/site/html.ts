@@ -2,6 +2,7 @@ import type { Section } from "../config/sources.js";
 
 export const SITE_NAME = "S.M.P. News";
 export const SITE_HOST = "thesmpnews.com";
+export const CORRECTIONS_EMAIL = `corrections@${SITE_HOST}`;
 export const TIME_ZONE = "Australia/Perth";
 
 export const SECTION_LABELS: Record<Section, string> = {
