@@ -85,9 +85,12 @@ export function venueMentioned(venue: string, story: Story): boolean {
   );
 }
 
-/** The home ground of the first club named in a sport story's headlines (the home side is usually named first), or null. */
+/**
+ * The home ground of the first club named in a sport story's headlines (the home side is usually named first), or null.
+ * The summary's headline comes first: it is the one shown, and a story can wrongly hold reports of two matches.
+ */
 export function homeGround(story: Story): string | null {
-  const titles = [story.headline.title, ...story.items.filter((i) => i !== story.headline).map((i) => i.title)];
+  const titles = [...(story.writeup?.summary ? [story.writeup.summary.headline] : []), story.headline.title, ...story.items.filter((i) => i !== story.headline).map((i) => i.title)];
   const all = titles.concat(story.items.map((i) => i.summary)).join(" ");
   const leagues: [Club[], boolean][] = [
     [AFL, /\bAFLW?\b|\bfooty\b/i.test(all)],

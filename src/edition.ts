@@ -37,9 +37,6 @@ async function main(): Promise<void> {
   const items = applyBlocklist(normalise(feeds, sources, now), await loadBlocklist());
   const stories = buildStories(clusterItems(items), now);
   const multi = stories.filter((s) => s.independent >= 2);
-  const { photos, counts } = await assignPhotos(shownStories(stories), resolve(process.env.IMAGE_CACHE ?? ".cache/images.json"), now);
-  for (const story of stories) story.photo = photos.get(story.id);
-
   let summaryNote = "summaries off";
   if (process.env.SUMMARIES === "on") {
     const front = frontPage(stories);
@@ -48,6 +45,10 @@ async function main(): Promise<void> {
     for (const story of stories) story.writeup = writeups.get(story.id);
     summaryNote = `summaries for ${writeups.size}/${multi.length} (new ${c.written}: free ${c.free}, paid ${c.paid}; kept ${c.kept}; failed checks ${c.failed}; waiting ${c.waiting}; paid A$${c.paidAud.toFixed(3)} this run, A$${c.dayAud.toFixed(2)} today)`;
   }
+
+  // After the summaries, so a sport photo can follow the headline readers see (the summary's, when there is one).
+  const { photos, counts } = await assignPhotos(shownStories(stories), resolve(process.env.IMAGE_CACHE ?? ".cache/images.json"), now);
+  for (const story of stories) story.photo = photos.get(story.id);
 
   const out = pathToFileURL(`${resolve(process.env.EDITION_OUT ?? "dist")}/`);
   const files = await generateSite(out, stories, config.sources, now);
