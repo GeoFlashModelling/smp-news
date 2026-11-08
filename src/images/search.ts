@@ -21,7 +21,7 @@ const PERSON_PHOTO =
 
 /** Old photos, scans and generated images: a 1927 team photo or a scanned catalogue isn't a file photo of today. */
 const NOT_CURRENT =
-  /\b(1[0-8]\d\d|19[0-8]\d)\b|\b(DALL|Midjourney|Stable Diffusion|AI[- ]generated|catalogue|catalog|page|scan(ned)?|poster|leaflet|brochure|advertisement|newspaper|magazine|cover|screenshot|ranking|graph|table|statistics|infographic|illustration|drawing|painting|engraving|lithograph|postcard|stamp|Wellcome)\b/i;
+  /\bc?(1[0-8]\d\d|19[0-8]\d)\b|\b(LOC|DALL|Midjourney|Stable Diffusion|AI[- ]generated|catalogue|catalog|page|scan(ned)?|poster|leaflet|brochure|advertisement|newspaper|magazine|cover|screenshot|ranking|graph|table|statistics|infographic|illustration|drawing|painting|engraving|lithograph|postcard|stamp|Wellcome)\b/i;
 
 const STOP = new Set(["the", "and", "of", "in", "on", "at", "for", "with", "from", "a", "an", "to", "by"]);
 

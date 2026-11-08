@@ -26,7 +26,7 @@ npm run edition
 | Secret (in `smp-news` → Settings → Secrets and variables → Actions) | What it is | Expires |
 |---|---|---|
 | `STATE_REPO_TOKEN` | Fine-grained token `smp-news-state-writer`: Contents read/write on `smp-news-state` only | **6 Nov 2027** |
-| `GEMINI_API_KEY` | Google AI Studio key "SMP News (GitHub Actions)", free tier, no billing attached. Used for photo search words (up to 12 requests an hour; the free daily limit for Flash Lite is 500). Manage at aistudio.google.com → API keys. If it leaks: delete it there, create a new one, update this secret | No expiry |
+| `GEMINI_API_KEY` | Google AI Studio key "SMP News (GitHub Actions)", free tier, no billing attached. Used for photo search words (up to 12 requests an hour on each of two Flash Lite models; the free daily limit is 500 each). Manage at aistudio.google.com → API keys. If it leaks: delete it there, create a new one, update this secret | No expiry |
 
 ### Renew `STATE_REPO_TOKEN` (before it expires)
 
@@ -70,16 +70,16 @@ Edit `config/blocklist.json` on GitHub (the mobile app works): add the article l
 Pictures (`src/images/`, all free-licensed, never from news sites) are chosen for every shown story, first match wins:
 
 1. **Named subject**: the Wikipedia lead photo of the story's main person, organisation or thing (Gemini suggests the article; names in the headlines are the backup). Skipped for court and crime stories.
-2. **Live search**: Gemini suggests 1–3 search phrases (a place, building or object, never people or incidents); each is searched on Wikimedia Commons, then Openverse. Filters drop event photos (riots, crashes, matches…), people, old photos, scans and AI images.
+2. **Live search**: Gemini suggests 1–3 search phrases (a place, building or object, never people or incidents) and a "theme", a common thing that stands for the story's topic ("wild cat", "Wi-Fi router") as a near-certain backup; each is searched on Wikimedia Commons, then Openverse. Filters drop event photos (riots, crashes, matches…), people, old photos, scans and AI images.
 3. **Place**: the Wikipedia photo of a city, suburb or building named in the reports.
 4. **Topic library**: hand-picked Commons photos for broad topics (police, court, mining, rugby…) in `TOPICS` in `src/images/ideas.ts`.
 5. Otherwise the section artwork from `src/site/artwork.ts`.
 
-Answers are cached for 7 days (`.cache/images.json`, kept between runs by GitHub's cache), so each hour only new stories are asked about. Each run is capped (12 Gemini requests, 150 Commons and 15 Openverse searches); multi-source stories go first and the rest fill in over the next few hours.
+Answers are cached for 7 days (`.cache/images.json`, kept between runs by GitHub's cache), so each hour only new stories are asked about. Each run is capped (12 Gemini requests on each of two free models, 300 Commons and 15 Openverse searches); multi-source stories go first and any rest fill in over the next hour or two.
 
 - **Wrong picture on a story:** for a wrong person or place from step 1, add the misleading name to `GENERIC` in `src/images/entities.ts`; for a bad search photo, add the giveaway word to `EVENT_PHOTO`, `PERSON_PHOTO` or `NOT_CURRENT` in `src/images/search.ts`. Then bump `RULES_VERSION` in `src/images/cache.ts` (clears the cached answers). Add the headline to `config/blocklist.json` only if the story itself must go.
 - **Change a library photo:** find the file on commons.wikimedia.org, check its licence is CC BY, CC BY-SA, CC0 or public domain, and put its exact file name (without `File:`) in `TOPICS`.
-- **Turn the AI part off:** in `smp-news` → Settings → Secrets and variables → Actions → Variables, add `PHOTO_AI` = `off` (step 1 then uses headline names only and step 2 is skipped). Delete the variable to turn it back on. The model is `PHOTO_AI_MODEL` (default `gemini-3.5-flash-lite`, the one with a usable free daily limit).
+- **Turn the AI part off:** in `smp-news` → Settings → Secrets and variables → Actions → Variables, add `PHOTO_AI` = `off` (step 1 then uses headline names only and step 2 is skipped). Delete the variable to turn it back on. By default it uses `gemini-3.5-flash-lite`, then `gemini-3.1-flash-lite` when that one's share is used or it fails (both free, 500 requests a day each); the variable `PHOTO_AI_MODEL` forces a single model instead.
 
 ### Check how stories are being grouped
 

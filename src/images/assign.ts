@@ -6,7 +6,7 @@ import { photoIdeas, topicFiles, TOPICS } from "./ideas.js";
 import { searchPhoto, type SearchBudget } from "./search.js";
 import { findFiles, findPhotos, type Photo } from "./wikimedia.js";
 
-const COMMONS_SEARCHES_PER_EDITION = 150;
+const COMMONS_SEARCHES_PER_EDITION = 300;
 const OPENVERSE_SEARCHES_PER_EDITION = 15;
 
 export interface PhotoCounts {
@@ -19,7 +19,8 @@ export interface PhotoCounts {
 /**
  * Every story gets a picture. The first of these that exists, else the section artwork:
  * 1. a free photo of the story's main person, organisation or thing (its Wikipedia lead photo);
- * 2. a photo found by searching Wikimedia Commons, then Openverse, for the place or object at the centre of the story;
+ * 2. a photo found by searching Wikimedia Commons, then Openverse, for the place or object at the centre of the story,
+ *    else for a common thing that stands for its topic ("wild cat", "Wi-Fi router");
  * 3. the Wikipedia photo of a place named in the reports;
  * 4. a hand-picked photo for the story's broad topic (police, court, rugby…).
  * Court and crime stories skip step 1: a file photo of a person next to an allegation can wrongly suggest who is accused.
@@ -57,7 +58,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
     const idea = ideas.get(story.id);
     let photo = (idea?.subject && !legal.has(story.id) ? named.get(idea.subject) : null) ?? (subjectsOf.get(story.id) ?? []).map((n) => subjects.get(n)).find((p) => p);
     let tier: keyof PhotoCounts = "named";
-    if (!photo) [photo, tier] = [await firstSearch(idea?.searches ?? []), "search"];
+    if (!photo) [photo, tier] = [await firstSearch([...(idea?.searches ?? []), ...(idea?.theme ? [idea.theme] : [])]), "search"];
     if (!photo) [photo, tier] = [(placesOf.get(story.id) ?? []).map((n) => places.get(n)).find((p) => p) ?? null, "place"];
     if (!photo) [photo, tier] = [topicFiles(story).map((f) => library.get(f)).find((p) => p) ?? null, "topic"];
     if (photo) {

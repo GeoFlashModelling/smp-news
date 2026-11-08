@@ -7,12 +7,18 @@ export interface PhotoIdea {
   subject: string;
   /** Short image-search phrases, most specific first: the place, setting or object at the centre of the story. */
   searches: string[];
+  /** A common thing, animal or scene that stands for the story's topic ("wild cat", "Wi-Fi router"); a free photo of it surely exists. */
+  theme?: string;
 }
 
 /** Small batches: with more stories per request, Flash Lite starts giving one story's places to its neighbours. */
 const BATCH = 15;
-/** Free tier: 15 requests a minute and 500 a day, so 12 an hour at most, spaced out. Leftover stories wait an hour. */
-const MAX_REQUESTS = 12;
+/**
+ * Free tier: each model allows 15 requests a minute and 500 a day, so 12 an hour each (288 a day). When one model's
+ * share is used, or it fails, the next takes over. Leftover stories wait an hour.
+ */
+const FREE_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
+const REQUESTS_PER_MODEL = 12;
 const REQUEST_GAP_MS = 4_500;
 const MAX_SEARCHES = 3;
 
@@ -27,8 +33,9 @@ const SCHEMA = {
           id: { type: "string" },
           subject: { type: "string" },
           searches: { type: "array", items: { type: "string" }, maxItems: MAX_SEARCHES },
+          theme: { type: "string" },
         },
-        required: ["id", "subject", "searches"],
+        required: ["id", "subject", "searches", "theme"],
       },
     },
   },
@@ -40,7 +47,8 @@ const SYSTEM = `You choose pictures for an Australian news website. Pictures are
 For each story you get its id, whether it is a court or crime story ("legal"), and its headlines. Return for each story:
 - subject: the exact English Wikipedia article title of the one well-known person, organisation, team, product or place the story is mainly about, when a photo of it would suit the story. Examples: "Pope Leo XIV", "Real Madrid CF", "Australia national rugby union team", "Tesla Cybertruck", "Victoria Barracks, Sydney". Use "" when there is no single clear subject, when the subject is a private individual, or when legal is true.
 - searches: 1 to 3 short image-search phrases (2 to 4 words, no punctuation), most specific first, for a photo that illustrates the story without showing the event: the place where it happened ("Melbourne skyline", "Main Market Square Kraków", "Walhalla Victoria"), or the setting or object at its centre ("Hawaiian pizza", "open pit gold mine Western Australia", "Parliament House Canberra", "rugby union match").
-Searches are for places, buildings, landscapes, animals and objects only: never people (no names, no "police officer", "judge" or "crowd"), never incidents ("riot", "protest", "crash", "airstrike"), never logos. Treat each story on its own: only name a place the story's own headlines point to. When legal is true, the place or building is especially important ("Melbourne laneway", "Supreme Court of Victoria building").`;
+- theme: always one common thing, animal, food, vehicle, kind of building or landscape (1 to 3 words) that stands for the story's topic, so ordinary that a free photo of it surely exists. Examples: "wild cat", "snake", "racing bicycle", "wine glasses", "Wi-Fi router", "electric pickup truck", "video game controller", "glacier", "sake bottles", "cargo ship", "Australian rules football", "courthouse".
+Searches and themes are for places, buildings, landscapes, animals and objects only: never people (no names, no "police officer", "judge" or "crowd"), never incidents ("riot", "protest", "crash", "airstrike"), never logos. Treat each story on its own: only name a place the story's own headlines point to. When legal is true, the place or building is especially important ("Melbourne laneway", "Supreme Court of Victoria building").`;
 
 /**
  * Last resort before artwork: common news topics, each with a hand-picked Wikimedia Commons photo (file name) and
@@ -102,16 +110,21 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Asks Gemini (one request per 15 stories) what to look for, for stories it hasn't been asked about in the last week.
- * Off when GEMINI_API_KEY is missing or PHOTO_AI=off; any failure leaves the remaining stories to the fallbacks.
+ * Off when GEMINI_API_KEY is missing or PHOTO_AI=off; stories no model could answer are left to the fallbacks.
  */
 export async function photoIdeas(stories: Story[], legal: Set<string>, cache: ImageCache): Promise<Map<string, PhotoIdea>> {
   const key = (id: string) => `idea:${id}`;
   const todo = stories.filter((s) => !cache.has(key(s.id)));
-  // Flash Lite's free tier allows 500 requests a day (Flash: 20), ample for one request per hourly edition.
-  const model = process.env.PHOTO_AI_MODEL || "gemini-3.5-flash-lite";
+  const models = process.env.PHOTO_AI_MODEL ? [process.env.PHOTO_AI_MODEL] : FREE_MODELS;
   if (todo.length && process.env.GEMINI_API_KEY && process.env.PHOTO_AI !== "off") {
-    for (let i = 0; i < todo.length && i < BATCH * MAX_REQUESTS; i += BATCH) {
+    let m = 0;
+    let used = 0;
+    for (let i = 0; i < todo.length && m < models.length; ) {
+      if (used === REQUESTS_PER_MODEL) [m, used] = [m + 1, 0];
+      const model = models[m];
+      if (!model) break;
       if (i) await sleep(REQUEST_GAP_MS);
+      used++;
       const batch = todo.slice(i, i + BATCH);
       // Numbered 1..15 rather than story ids: easier for the model to keep its answers lined up.
       const lines = batch.map((s, n) =>
@@ -126,11 +139,13 @@ export async function photoIdeas(stories: Story[], legal: Set<string>, cache: Im
           const searches = Array.isArray(a.searches)
             ? a.searches.map((q) => tidy(q, 60)).filter((q) => q.length >= 3).slice(0, MAX_SEARCHES)
             : [];
-          cache.set(key(story.id), { subject: legal.has(story.id) ? "" : tidy(a.subject, 100), searches } satisfies PhotoIdea);
+          const theme = tidy(a.theme, 40);
+          cache.set(key(story.id), { subject: legal.has(story.id) ? "" : tidy(a.subject, 100), searches, theme: theme.length >= 3 ? theme : "" } satisfies PhotoIdea);
         }
+        i += BATCH;
       } catch (err) {
-        console.log(`Photo ideas from ${model} failed (${batch.length} stories; using fallbacks): ${err instanceof Error ? err.message : err}`);
-        break;
+        console.log(`Photo ideas from ${model} failed (${batch.length} stories; trying the next model): ${err instanceof Error ? err.message : err}`);
+        [m, used] = [m + 1, 0];
       }
     }
   }

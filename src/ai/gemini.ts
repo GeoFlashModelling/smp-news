@@ -33,6 +33,8 @@ export async function geminiJson(model: string, system: string, user: string, sc
     });
   const busy = (status: number) => status === 429 || status === 503;
   let res = await request();
+  // A used-up daily quota won't come back by waiting.
+  if (res.status === 429 && /PerDay/i.test(await res.clone().text())) throw new Error(`Gemini daily quota for ${model} used up (429)`);
   for (let retry = 0; busy(res.status) && retry < RATE_LIMIT_RETRIES; retry++) {
     await new Promise((r) => setTimeout(r, RATE_LIMIT_WAIT_MS));
     res = await request();
