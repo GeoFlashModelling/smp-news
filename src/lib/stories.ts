@@ -24,7 +24,12 @@ export interface Story {
 }
 
 const SECTION_PRIORITY: readonly Section[] = ["local-wa", "australia", "politics", "world", "business", "science-tech", "sport", "entertainment", "feel-good"];
-const HALF_LIFE_HOURS = 12;
+/**
+ * A story's weight halves every 8 hours from its first report. Measured from the latest report instead, big stories
+ * that some outlet keeps re-posting stayed on top for two days.
+ */
+const HALF_LIFE_HOURS = 8;
+const INDEPENDENCE_WEIGHT = 1.2;
 
 export function coverageGroup(item: Item): CoverageGroup {
   const s = item.source;
@@ -109,8 +114,8 @@ export function buildStory(cluster: Cluster, now: Date): Story {
   const rated = coverage.left + coverage.centre + coverage.right;
   const oneSided = rated >= 3 ? ((["left", "centre", "right"] as const).find((g) => coverage[g] === rated && g !== "centre") ?? null) : null;
 
-  const ageHours = (now.getTime() - cluster.last.getTime()) / 3_600_000;
-  const score = Math.pow(Math.max(independent, 1), 1.4) * Math.pow(0.5, Math.max(ageHours, 0) / HALF_LIFE_HOURS);
+  const ageHours = (now.getTime() - cluster.first.getTime()) / 3_600_000;
+  const score = Math.pow(Math.max(independent, 1), INDEPENDENCE_WEIGHT) * Math.pow(0.5, Math.max(ageHours, 0) / HALF_LIFE_HOURS);
   return {
     id: storyId(items),
     section: pickSection(items),
