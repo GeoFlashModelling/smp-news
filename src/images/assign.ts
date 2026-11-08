@@ -2,7 +2,7 @@ import { isLegalRisk } from "../ai/legal-risk.js";
 import type { Story } from "../lib/stories.js";
 import { ImageCache } from "./cache.js";
 import { imageCandidates, placeCandidates } from "./entities.js";
-import { homeGround } from "./grounds.js";
+import { homeGround, venueMentioned } from "./grounds.js";
 import { photoIdeas, topicFiles, TOPICS } from "./ideas.js";
 import { searchPhoto, type SearchBudget } from "./search.js";
 import { findFiles, findPhotos, type Photo } from "./wikimedia.js";
@@ -47,7 +47,10 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
   const places = await findPhotos([...placesOf.values()].flat(), "place", cache);
   const venueOf = new Map<string, string>();
   for (const story of stories) {
-    const venue = ideas.get(story.id)?.venue || (story.section === "sport" ? homeGround(story) : null);
+    const suggested = ideas.get(story.id)?.venue || null;
+    const home = story.section === "sport" ? homeGround(story) : null;
+    // A venue the reports name beats the club's home ground; the home ground beats the model's guess.
+    const venue = suggested && venueMentioned(suggested, story) ? suggested : (home ?? suggested);
     if (venue) venueOf.set(story.id, venue);
   }
   const venues = await findPhotos([...venueOf.values()], "place", cache);

@@ -61,6 +61,15 @@ function firstMention(club: Club, text: string, nicknamesOk: boolean): number {
   return at.length ? Math.min(...at) : -1;
 }
 
+const VENUE_WORDS = new Set(["the", "stadium", "ground", "park", "oval", "cricket", "football", "sports", "centre", "arena", "field", "international"]);
+
+/** Whether the reports mention a suggested venue ("Ikon Park" needs "Ikon"), rather than the model guessing it. */
+export function venueMentioned(venue: string, story: Story): boolean {
+  const text = story.items.map((i) => `${i.title} ${i.summary}`).join(" ").toLowerCase();
+  const words = venue.replace(/\(.*\)/, "").toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3 && !VENUE_WORDS.has(w));
+  return words.length > 0 && words.some((w) => text.includes(w));
+}
+
 /** The home ground of the first club named in a sport story's headlines (the home side is usually named first), or null. */
 export function homeGround(story: Story): string | null {
   const titles = [story.headline.title, ...story.items.filter((i) => i !== story.headline).map((i) => i.title)];
