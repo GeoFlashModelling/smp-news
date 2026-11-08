@@ -504,8 +504,7 @@
           "sections": [
             "australia"
           ],
-          "via": "direct",
-          "top": true
+          "via": "direct"
         },
         {
           "url": "https://www.smh.com.au/rss/politics/federal.xml",
@@ -550,8 +549,7 @@
           "sections": [
             "australia"
           ],
-          "via": "direct",
-          "top": true
+          "via": "direct"
         }
       ],
       "notes": "Metered paywall.",
@@ -656,7 +654,8 @@
           ],
           "via": "direct"
         }
-      ]
+      ],
+      "agenda": true
     },
     {
       "id": "renew-economy",
