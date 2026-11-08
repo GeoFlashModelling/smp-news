@@ -2,6 +2,32 @@
 
 How to keep the site running and fix common problems without an AI agent. Every build step adds to this guide.
 
+## How the site works (at a glance)
+
+There is no server and nothing runs on the owner's PC. Every hour:
+
+1. **Cloudflare** (Worker `smp-news-scheduler`, cron `47 * * * *`) asks GitHub to start the **Edition** workflow. GitHub's own timer also starts it every 3 hours at :17 as a backup, and any push of code or config starts it too.
+2. **GitHub Actions** (a fresh `ubuntu-24.04` machine, free because the repo is public) runs `npm run edition`:
+   - reads every enabled outlet's own RSS feed listed in `config/sources.json` (never Google News; outlets whose terms forbid it are switched off);
+   - tidies and de-duplicates the items, drops anything in `config/blocklist.json`;
+   - groups reports of the same event into stories (word overlap; no AI), counts independent owners, assigns sections, ranks;
+   - picks a free-licensed photo for every shown story (Gemini free tier suggests what to look for; Wikipedia, Wikimedia Commons and Openverse supply the photos; answers cached a week in GitHub's cache);
+   - writes plain HTML pages to `dist/`. A build with fewer than 10 multi-source stories fails on purpose.
+3. **GitHub Pages** publishes `dist/` at `https://thesmpnews.com`. **Cloudflare DNS** points the domain at GitHub Pages; GitHub provides the HTTPS certificate. If a run fails, nothing is published and the previous hour's site stays up.
+
+The site shows headlines, sources, coverage bars and photos. AI-written summaries are not live yet (they will use the paid Gemini key only as a last resort; see "Google AI billing" below).
+
+### Services used
+
+| Service | Used for | Account | Cost |
+|---|---|---|---|
+| GitHub (`GeoFlashModelling`) | Code, workflows (Actions), hosting (Pages), secrets, private state and notes repos | Owner, 2FA on | Free (public repo) |
+| Cloudflare | Domain registration (`thesmpnews.com`), DNS, the hourly timer Worker | Owner, 2FA on | Domain ~US$10/yr; Worker free |
+| Google AI Studio / Google Cloud | Gemini API: free project for photos; separate paid project (billing linked, A$100/month cap) for future summaries | Owner's Google account, 2FA on | Free tier; paid project pay-as-you-go |
+| Wikipedia, Wikimedia Commons | Free-licensed photos (hot-linked, credited) | None (anonymous API) | Free |
+| Openverse | Free-licensed photos, mostly Flickr (credited) | None (anonymous API) | Free |
+| News outlets' RSS feeds | Headlines and short descriptions, linked back | None | Free |
+
 ## Where things live
 
 | What | Where | Visibility |
@@ -27,6 +53,16 @@ npm run edition
 |---|---|---|
 | `STATE_REPO_TOKEN` | Fine-grained token `smp-news-state-writer`: Contents read/write on `smp-news-state` only | **6 Nov 2027** |
 | `GEMINI_API_KEY` | Google AI Studio key "SMP News (GitHub Actions)", free tier, no billing attached. Used for photo search words (up to 12 requests an hour on each of two Flash Lite models; the free daily limit is 500 each). Manage at aistudio.google.com → API keys. If it leaks: delete it there, create a new one, update this secret | No expiry |
+| `GEMINI_PAID_API_KEY` | Google AI Studio key "SMP News Paid (GitHub Actions)" on the separate project "SMP News Paid", which has billing. Not used by any workflow yet; reserved for AI summaries when every free model is used up. Same leak steps as above | No expiry |
+
+### Google AI billing (pay-as-you-go, capped)
+
+Billing is on a **separate** Google project ("SMP News Paid") because turning billing on moves a whole project off the free tier; the free project behind `GEMINI_API_KEY` has no billing and can never charge. No monthly fee; you pay only for paid-key requests, plus GST, charged to the card on the Google billing account. Google's US$300 welcome credit does not cover the Gemini API.
+
+- **Hard cap:** aistudio.google.com → Spend → monthly spend cap **A$100** on "SMP News Paid". When reached, Google pauses the paid key until the next month (Google says up to ~10 minutes of overrun is possible). Change it there.
+- **Email alerts:** console.cloud.google.com → Billing → Budgets & alerts → "SMP News Gemini monthly" (A$100/month): emails at 50%, 80% and 100% of actual spend, and when the month is forecast to reach 90%. Alerts only; they don't stop anything. Costs can take up to a day to appear.
+- **See spending:** AI Studio → Spend, or Cloud console → Billing → Reports.
+- **Stop all paid use at once:** delete the `GEMINI_PAID_API_KEY` secret, or unlink billing from "SMP News Paid" (Billing → Account management). The site keeps working on the free tier.
 
 ### Renew `STATE_REPO_TOKEN` (before it expires)
 
@@ -158,5 +194,18 @@ To **add a source**: copy an existing entry, change every field, then run `npm r
 `lean` may be `null` for `community` and `official` sources, or for sources that publish only in sport, science-tech, entertainment or feel-good; those sources don't appear in the left / centre / right part of the bar. If a lean isn't from AllSides or Media Bias/Fact Check, say so in `notes` ("Lean is editorial judgement").
 
 Valid sections: `local-wa`, `australia`, `world`, `politics`, `business`, `sport`, `science-tech`, `entertainment`, `feel-good`. CI rejects any push where `sources.json` is invalid.
+
+## Owner's calendar
+
+| When | What | Where |
+|---|---|---|
+| Weekly (5 min) | Open the site: is "Updated" within the last hour or two? Glance at a few stories and pictures. Check the Actions tab for red crosses | thesmpnews.com, GitHub |
+| When an email arrives | GitHub failed-run emails, Google budget alerts, Dependabot pull requests (merge if CI is green) | Email |
+| Monthly | Google spend (once summaries use the paid key) | AI Studio → Spend |
+| By **6 Nov 2027** | Renew `STATE_REPO_TOKEN` and the scheduler's `GH_TOKEN` (steps above) | GitHub, Cloudflare |
+| **7 Nov each year** | Domain renews automatically; keep a valid card on Cloudflare | Cloudflare → Domains |
+| Yearly | Re-check `full_text_allowed` sources' terms; run `npm run check-terms` and `npm run check-feeds` | This repo |
+
+**If the site stops updating:** Actions tab → Edition → the latest run's log shows why. Common causes: a feed change (`npm run check-feeds`), an expired token (Cloudflare Worker logs show 401), or GitHub having an outage (wait). Actions → Edition → **Run workflow** rebuilds by hand.
 
 *Still to come as the pipeline is built:* pausing and resuming the site, re-running a failed edition, switching AI provider, taking down a story, rotating keys, rolling back, reading a failed Actions log.
