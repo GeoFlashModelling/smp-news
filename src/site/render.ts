@@ -1,4 +1,5 @@
 import type { Section, Source } from "../config/sources.js";
+import type { Photo } from "../images/wikimedia.js";
 import type { Item } from "../lib/normalise.js";
 import { coverageGroup, type CoverageGroup, type FrontPage, type Story } from "../lib/stories.js";
 import { NAV_ORDER, SECTION_LABELS, SITE_NAME, esc, page, plural, timeTag } from "./html.js";
@@ -37,9 +38,24 @@ function oneSidedNote(story: Story): string {
   return story.oneSided ? `<p class="onesided">Only covered by ${SIDE_WORDING[story.oneSided]} sources so far.</p>` : "";
 }
 
+/** Credit required by the photo's licence: author, licence, and a link to the file page with the full terms. */
+function photoCredit(photo: Photo): string {
+  return `<a class="credit-link" href="${esc(photo.page)}" rel="noopener">Photo: ${esc(photo.artist)}, ${esc(photo.licence)}, via Wikimedia Commons</a>`;
+}
+
+/** The story's picture: its subject's free-licensed photo, or the section artwork (decorative, so no alt text). */
+function picture(story: Story, root: string, cls: string, eager = false): string {
+  const loading = eager ? `fetchpriority="high"` : `loading="lazy"`;
+  const p = story.photo;
+  if (!p) return `<img class="${cls}" src="${root}assets/sections/${story.section}.svg" alt="" width="640" height="360" ${loading} decoding="async">`;
+  const large = eager && p.large ? ` srcset="${esc(p.src)} 500w, ${esc(p.large)} 960w" sizes="(min-width: 800px) 760px, 100vw"` : "";
+  return `<img class="${cls}${p.height > p.width ? " portrait" : ""}" src="${esc(p.src)}"${large} alt="${esc(p.subject)}" width="${p.width}" height="${p.height}" ${loading} decoding="async">`;
+}
+
 function storyCard(story: Story, root: string, showSection = true): string {
   const sources = new Set(story.items.map((i) => i.source.id)).size;
   return `<article class="card">
+  <div class="pic">${picture(story, root, "pic-img")}${story.photo ? `<p class="pic-credit">${photoCredit(story.photo)}</p>` : ""}</div>
   ${showSection ? `<p class="kicker">${esc(SECTION_LABELS[story.section])}</p>` : ""}
   <h3><a href="${root}story/${story.id}/">${esc(story.headline.title)}</a></h3>
   ${coverageBar(story)}${oneSidedNote(story)}
@@ -47,11 +63,11 @@ function storyCard(story: Story, root: string, showSection = true): string {
 </article>`;
 }
 
-function headlineList(stories: Story[], limit: number): string {
+function headlineList(stories: Story[], limit: number, root: string): string {
   if (stories.length === 0) return "";
   const rows = stories.slice(0, limit).map((s) => {
     const i = s.headline;
-    return `<li><a href="${esc(i.url)}" rel="noopener">${esc(i.title)}</a> <span class="src">${esc(i.source.name)}${i.source.paywall === "paywalled" ? " · Paywall" : ""} · ${timeTag(i.published)}</span></li>`;
+    return `<li>${picture(s, root, "thumb")}<div><a href="${esc(i.url)}" rel="noopener">${esc(i.title)}</a> <span class="src">${esc(i.source.name)}${i.source.paywall === "paywalled" ? " · Paywall" : ""} · ${timeTag(i.published)}</span>${s.photo ? `<span class="thumb-credit">${photoCredit(s.photo)}</span>` : ""}</div></li>`;
   });
   return `<ul class="headlines">${rows.join("")}</ul>`;
 }
@@ -67,7 +83,7 @@ export function renderFront(front: FrontPage, updated: Date): string {
     return `<section class="sec" aria-labelledby="h-${sec}">
   <h2 id="h-${sec}"><a href="${sec}/">${esc(SECTION_LABELS[sec])}</a></h2>
   ${multi.length ? `<div class="grid">${multi.map((s) => storyCard(s, root, false)).join("")}</div>` : ""}
-  ${singles.length ? `<h3 class="more">More ${esc(SECTION_LABELS[sec])} headlines</h3>${headlineList(singles, multi.length ? 5 : 8)}` : ""}
+  ${singles.length ? `<h3 class="more">More ${esc(SECTION_LABELS[sec])} headlines</h3>${headlineList(singles, multi.length ? 5 : 8, root)}` : ""}
   <p class="all"><a href="${sec}/">All ${esc(SECTION_LABELS[sec])} →</a></p>
 </section>`;
   }).join("");
@@ -83,7 +99,7 @@ export function renderSection(section: Section, stories: Story[], updated: Date)
   const singles = stories.filter((s) => s.independent < 2);
   const body = `<h1>${esc(SECTION_LABELS[section])}</h1>
 ${multi.length ? `<div class="grid">${multi.map((s) => storyCard(s, root, false)).join("")}</div>` : `<p>No stories covered by more than one outlet yet.</p>`}
-${singles.length ? `<h2 class="more">More headlines</h2><p class="note">Reported by one outlet so far.</p>${headlineList(singles, 60)}` : ""}`;
+${singles.length ? `<h2 class="more">More headlines</h2><p class="note">Reported by one outlet so far.</p>${headlineList(singles, 60, root)}` : ""}`;
   return page({ title: `${SECTION_LABELS[section]} | ${SITE_NAME}`, description: `${SECTION_LABELS[section]} stories from many sources.`, root, active: section, body, updated });
 }
 
@@ -108,6 +124,9 @@ export function renderStory(story: Story, updated: Date): string {
 <p class="kicker"><a href="${root}${story.section}/">${esc(SECTION_LABELS[story.section])}</a></p>
 <h1>${esc(story.headline.title)}</h1>
 <p class="credit">Headline from ${esc(story.headline.source.name)}</p>
+<figure class="hero">${picture(story, root, "hero-img", true)}${
+    story.photo ? `<figcaption>File photo of ${esc(story.photo.subject)}, not taken at this event. ${photoCredit(story.photo)}.</figcaption>` : ""
+  }</figure>
 ${coverageBar(story, true)}${oneSidedNote(story)}
 <p class="facts">${plural(story.items.length, "report")} from ${plural(sources, "outlet")} and ${plural(story.independent, "independent owner")}. First reported ${timeTag(story.first)}; latest ${timeTag(story.last)}.</p>
 <div class="callout">Our written summary of what every side reports is coming soon. Until then, compare the coverage below. Grouping is automatic and can make mistakes: <a href="${root}about/#corrections">tell us</a> if a report doesn't belong here.</div>
@@ -136,6 +155,8 @@ export function renderAbout(sources: Source[], updated: Date): string {
 <li><strong>"Only covered by … sources so far":</strong> shown when three or more independent rated outlets cover a story and all are on one side.</li>
 <li><strong>Every source, linked:</strong> read the original reports and compare them yourself. Each link is marked Free or Paywall.</li>
 </ul>
+<h2>Pictures</h2>
+<p>We never use photos from news outlets. Where a free-licensed photo of a story's main person or place exists on <a href="https://commons.wikimedia.org/" rel="noopener">Wikimedia Commons</a>, we show it with its photographer and licence; these are file photos, not pictures of the event itself. Otherwise the story shows S.M.P. artwork for its section. Court and crime stories always use artwork, so no one is pictured next to an allegation.</p>
 <h2>Where the lean ratings come from</h2>
 <p>Ratings are opinions, not facts. They come from <a href="https://www.allsides.com/media-bias/ratings" rel="noopener">AllSides</a> and <a href="https://mediabiasfactcheck.com/" rel="noopener">Media Bias/Fact Check</a> where available; otherwise they are our editorial judgement. World outlets are rated on a US/UK axis, which doesn't map exactly onto Australian politics. Local, community and student outlets aren't rated; official sources (government, universities) are listed separately.</p>
 <h2>Preview edition</h2>

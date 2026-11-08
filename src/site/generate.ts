@@ -1,6 +1,7 @@
 import { copyFile, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { SECTIONS, type Source } from "../config/sources.js";
 import { frontPage, type Story } from "../lib/stories.js";
+import { sectionArtwork } from "./artwork.js";
 import { SITE_HOST, SITE_NAME } from "./html.js";
 import { renderAbout, renderFront, renderNotFound, renderSection, renderStory } from "./render.js";
 
@@ -26,6 +27,7 @@ export async function generateSite(dir: URL, stories: Story[], sources: Source[]
     files++;
   };
 
+  for (const sec of SECTIONS) await write(`assets/sections/${sec}.svg`, sectionArtwork(sec));
   await write("index.html", renderFront(front, updated));
   for (const sec of SECTIONS) await write(`${sec}/index.html`, renderSection(sec, front.bySection.get(sec) ?? [], updated));
   for (const story of stories.filter((s) => s.independent >= 2)) await write(`story/${story.id}/index.html`, renderStory(story, updated));
@@ -44,7 +46,7 @@ export async function generateSite(dir: URL, stories: Story[], sources: Source[]
         updated: updated.toISOString(),
         stories: stories
           .filter((s) => s.independent >= 2)
-          .map((s) => ({ id: s.id, section: s.section, headline: s.headline.title, independent: s.independent, coverage: s.coverage, first: s.first, last: s.last, links: s.items.map((i) => ({ source: i.source.id, url: i.url })) })),
+          .map((s) => ({ id: s.id, section: s.section, headline: s.headline.title, independent: s.independent, coverage: s.coverage, photo: s.photo ? { subject: s.photo.subject, page: s.photo.page } : null, first: s.first, last: s.last, links: s.items.map((i) => ({ source: i.source.id, url: i.url })) })),
       },
       null,
       1,

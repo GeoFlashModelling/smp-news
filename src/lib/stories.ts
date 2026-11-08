@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { SECTIONS, toBarLean, type BarLean, type Section } from "../config/sources.js";
 import { tokenize, type Cluster } from "./cluster.js";
+import type { Photo } from "../images/wikimedia.js";
 import type { Item } from "./normalise.js";
 
 export type CoverageGroup = BarLean | "local" | "official" | "unrated";
@@ -18,6 +19,8 @@ export interface Story {
   first: Date;
   last: Date;
   score: number;
+  /** Free-licensed photo of the story's subject; when absent the story shows its section artwork. */
+  photo?: Photo;
 }
 
 const SECTION_PRIORITY: readonly Section[] = ["local-wa", "australia", "politics", "world", "business", "science-tech", "sport", "entertainment", "feel-good"];

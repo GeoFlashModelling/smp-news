@@ -57,6 +57,20 @@ h2 a:hover { text-decoration: underline; }
 .card h3 a { color: var(--navy); text-decoration: none; }
 .card h3 a::after { content: ""; position: absolute; inset: 0; border-radius: 10px; }
 .card h3 a:hover { text-decoration: underline; }
+.pic { margin: -14px -16px 10px; position: relative; }
+.pic-img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: 50% 25%; border-radius: 10px 10px 0 0; background: var(--navy); }
+.pic-credit { position: absolute; right: 0; bottom: 0; margin: 0; max-width: 100%; padding: 2px 6px; font-size: 10px; line-height: 1.4; background: rgba(22, 41, 57, 0.72); border-top-left-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pic-credit a, .thumb-credit a { position: relative; z-index: 1; }
+.pic-credit a { color: #fff; text-decoration: none; }
+.hero { margin: 4px 0 14px; }
+.hero-img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: 50% 25%; border-radius: 10px; background: var(--navy); }
+.hero-img.portrait { object-fit: contain; }
+.pic-img.portrait, .thumb.portrait { object-position: 50% 15%; }
+.hero figcaption { margin-top: 6px; font-size: 13px; color: var(--muted); }
+.hero figcaption a { color: var(--muted); }
+.thumb { flex: none; width: 72px; height: 72px; object-fit: cover; object-position: 50% 25%; border-radius: 8px; background: var(--navy); }
+.thumb-credit { display: block; font-size: 11px; }
+.thumb-credit a { font-weight: 400; color: var(--muted); }
 .kicker { margin: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--gold); }
 .kicker a { color: inherit; text-decoration: none; }
 .meta { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
@@ -75,7 +89,7 @@ h2 a:hover { text-decoration: underline; }
 .sec { margin-top: 8px; }
 .more { font-size: 16px; margin: 16px 0 6px; color: var(--muted); font-family: var(--sans); }
 .headlines { list-style: none; margin: 0; padding: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; }
-.headlines li { padding: 10px 14px; border-top: 1px solid var(--line); }
+.headlines li { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; border-top: 1px solid var(--line); }
 .headlines li:first-child { border-top: 0; }
 .headlines a { color: var(--ink); text-decoration: none; font-weight: 600; }
 .headlines a:hover { text-decoration: underline; }
