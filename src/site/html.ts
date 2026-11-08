@@ -19,7 +19,8 @@ export const SECTION_LABELS: Record<Section, string> = {
   "feel-good": "Feel Good",
 };
 
-export const NAV_ORDER: readonly Section[] = ["australia", "local-wa", "world", "politics", "business", "science-tech", "sport", "entertainment", "feel-good"];
+/** Menu and front-page order: local first (Perth/WA for now), then Australia, the world, then the rest. */
+export const NAV_ORDER: readonly Section[] = ["local-wa", "australia", "world", "politics", "business", "science-tech", "sport", "entertainment", "feel-good"];
 
 const ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 

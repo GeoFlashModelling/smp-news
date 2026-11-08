@@ -52,6 +52,8 @@ export interface Source {
   /** Whether this source's titles/descriptions may be sent to AI models (embeddings, summaries). False = headline + link only. */
   ai_input_allowed: boolean;
   feeds: Feed[];
+  /** A major Australian outlet: how many of these cover a story decides the top stories (agenda-setting, not lean). */
+  agenda?: boolean;
   /** Hours without a new item before a feed counts as stale; for outlets that publish weekly. Default 48. */
   stale_hours?: number;
   /** Shown next to the source on story pages, e.g. "Mixed factual reliability (Media Bias/Fact Check)". */
@@ -128,6 +130,7 @@ export function validateSources(config: unknown): string[] {
     if (s.full_text_basis !== undefined && (typeof s.full_text_basis !== "string" || !s.full_text_basis.trim())) problems.push(`${at}: full_text_basis must be non-empty text`);
     if (s.full_text_allowed && (s.terms_url === undefined || s.full_text_basis === undefined)) problems.push(`${at}: full_text_allowed requires terms_url and full_text_basis`);
     if (s.reliability_note !== undefined && (typeof s.reliability_note !== "string" || !s.reliability_note.trim())) problems.push(`${at}: reliability_note must be non-empty text`);
+    if (s.agenda !== undefined && typeof s.agenda !== "boolean") problems.push(`${at}: agenda must be true or false`);
     if (s.stale_hours !== undefined && !(Number.isInteger(s.stale_hours) && s.stale_hours > 0)) problems.push(`${at}: stale_hours must be a positive whole number`);
     if (!Array.isArray(s.feeds)) return problems.push(`${at}: feeds must be an array`);
     if (s.enabled && s.feeds.length === 0) problems.push(`${at}: enabled source has no feeds (set enabled to false and note why)`);

@@ -72,7 +72,8 @@
           "via": "direct"
         }
       ],
-      "notes": "ABC no longer advertises feeds (2024) but topic feeds still update. IDs from james.cridland.net list. World/Politics feeds hold only ~4 items."
+      "notes": "ABC no longer advertises feeds (2024) but topic feeds still update. IDs from james.cridland.net list. World/Politics feeds hold only ~4 items.",
+      "agenda": true
     },
     {
       "id": "sbs",
@@ -103,7 +104,8 @@
           "via": "direct"
         }
       ],
-      "notes": "The main /news/feed stopped updating around Aug 2026; topic feeds are current. Inkline records SBS as blocking AI crawlers (check in step 0.5)."
+      "notes": "The main /news/feed stopped updating around Aug 2026; topic feeds are current. Inkline records SBS as blocking AI crawlers (check in step 0.5).",
+      "agenda": true
     },
     {
       "id": "guardian-au",
@@ -153,7 +155,8 @@
           ],
           "via": "direct"
         }
-      ]
+      ],
+      "agenda": true
     },
     {
       "id": "the-conversation-au",
@@ -176,6 +179,27 @@
             "science-tech",
             "politics",
             "business"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://theconversation.com/au/technology/articles.atom",
+          "sections": [
+            "science-tech"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://theconversation.com/au/environment/articles.atom",
+          "sections": [
+            "science-tech"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://theconversation.com/au/health/articles.atom",
+          "sections": [
+            "science-tech"
           ],
           "via": "direct"
         }
@@ -228,7 +252,8 @@
           ],
           "via": "direct"
         }
-      ]
+      ],
+      "agenda": true
     },
     {
       "id": "watoday",
@@ -257,7 +282,8 @@
           ],
           "via": "direct"
         }
-      ]
+      ],
+      "agenda": true
     },
     {
       "id": "perthnow",
@@ -282,7 +308,8 @@
           ],
           "via": "direct"
         }
-      ]
+      ],
+      "agenda": true
     },
     {
       "id": "spectator-au",
@@ -474,7 +501,8 @@
           "via": "direct"
         }
       ],
-      "notes": "Metered paywall."
+      "notes": "Metered paywall.",
+      "agenda": true
     },
     {
       "id": "the-age",
@@ -497,7 +525,8 @@
           "via": "direct"
         }
       ],
-      "notes": "Metered paywall."
+      "notes": "Metered paywall.",
+      "agenda": true
     },
     {
       "id": "brisbane-times",
@@ -543,7 +572,8 @@
           "via": "direct"
         }
       ],
-      "notes": "Paywalled: headline-only coverage counting."
+      "notes": "Paywalled: headline-only coverage counting.",
+      "agenda": true
     },
     {
       "id": "the-west",
@@ -573,7 +603,8 @@
           ],
           "via": "direct"
         }
-      ]
+      ],
+      "agenda": true
     },
     {
       "id": "canberra-times",
@@ -1859,6 +1890,61 @@
       "notes": "Public domain (US Government work)."
     },
     {
+      "id": "nasa",
+      "name": "NASA",
+      "homepage": "https://www.nasa.gov",
+      "lean": null,
+      "content_type": "official",
+      "owner_group": "NASA",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": true,
+      "terms_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "full_text_basis": "NASA material is generally not subject to US copyright (media usage guidelines)",
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.nasa.gov/news-release/feed/",
+          "sections": [
+            "science-tech"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://science.nasa.gov/feed/",
+          "sections": [
+            "science-tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Agency news releases and NASA Science articles. Public domain (US Government work). Added 8 Nov 2026 at the owner's request for more space and science stories."
+    },
+    {
+      "id": "esa",
+      "name": "European Space Agency",
+      "homepage": "https://www.esa.int",
+      "lean": null,
+      "content_type": "official",
+      "owner_group": "ESA",
+      "paywall": "free",
+      "region_of_rating": "UK",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.esa.int/rssfeed/TopNews",
+          "sections": [
+            "science-tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "ESA top news. Added 8 Nov 2026. JPL (403), CSIRO (no feed), Cosmos (bot challenge), Nature (bot challenge) and Science News (Content-Signal ai-input=no) were tried and left out."
+    },
+    {
       "id": "inside-story",
       "name": "Inside Story",
       "homepage": "https://insidestory.org.au",
@@ -2854,7 +2940,8 @@
       "full_text_allowed": false,
       "ai_input_allowed": false,
       "feeds": [],
-      "notes": "9news.com.au now redirects to nine.com.au; /rss has returned 404 since June 2026. Nine is still covered via SMH, The Age, Brisbane Times, WAtoday and AFR."
+      "notes": "9news.com.au now redirects to nine.com.au; /rss has returned 404 since June 2026. Nine is still covered via SMH, The Age, Brisbane Times, WAtoday and AFR.",
+      "agenda": true
     },
     {
       "id": "news-com-au",
@@ -2869,7 +2956,8 @@
       "full_text_allowed": false,
       "ai_input_allowed": false,
       "feeds": [],
-      "notes": "News Corp robots.txt: automated collection prohibited without express written permission; feeds sit behind a cookie wall. Disabled unless permission is granted."
+      "notes": "News Corp robots.txt: automated collection prohibited without express written permission; feeds sit behind a cookie wall. Disabled unless permission is granted.",
+      "agenda": true
     },
     {
       "id": "news24",
@@ -2884,7 +2972,8 @@
       "full_text_allowed": false,
       "ai_input_allowed": false,
       "feeds": [],
-      "notes": "Sky News Australia rebranded as News24 (27 Jul 2026). News Corp robots.txt prohibits automated collection without express written permission. Disabled unless permission is granted."
+      "notes": "Sky News Australia rebranded as News24 (27 Jul 2026). News Corp robots.txt prohibits automated collection without express written permission. Disabled unless permission is granted.",
+      "agenda": true
     },
     {
       "id": "the-australian",
@@ -2899,7 +2988,8 @@
       "full_text_allowed": false,
       "ai_input_allowed": false,
       "feeds": [],
-      "notes": "News Corp robots.txt: automated collection prohibited without express written permission. Disabled unless permission is granted."
+      "notes": "News Corp robots.txt: automated collection prohibited without express written permission. Disabled unless permission is granted.",
+      "agenda": true
     },
     {
       "id": "daily-telegraph",
@@ -2914,7 +3004,8 @@
       "full_text_allowed": false,
       "ai_input_allowed": false,
       "feeds": [],
-      "notes": "News Corp robots.txt: automated collection prohibited without express written permission. Disabled unless permission is granted."
+      "notes": "News Corp robots.txt: automated collection prohibited without express written permission. Disabled unless permission is granted.",
+      "agenda": true
     },
     {
       "id": "reuters",

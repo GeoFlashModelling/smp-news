@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { SECTIONS, toBarLean, type BarLean, type Section } from "../config/sources.js";
+import { SECTIONS, toBarLean, type BarLean, type Section, type Source } from "../config/sources.js";
 import { tokenize, type Cluster } from "./cluster.js";
 import type { StoryWriteup } from "../ai/summarise.js";
 import type { Photo } from "../images/wikimedia.js";
@@ -20,6 +20,10 @@ export interface Story {
   first: Date;
   last: Date;
   score: number;
+  /** Distinct owner groups among major Australian outlets (sources marked `agenda`) reporting the story. */
+  agenda: number;
+  /** Order for top stories and story cards: what the major Australian outlets are leading with, then breadth and age. */
+  lead: number;
   /** Free-licensed file photo (subject, place, setting or topic); when absent the story shows its section artwork. */
   photo?: Photo;
   /** AI summary that passed the support check; absent for court/crime stories and while none is available. */
@@ -33,6 +37,11 @@ const SECTION_PRIORITY: readonly Section[] = ["local-wa", "australia", "politics
  */
 const HALF_LIFE_HOURS = 8;
 const INDEPENDENCE_WEIGHT = 1.2;
+/**
+ * Top stories follow the major Australian outlets: a story three of their owner groups are running outranks one that
+ * twenty overseas outlets cover but no Australian one does. Breadth of coverage still breaks ties.
+ */
+const AGENDA_WEIGHT = 1.5;
 
 export function coverageGroup(item: Item): CoverageGroup {
   const s = item.source;
@@ -118,7 +127,10 @@ export function buildStory(cluster: Cluster, now: Date): Story {
   const oneSided = rated >= 3 ? ((["left", "centre", "right"] as const).find((g) => coverage[g] === rated && g !== "centre") ?? null) : null;
 
   const ageHours = (now.getTime() - cluster.first.getTime()) / 3_600_000;
-  const score = Math.pow(Math.max(independent, 1), INDEPENDENCE_WEIGHT) * Math.pow(0.5, Math.max(ageHours, 0) / HALF_LIFE_HOURS);
+  const decay = Math.pow(0.5, Math.max(ageHours, 0) / HALF_LIFE_HOURS);
+  const score = Math.pow(Math.max(independent, 1), INDEPENDENCE_WEIGHT) * decay;
+  const agenda = new Set(reporting.filter((i) => i.source.agenda).map((i) => i.source.owner_group)).size;
+  const lead = Math.pow(1 + agenda, AGENDA_WEIGHT) * Math.sqrt(Math.max(independent, 1)) * decay;
   return {
     id: storyId(items),
     section: pickSection(items),
@@ -130,6 +142,8 @@ export function buildStory(cluster: Cluster, now: Date): Story {
     first: cluster.first,
     last: cluster.last,
     score,
+    agenda,
+    lead,
   };
 }
 
@@ -140,6 +154,11 @@ export function buildStories(clusters: Cluster[], now: Date): Story[] {
 export interface FrontPage {
   top: Story[];
   bySection: Map<Section, Story[]>;
+}
+
+/** NASA, Phys.org, ScienceAlert and the like: every feed is science. General outlets' science feeds don't count. */
+function isScienceSource(source: Source): boolean {
+  return source.feeds.every((f) => f.sections.every((s) => s === "science-tech"));
 }
 
 /** Top-story slots reserved for Australian and WA stories, so world news can't crowd them out. */
@@ -160,21 +179,32 @@ export function shownStories(stories: Story[]): Story[] {
   });
 }
 
-/** Top stories (multi-source only) with caps on Feel Good and Entertainment, plus every story by section. */
+/**
+ * Top stories (multi-source only), led by what the major Australian outlets are running, with Australian and WA slots
+ * reserved, one science story kept, and caps on lighter sections. Each section lists its multi-source stories in the
+ * same order, then its single-report headlines newest-weighted.
+ */
 export function frontPage(stories: Story[], size = 12): FrontPage {
-  const multi = stories.filter((s) => s.independent >= 2);
+  const multi = stories.filter((s) => s.independent >= 2).sort((a, b) => b.lead - a.lead);
   const top: Story[] = [];
-  const caps: Partial<Record<Section, number>> = { "feel-good": 3, entertainment: 1, sport: 2 };
+  const caps: Partial<Record<Section, number>> = { "feel-good": 1, entertainment: 1, sport: 2, "science-tech": 2 };
   const fits = (s: Story) => {
     const cap = caps[s.section];
     return !top.includes(s) && (cap === undefined || top.filter((t) => t.section === s.section).length < cap);
   };
   for (const s of multi.filter((s) => HOME_SECTIONS.includes(s.section)).slice(0, HOME_SLOTS)) top.push(s);
+  const science = multi.find((s) => s.section === "science-tech" && s.items.some((i) => isScienceSource(i.source)));
   for (const s of multi) {
-    if (top.length >= size) break;
+    if (top.length >= size - (science && !top.includes(science) ? 1 : 0)) break;
     if (fits(s)) top.push(s);
   }
-  top.sort((a, b) => b.score - a.score);
-  const bySection = new Map<Section, Story[]>(SECTIONS.map((sec) => [sec, stories.filter((s) => s.section === sec)]));
+  if (science && !top.includes(science)) top.push(science);
+  top.sort((a, b) => b.lead - a.lead);
+  const bySection = new Map<Section, Story[]>(
+    SECTIONS.map((sec) => {
+      const inSection = stories.filter((s) => s.section === sec);
+      return [sec, [...inSection.filter((s) => s.independent >= 2).sort((a, b) => b.lead - a.lead), ...inSection.filter((s) => s.independent < 2)]];
+    }),
+  );
   return { top, bySection };
 }

@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-07T12:13:21.736Z",
+  "reviewed_at": "2026-11-08T08:20:47.667Z",
   "user_agent": "SMPNewsBot/0.1 (+https://thesmpnews.com)",
   "results": [
     {
@@ -727,24 +727,6 @@
       "notices": []
     },
     {
-      "source": "newsweek",
-      "robots_status": 200,
-      "feeds_allowed": true,
-      "blocked_feeds": [],
-      "ai_agents_blocked": [
-        "GPTBot",
-        "ClaudeBot",
-        "CCBot",
-        "Applebot-Extended",
-        "PerplexityBot",
-        "Bytespider"
-      ],
-      "content_signal_ai_input": null,
-      "collection_banned": false,
-      "ai_use_banned": false,
-      "notices": []
-    },
-    {
       "source": "vox",
       "robots_status": 200,
       "feeds_allowed": true,
@@ -1225,6 +1207,28 @@
       "notices": []
     },
     {
+      "source": "nasa",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "esa",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
       "source": "inside-story",
       "robots_status": 200,
       "feeds_allowed": true,
@@ -1282,21 +1286,6 @@
       ]
     },
     {
-      "source": "national-indigenous-times",
-      "robots_status": 200,
-      "feeds_allowed": true,
-      "blocked_feeds": [],
-      "ai_agents_blocked": [],
-      "content_signal_ai_input": null,
-      "collection_banned": false,
-      "ai_use_banned": false,
-      "notices": [
-        "prohibited except (1) for the purpose of search engine indexing or",
-        "artificial intelligence retrieval augmented generation or (2) with express",
-        "Search engines & AI assistants — explicitly welcome"
-      ]
-    },
-    {
       "source": "koori-mail",
       "robots_status": 200,
       "feeds_allowed": true,
@@ -1349,40 +1338,6 @@
       "notices": []
     },
     {
-      "source": "cis",
-      "robots_status": 200,
-      "feeds_allowed": true,
-      "blocked_feeds": [],
-      "ai_agents_blocked": [],
-      "content_signal_ai_input": null,
-      "collection_banned": false,
-      "ai_use_banned": false,
-      "notices": []
-    },
-    {
-      "source": "australia-institute",
-      "robots_status": 200,
-      "feeds_allowed": true,
-      "blocked_feeds": [],
-      "ai_agents_blocked": [
-        "GPTBot",
-        "ClaudeBot",
-        "CCBot",
-        "Google-Extended",
-        "Applebot-Extended",
-        "Bytespider",
-        "meta-externalagent"
-      ],
-      "content_signal_ai_input": null,
-      "collection_banned": false,
-      "ai_use_banned": false,
-      "notices": [
-        "include providing AI-generated search summaries.",
-        "ai-input: inputting content into one or more AI models (e.g., retrieval",
-        "generative AI search answers)."
-      ]
-    },
-    {
       "source": "lowy-interpreter",
       "robots_status": 200,
       "feeds_allowed": true,
@@ -1414,29 +1369,6 @@
       "collection_banned": false,
       "ai_use_banned": false,
       "notices": []
-    },
-    {
-      "source": "citynews-canberra",
-      "robots_status": 200,
-      "feeds_allowed": true,
-      "blocked_feeds": [],
-      "ai_agents_blocked": [
-        "GPTBot",
-        "ClaudeBot",
-        "CCBot",
-        "Google-Extended",
-        "Applebot-Extended",
-        "Bytespider",
-        "meta-externalagent"
-      ],
-      "content_signal_ai_input": null,
-      "collection_banned": false,
-      "ai_use_banned": false,
-      "notices": [
-        "include providing AI-generated search summaries.",
-        "ai-input: inputting content into one or more AI models (e.g., retrieval",
-        "generative AI search answers)."
-      ]
     },
     {
       "source": "tasmanian-times",
