@@ -21,11 +21,17 @@ const GENERIC = new Set(
   ].map((w) => w.toLowerCase()),
 );
 
+/** In GENERIC because they are too broad to be a story's subject, but fine as the place a story happened. */
+const BROAD_PLACES = new Set(["australia", "us", "usa", "united states", "america", "uk", "britain", "europe", "wa", "nsw", "queensland", "victoria", "western australia", "perth", "sydney", "melbourne"]);
+
 const WORD = /^[A-Z][\p{L}'’.-]*$/u;
 const JOINERS = new Set(["of", "de", "van", "von", "bin", "al", "la", "le", "da", "du", "del"]);
 
-/** Capitalised runs in a piece of text, e.g. "Stephen Miller", "Zoo Atlanta". Text written In Title Case gives nothing. */
-export function capitalisedRuns(text: string): string[] {
+/**
+ * Capitalised runs in a piece of text, e.g. "Stephen Miller", "Zoo Atlanta". Text written In Title Case gives nothing.
+ * A lone capitalised first word is dropped unless `keepFirst` (place names: "Sydney wakes to…").
+ */
+export function capitalisedRuns(text: string, keepFirst = false): string[] {
   const words = text.replace(/[“”"‘’:;,!?()[\]|–—]/g, (c) => (c === "’" || c === "‘" ? "'" : " , ")).split(/\s+/).filter(Boolean);
   const alpha = words.filter((w) => /^\p{L}/u.test(w));
   if (alpha.length >= 5 && alpha.filter((w) => WORD.test(w)).length / alpha.length > 0.6) return [];
@@ -36,7 +42,7 @@ export function capitalisedRuns(text: string): string[] {
   const flush = () => {
     while (run.length && JOINERS.has(run[run.length - 1]!)) run.pop();
     // A lone capitalised first word ("Scientists find…") is usually just grammar, not a name.
-    if (run.length > 1 || (run.length === 1 && !runAtStart)) runs.push(run.join(" ").replace(/['’]s$/, "").replace(/\.$/, ""));
+    if (run.length > 1 || (run.length === 1 && (keepFirst || !runAtStart))) runs.push(run.join(" ").replace(/['’]s$/, "").replace(/\.$/, ""));
     run = [];
   };
   for (const w of words) {
@@ -85,6 +91,27 @@ export function imageCandidates(items: Item[], max = 3, singleWords = true, head
   const weight = (name: string, n: number) => n * (name.includes(" ") ? 1.5 : 1) * (headline.includes(name) ? 3 : 1);
   return [...counts]
     .filter(([name, n]) => (n >= minReports || headline.includes(name)) && name.split(" ").length >= minWords)
+    .sort(([a, na], [b, nb]) => weight(b, nb) - weight(a, na))
+    .slice(0, max)
+    .map(([name]) => name);
+}
+
+/**
+ * Names in a story's report titles that might be where it happened, most likely first (named in the headline, then
+ * by the most reports). Whether each really is a place is decided by its Wikipedia description.
+ */
+export function placeCandidates(items: Item[], headline: string, max = 3): string[] {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    const seen = new Set<string>();
+    for (const run of capitalisedRuns(item.title, true)) {
+      const name = clean(run);
+      if (name.length >= 3 && name.split(" ").length <= 4 && (BROAD_PLACES.has(name.toLowerCase()) || !GENERIC.has(name.toLowerCase()))) seen.add(name);
+    }
+    for (const name of seen) counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  const weight = (name: string, n: number) => n * (headline.includes(name) ? 3 : 1) / (BROAD_PLACES.has(name.toLowerCase()) ? 2 : 1);
+  return [...counts]
     .sort(([a, na], [b, nb]) => weight(b, nb) - weight(a, na))
     .slice(0, max)
     .map(([name]) => name);

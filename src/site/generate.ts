@@ -46,7 +46,7 @@ export async function generateSite(dir: URL, stories: Story[], sources: Source[]
         updated: updated.toISOString(),
         stories: stories
           .filter((s) => s.independent >= 2)
-          .map((s) => ({ id: s.id, section: s.section, headline: s.headline.title, independent: s.independent, coverage: s.coverage, photo: s.photo ? { subject: s.photo.subject, page: s.photo.page } : null, first: s.first, last: s.last, links: s.items.map((i) => ({ source: i.source.id, url: i.url })) })),
+          .map((s) => ({ id: s.id, section: s.section, headline: s.headline.title, independent: s.independent, coverage: s.coverage, photo: s.photo ? { subject: s.photo.subject, kind: s.photo.kind, via: s.photo.via, page: s.photo.page } : null, first: s.first, last: s.last, links: s.items.map((i) => ({ source: i.source.id, url: i.url })) })),
       },
       null,
       1,

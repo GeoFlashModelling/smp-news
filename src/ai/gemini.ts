@@ -11,7 +11,7 @@ const RATE_LIMIT_WAIT_MS = 30_000;
  * One structured-output call to Google Gemini. The key comes from GEMINI_API_KEY (a GitHub Actions secret in
  * production) and is sent as a header, never in the URL, so it can't leak into logs.
  */
-export async function geminiJson(model: string, system: string, user: string): Promise<ModelReply> {
+export async function geminiJson(model: string, system: string, user: string, schema: object = SUMMARY_JSON_SCHEMA): Promise<ModelReply> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY is not set");
   const started = Date.now();
@@ -26,7 +26,7 @@ export async function geminiJson(model: string, system: string, user: string): P
         generationConfig: {
           temperature: 0,
           responseMimeType: "application/json",
-          responseJsonSchema: SUMMARY_JSON_SCHEMA,
+          responseJsonSchema: schema,
           thinkingConfig: { thinkingLevel: "low" },
         },
       }),

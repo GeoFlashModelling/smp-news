@@ -22,7 +22,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -32,13 +32,18 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      # Photo lookups from earlier editions (a week's answers), so each run only asks Wikipedia about new names.
+      # Photo lookups and searches from earlier editions (a week's answers), so each run only searches for new stories.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/images.json
           key: images-${{ github.run_id }}
           restore-keys: images-
       - run: npm run edition
+        env:
+          # Only used for photo search words; without it photos fall back to names, places and the topic library.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PHOTO_AI: ${{ vars.PHOTO_AI }}
+          PHOTO_AI_MODEL: ${{ vars.PHOTO_AI_MODEL }}
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist

@@ -1,32 +1,37 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
 import { USER_AGENT } from "../lib/http.js";
+import type { ImageCache } from "./cache.js";
 
-/** A free-licensed photo from Wikimedia Commons, with everything needed to credit it. */
+/** A free-licensed photo, with everything needed to credit it. Hot-linked from its host, never copied. */
 export interface Photo {
-  /** Wikipedia article the photo illustrates (the subject, e.g. "Stephen Miller"). */
+  /** What the photo shows: the Wikipedia subject ("Stephen Miller", "Melbourne") or a found photo's own title. */
   subject: string;
+  /** "named": the lead photo of a person, organisation or place's Wikipedia article; "search": found by searching. */
+  kind: "named" | "search";
   src: string;
-  /** 960 px version for the story page, when the original is that big. */
+  /** 960 px (or larger) version for the story page, when the original is that big. */
   large?: string;
   width: number;
   height: number;
   artist: string;
   licence: string;
-  /** File description page: shows the full licence and author. */
+  /** Where the photo lives ("Wikimedia Commons", "Flickr"). */
+  via: string;
+  /** The photo's own page: shows the full licence and author. */
   page: string;
 }
 
+/** How strictly a looked-up name must match: see lookupBatch. */
+export type LookupMode = "subject" | "named" | "place";
+
 const API = "https://en.wikipedia.org/w/api.php";
 const BATCH = 50;
-const THUMB_WIDTH = 500;
+export const THUMB_WIDTH = 500;
 const TIMEOUT_MS = 20_000;
-const CACHE_DAYS = 7;
 
 /** Only licences that allow reuse with credit. Anything else (fair use, "all rights reserved", NC/ND) is refused. */
-const FREE_LICENCE = /^(CC0|CC BY(-SA)? \d(\.\d)?( \w+)?|Public domain|PD\b.*|Attribution|GFDL.*)$/i;
-/** Lead images that aren't news pictures. */
-const NOT_A_PHOTO = /\b(logo|flag|coat[_ ]of[_ ]arms|seal[_ ]of|emblem|map|locator|location|signature|diagram|chart|icon|wordmark|banner)\b/i;
+export const FREE_LICENCE = /^(CC0|CC BY(-SA)? \d(\.\d)?( \w+)?|Public domain|PD\b.*|Attribution|GFDL.*|No restrictions)$/i;
+/** Lead images and search results that aren't news pictures. */
+export const NOT_A_PHOTO = /\b(logo|flag|coat[_ ]of[_ ]arms|seal[_ ]of|emblem|map|locator|location|signature|diagram|chart|icon|wordmark|banner|svg)\b/i;
 
 const SMALL_WORDS = new Set(["of", "in", "the", "and", "de", "to", "for", "a", "an", "on", "at", "du", "la", "le", "van", "von", "da", "del", "y", "und", "bin", "al"]);
 
@@ -54,10 +59,9 @@ function redirectOk(name: string, title: string): boolean {
 const NAMED_THING =
   /\b(city|capital|town|suburb|village|country|nation|state|territory|province|region|island|archipelago|peninsula|river|lake|mountain|volcano|strait|gulf|sea|ocean|desert|company|corporation|conglomerate|multinational|airline|carrier|bank|retailer|manufacturer|brand|startup|firm|festival|holiday|celebration|organi[sz]ation|agency|ministry|department|parliament|party|union|university|college|school|hospital|stadium|airport|museum|zoo|newspaper|broadcaster|network|programme|program|mission|spacecraft|telescope|rocket|satellite|league|tournament|championship|competition|cup|games)\b/i;
 
-type CacheEntry = { photo: Photo | null; checked: string };
-type Cache = Record<string, CacheEntry>;
-/** Bump when the matching rules change, so cached answers from older rules are discarded. */
-const RULES_VERSION = 5;
+/** A place worth showing when a story has no photo of its subject: "Walhalla" (town in Victoria), "Kraków" (city in Poland). */
+const PLACE =
+  /\b(city|capital|town|suburb|village|locality|state of|territory|province|region|island|county|shire|municipality|district|neighbourhood|borough|precinct|square|street|park|harbour|bay|beach|river|lake|mountain|landmark|building|barracks|bridge|stadium|museum|cathedral|church|temple|palace|castle|monument|airport|port)\b/i;
 
 async function api(params: Record<string, string>): Promise<any> {
   const url = `${API}?${new URLSearchParams({ action: "query", format: "json", formatversion: "2", ...params })}`;
@@ -66,18 +70,35 @@ async function api(params: Record<string, string>): Promise<any> {
   return res.json();
 }
 
-function plainText(html: string): string {
+export function plainText(html: string): string {
   return html.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/\s+/g, " ").trim();
 }
 
-function artistName(raw: string): string {
+export function artistName(raw: string): string {
   const text = plainText(raw);
   if (!text || /see file history|unknown author/i.test(text)) return "Wikimedia Commons contributors";
   return text.length > 60 ? `${text.slice(0, 57)}…` : text;
 }
 
-/** Looks up a batch of names: article (following redirects, skipping disambiguation pages) → free lead image → licence. */
-async function lookupBatch(names: string[]): Promise<Map<string, Photo | null>> {
+/**
+ * A Commons file's details (from imageinfo with url|extmetadata|mime|size) as a Photo, or null when it isn't a
+ * free-licensed photo.
+ */
+export function commonsPhoto(subject: string, kind: Photo["kind"], ii: any): Photo | null {
+  if (!ii || !/^image\/(jpeg|png|webp)$/.test(ii.mime) || !ii.thumburl) return null;
+  const meta = ii.extmetadata ?? {};
+  const licence = plainText(meta.LicenseShortName?.value ?? "");
+  if (meta.NonFree?.value || !FREE_LICENCE.test(licence)) return null;
+  const large = ii.width >= 960 && ii.thumburl.includes(`/${THUMB_WIDTH}px-`) ? ii.thumburl.replace(`/${THUMB_WIDTH}px-`, "/960px-") : undefined;
+  return { subject, kind, src: ii.thumburl, large, width: ii.thumbwidth, height: ii.thumbheight, artist: artistName(meta.Artist?.value ?? ""), licence, via: "Wikimedia Commons", page: ii.descriptionurl };
+}
+
+/**
+ * Looks up a batch of names: article (following redirects, skipping disambiguation pages) → free lead image → licence.
+ * "subject" names come from headline wording, so one-word names must be described as a named thing; "named" names are
+ * exact article titles suggested for the story; "place" names must be described as a place.
+ */
+async function lookupBatch(names: string[], mode: LookupMode): Promise<Map<string, Photo | null>> {
   const found = new Map<string, Photo | null>(names.map((n) => [n, null]));
   const pages = await api({ titles: names.join("|"), redirects: "1", prop: "pageimages|pageprops|description", piprop: "name", pilicense: "free", ppprop: "disambiguation" });
   const target = new Map<string, string>(names.map((n) => [n, n]));
@@ -98,45 +119,53 @@ async function lookupBatch(names: string[]): Promise<Map<string, Photo | null>> 
   const info = new Map<string, any>();
   for (const p of files.query?.pages ?? []) info.set(p.title.replace(/_/g, " "), p.imageinfo?.[0]);
   for (const [name, title] of target) {
-    if (!properTitle(title) || !redirectOk(name, title)) continue;
-    if (!name.includes(" ") && !NAMED_THING.test(description.get(title) ?? "")) continue;
+    const desc = description.get(title) ?? "";
+    if (mode === "place" ? !PLACE.test(desc) : !properTitle(title)) continue;
+    if (mode === "subject" && (!redirectOk(name, title) || (!name.includes(" ") && !NAMED_THING.test(desc)))) continue;
     const file = fileOf.get(title);
-    const ii = file ? info.get(file.replace(/_/g, " ")) : undefined;
-    if (!ii || !/^image\/(jpeg|png|webp)$/.test(ii.mime) || !ii.thumburl) continue;
-    const meta = ii.extmetadata ?? {};
-    const licence = plainText(meta.LicenseShortName?.value ?? "");
-    if (meta.NonFree?.value || !FREE_LICENCE.test(licence)) continue;
-    const large = ii.width >= 960 && ii.thumburl.includes(`/${THUMB_WIDTH}px-`) ? ii.thumburl.replace(`/${THUMB_WIDTH}px-`, "/960px-") : undefined;
-    found.set(name, { subject: title, src: ii.thumburl, large, width: ii.thumbwidth, height: ii.thumbheight, artist: artistName(meta.Artist?.value ?? ""), licence, page: ii.descriptionurl });
+    const photo = commonsPhoto(title, "named", file ? info.get(file.replace(/_/g, " ")) : undefined);
+    if (photo) found.set(name, photo);
   }
   return found;
 }
 
 /**
- * Finds free photos for many names at once, reusing results checked in the last week (cache file kept between runs).
- * Network problems never fail the edition: the story just gets its section artwork.
+ * Hand-picked Commons files (name → caption), re-checked weekly so a file that is deleted or relicensed drops out.
  */
-export async function findPhotos(names: string[], cacheFile: string, now: Date): Promise<Map<string, Photo | null>> {
-  let cache: Cache = {};
-  try {
-    const saved = JSON.parse(await readFile(cacheFile, "utf8")) as { version: number; entries: Cache };
-    if (saved.version === RULES_VERSION) cache = saved.entries;
-  } catch {
-    // first run or unreadable cache: start empty
-  }
-  const fresh = (e: CacheEntry | undefined) => e && now.getTime() - Date.parse(e.checked) < CACHE_DAYS * 86_400_000;
-  const unique = [...new Set(names)];
-  const todo = unique.filter((n) => !fresh(cache[n]));
+export async function findFiles(files: Map<string, string>, cache: ImageCache): Promise<Map<string, Photo | null>> {
+  const key = (f: string) => `file:${f}`;
+  const todo = [...files.keys()].filter((f) => !cache.has(key(f)));
   for (let i = 0; i < todo.length; i += BATCH) {
     const batch = todo.slice(i, i + BATCH);
     try {
-      for (const [name, photo] of await lookupBatch(batch)) cache[name] = { photo, checked: now.toISOString() };
+      const params = new URLSearchParams({ action: "query", format: "json", formatversion: "2", titles: batch.map((f) => `File:${f}`).join("|"), prop: "imageinfo", iiprop: "url|extmetadata|mime|size", iiurlwidth: String(THUMB_WIDTH), iiextmetadatafilter: "LicenseShortName|Artist|NonFree" });
+      const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+      if (!res.ok) throw new Error(`Commons API ${res.status}`);
+      const pages = ((await res.json()).query?.pages ?? []) as any[];
+      const info = new Map(pages.map((p) => [p.title.replace(/^File:/, "").replace(/_/g, " "), p.imageinfo?.[0]]));
+      for (const f of batch) cache.set(key(f), commonsPhoto(files.get(f)!, "search", info.get(f.replace(/_/g, " "))));
+    } catch (err) {
+      console.log(`Library photo check failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+  return new Map([...files.keys()].map((f) => [f, cache.get<Photo | null>(key(f)) ?? null]));
+}
+
+/**
+ * Finds free photos for many names at once, reusing answers from the last week. Network problems never fail the
+ * edition: the story just falls through to the next kind of picture.
+ */
+export async function findPhotos(names: string[], mode: LookupMode, cache: ImageCache): Promise<Map<string, Photo | null>> {
+  const key = (n: string) => `wiki:${mode}:${n}`;
+  const unique = [...new Set(names)];
+  const todo = unique.filter((n) => !cache.has(key(n)));
+  for (let i = 0; i < todo.length; i += BATCH) {
+    const batch = todo.slice(i, i + BATCH);
+    try {
+      for (const [name, photo] of await lookupBatch(batch, mode)) cache.set(key(name), photo);
     } catch (err) {
       console.log(`Image lookup failed for ${batch.length} names: ${err instanceof Error ? err.message : err}`);
     }
   }
-  for (const [name, e] of Object.entries(cache)) if (!fresh(e)) delete cache[name];
-  await mkdir(dirname(cacheFile), { recursive: true });
-  await writeFile(cacheFile, JSON.stringify({ version: RULES_VERSION, entries: cache }));
-  return new Map(unique.map((n) => [n, cache[n]?.photo ?? null]));
+  return new Map(unique.map((n) => [n, cache.get<Photo | null>(key(n)) ?? null]));
 }

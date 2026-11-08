@@ -8,7 +8,7 @@ import { assignPhotos } from "./images/assign.js";
 import { clusterItems } from "./lib/cluster.js";
 import { fetchAllFeeds, type FeedSnapshot } from "./lib/fetch-feeds.js";
 import { normalise } from "./lib/normalise.js";
-import { buildStories } from "./lib/stories.js";
+import { buildStories, shownStories } from "./lib/stories.js";
 import { generateSite } from "./site/generate.js";
 
 /**
@@ -36,13 +36,13 @@ async function main(): Promise<void> {
   const items = applyBlocklist(normalise(feeds, sources, now), await loadBlocklist());
   const stories = buildStories(clusterItems(items), now);
   const multi = stories.filter((s) => s.independent >= 2);
-  const photos = await assignPhotos(stories, resolve(process.env.IMAGE_CACHE ?? ".cache/images.json"), now);
+  const { photos, counts } = await assignPhotos(shownStories(stories), resolve(process.env.IMAGE_CACHE ?? ".cache/images.json"), now);
   for (const story of stories) story.photo = photos.get(story.id);
 
   const out = pathToFileURL(`${resolve(process.env.EDITION_OUT ?? "dist")}/`);
   const files = await generateSite(out, stories, config.sources, now);
 
-  console.log(`Edition ${now.toISOString()}: ${feeds.length - failed.length}/${feeds.length} feeds OK, ${items.length} items, ${stories.length} stories (${multi.length} multi-source; photos for ${multi.filter((s) => s.photo).length} multi-source, ${photos.size} in all), ${files} files in ${Date.now() - started} ms.`);
+  console.log(`Edition ${now.toISOString()}: ${feeds.length - failed.length}/${feeds.length} feeds OK, ${items.length} items, ${stories.length} stories (${multi.length} multi-source), photos for ${photos.size} (subject ${counts.named}, search ${counts.search}, place ${counts.place}, topic ${counts.topic}; ${multi.filter((s) => s.photo).length}/${multi.length} multi-source), ${files} files in ${Date.now() - started} ms.`);
   if (failed.length > 0) console.log(`Failed feeds: ${failed.map((f) => `${f.source} (${f.problem})`).join(", ")}`);
   if (multi.length < 10) throw new Error(`Only ${multi.length} multi-source stories; not publishing a thin edition.`);
 }

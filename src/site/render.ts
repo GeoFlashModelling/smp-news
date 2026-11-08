@@ -1,7 +1,7 @@
 import type { Section, Source } from "../config/sources.js";
 import type { Photo } from "../images/wikimedia.js";
 import type { Item } from "../lib/normalise.js";
-import { coverageGroup, type CoverageGroup, type FrontPage, type Story } from "../lib/stories.js";
+import { coverageGroup, SECTION_HEADLINES, type CoverageGroup, type FrontPage, type Story } from "../lib/stories.js";
 import { NAV_ORDER, SECTION_LABELS, SITE_NAME, esc, page, plural, timeTag } from "./html.js";
 
 const GROUP_LABELS: Record<CoverageGroup, string> = {
@@ -40,10 +40,10 @@ function oneSidedNote(story: Story): string {
 
 /** Credit required by the photo's licence: author, licence, and a link to the file page with the full terms. */
 function photoCredit(photo: Photo): string {
-  return `<a class="credit-link" href="${esc(photo.page)}" rel="noopener">Photo: ${esc(photo.artist)}, ${esc(photo.licence)}, via Wikimedia Commons</a>`;
+  return `<a class="credit-link" href="${esc(photo.page)}" rel="noopener">Photo: ${esc(photo.artist)}, ${esc(photo.licence)}, via ${esc(photo.via)}</a>`;
 }
 
-/** The story's picture: its subject's free-licensed photo, or the section artwork (decorative, so no alt text). */
+/** The story's picture: a free-licensed photo, or the section artwork (decorative, so no alt text). */
 function picture(story: Story, root: string, cls: string, eager = false): string {
   const loading = eager ? `fetchpriority="high"` : `loading="lazy"`;
   const p = story.photo;
@@ -99,7 +99,7 @@ export function renderSection(section: Section, stories: Story[], updated: Date)
   const singles = stories.filter((s) => s.independent < 2);
   const body = `<h1>${esc(SECTION_LABELS[section])}</h1>
 ${multi.length ? `<div class="grid">${multi.map((s) => storyCard(s, root, false)).join("")}</div>` : `<p>No stories covered by more than one outlet yet.</p>`}
-${singles.length ? `<h2 class="more">More headlines</h2><p class="note">Reported by one outlet so far.</p>${headlineList(singles, 60, root)}` : ""}`;
+${singles.length ? `<h2 class="more">More headlines</h2><p class="note">Reported by one outlet so far.</p>${headlineList(singles, SECTION_HEADLINES, root)}` : ""}`;
   return page({ title: `${SECTION_LABELS[section]} | ${SITE_NAME}`, description: `${SECTION_LABELS[section]} stories from many sources.`, root, active: section, body, updated });
 }
 
@@ -125,7 +125,9 @@ export function renderStory(story: Story, updated: Date): string {
 <h1>${esc(story.headline.title)}</h1>
 <p class="credit">Headline from ${esc(story.headline.source.name)}</p>
 <figure class="hero">${picture(story, root, "hero-img", true)}${
-    story.photo ? `<figcaption>File photo of ${esc(story.photo.subject)}, not taken at this event. ${photoCredit(story.photo)}.</figcaption>` : ""
+    story.photo
+      ? `<figcaption>${story.photo.kind === "named" ? `File photo of ${esc(story.photo.subject)}` : `File photo: ${esc(story.photo.subject)}`}, not taken at this event. ${photoCredit(story.photo)}.</figcaption>`
+      : ""
   }</figure>
 ${coverageBar(story, true)}${oneSidedNote(story)}
 <p class="facts">${plural(story.items.length, "report")} from ${plural(sources, "outlet")} and ${plural(story.independent, "independent owner")}. First reported ${timeTag(story.first)}; latest ${timeTag(story.last)}.</p>
@@ -156,7 +158,7 @@ export function renderAbout(sources: Source[], updated: Date): string {
 <li><strong>Every source, linked:</strong> read the original reports and compare them yourself. Each link is marked Free or Paywall.</li>
 </ul>
 <h2>Pictures</h2>
-<p>We never use photos from news outlets. Where a free-licensed photo of a story's main person or place exists on <a href="https://commons.wikimedia.org/" rel="noopener">Wikimedia Commons</a>, we show it with its photographer and licence; these are file photos, not pictures of the event itself. Otherwise the story shows S.M.P. artwork for its section. Court and crime stories always use artwork, so no one is pictured next to an allegation.</p>
+<p>We never use photos from news outlets. Every picture is a free-licensed file photo from <a href="https://commons.wikimedia.org/" rel="noopener">Wikimedia Commons</a> or <a href="https://openverse.org/" rel="noopener">Openverse</a> (mostly Flickr), shown with its photographer and licence. They are not pictures of the event itself. We look, in order, for a photo of the story's main person, organisation or thing; then the place or object at the centre of the story; then a place named in the reports; then the story's broad topic. Search words are suggested by an AI model (Google Gemini) and every photo is checked by our software for its licence and that its title matches. If nothing suitable turns up, the story shows S.M.P. artwork for its section. Court and crime stories never show a person, only places, buildings or objects, so no one is pictured next to an allegation. If a picture is wrong for a story, <a href="#corrections">tell us</a>.</p>
 <h2>Where the lean ratings come from</h2>
 <p>Ratings are opinions, not facts. They come from <a href="https://www.allsides.com/media-bias/ratings" rel="noopener">AllSides</a> and <a href="https://mediabiasfactcheck.com/" rel="noopener">Media Bias/Fact Check</a> where available; otherwise they are our editorial judgement. World outlets are rated on a US/UK axis, which doesn't map exactly onto Australian politics. Local, community and student outlets aren't rated; official sources (government, universities) are listed separately.</p>
 <h2>Preview edition</h2>

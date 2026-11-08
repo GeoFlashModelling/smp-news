@@ -19,7 +19,7 @@ export interface Story {
   first: Date;
   last: Date;
   score: number;
-  /** Free-licensed photo of the story's subject; when absent the story shows its section artwork. */
+  /** Free-licensed file photo (subject, place, setting or topic); when absent the story shows its section artwork. */
   photo?: Photo;
 }
 
@@ -137,6 +137,20 @@ export interface FrontPage {
 /** Top-story slots reserved for Australian and WA stories, so world news can't crowd them out. */
 const HOME_SECTIONS: readonly Section[] = ["australia", "local-wa"];
 const HOME_SLOTS = 4;
+
+/** Single-report headlines listed on each section page (the front page lists fewer). */
+export const SECTION_HEADLINES = 60;
+
+/** Stories that appear somewhere on the site: every multi-source story, and each section's top single-report headlines. */
+export function shownStories(stories: Story[]): Story[] {
+  const singles = new Map<Section, number>();
+  return stories.filter((s) => {
+    if (s.independent >= 2) return true;
+    const n = singles.get(s.section) ?? 0;
+    singles.set(s.section, n + 1);
+    return n < SECTION_HEADLINES;
+  });
+}
 
 /** Top stories (multi-source only) with caps on Feel Good and Entertainment, plus every story by section. */
 export function frontPage(stories: Story[], size = 12): FrontPage {
