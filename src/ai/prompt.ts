@@ -70,7 +70,8 @@ const CAREFUL_RULES = `This is a crime or court story. Extra rules:
 - Everyone is presumed innocent. Never state or imply that a person is guilty unless the reports say they were convicted or pleaded guilty.
 - Every sentence saying a person did something criminal, or is suspected of it, must say who says so (for example: "police allege", "the court heard", "prosecutors said", "ABC News reported"). Report charges as charges.
 - Leave out criminal history, character, alleged confessions and anything about what the evidence proves. Never speculate about the outcome.
-- Don't call anyone a murderer, killer, criminal or similar. Mention victims only as far as needed to understand the event.`;
+- Don't call anyone a murderer, killer, criminal or similar. Mention victims only as far as needed to understand the event.
+- Never name the people involved: accused, suspects, victims, witnesses or their families. Describe them instead ("a 34-year-old man", "the driver"). Leave out anything else that could identify them: street addresses, workplaces, schools, relatives. Officials speaking in their role may be described by role ("police", "the magistrate").`;
 
 export function userPrompt(blocks: SourceBlock[], careful = false): string {
   return careful ? `${CAREFUL_RULES}\n\n${eventPrompt(blocks)}` : eventPrompt(blocks);

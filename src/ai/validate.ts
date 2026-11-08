@@ -137,7 +137,38 @@ const ATTRIBUTION =
   /\b(police|court|alleg\w*|accused|charged|charges?|reported|reports?|said|says|told|according|heard|prosecut\w*|magistrate|judge|jury|claim\w*|pleaded|plea|convicted|found guilty|sentenced|investigat\w*|detectives?|authorities|officials?|inquiry|coroner|inquest)\b/i;
 const OFFENDER_LABEL = /\b(murderers?|killers?|perpetrators?|criminals?|thugs?|monsters?|rapists?|predators?|culprits?)\b/i;
 
-function checkClaim(claim: Claim, list: ClaimList, blocks: SourceBlock[], storyWords: Set<string>, careful = false): string[] {
+/** The model talking about its task instead of the news ("the provided sources do not…"): never publishable. */
+const META = /\b(provided (sources?|reports?|material|text)|the sources? (do|does|did) not|no (relevant )?(news )?event|not enough information|cannot (determine|summari[sz]e)|as an AI|source material)\b/i;
+
+/**
+ * People involved in a crime or court story, as named in its reports: a capitalised name next to an age, an honorific
+ * or a charge ("John Smith, 34,", "Mr Smith", "Smith pleaded"). Their surnames must not appear in our text.
+ */
+const NAME_THEN_CUE = /^\s*(,?\s*\(?\d{1,2}\)?\s*,|,?\s*aged \d|('s)?\s*(lawyer|family|body|death)|\s+(has |had |was |is )?(been )?(pleaded|charged|accused|arrested|jailed|sentenced|convicted|acquitted|appeared|faced|allegedly|died|killed|stabbed|shot|murdered|denie[sd]|admitted|refused bail|granted bail|remanded|told the court))/i;
+const CUE_THEN_NAME = /\b(Mr|Mrs|Ms|Miss|named as|identified as|victim|accused|offender|alleged|deceased|late)[,:]?\s*$/i;
+/** Capitalised at the start of a headline ("Man charged…"), but describing someone rather than naming them. */
+const DESCRIBING = new Set("man men woman women boy boys girl girls teen teens teenager teenagers youth person people pair couple driver drivers rider motorist pedestrian father mother dad mum son daughter husband wife partner brother sister police officer officers worker workers student students resident residents tourist tourists victim victims suspect suspects accused gunman attacker".split(" "));
+
+export function peopleInvolved(blocks: SourceBlock[]): Set<string> {
+  const people = new Set<string>();
+  for (const b of blocks) {
+    const text = `${b.item.title}. ${b.text}`;
+    for (const m of text.matchAll(/\b\p{Lu}[\p{L}'’-]+(?:\s+\p{Lu}[\p{L}'’-]+){0,3}/gu)) {
+      const before = text.slice(Math.max(0, m.index! - 20), m.index);
+      const after = text.slice(m.index! + m[0].length, m.index! + m[0].length + 40);
+      if (!NAME_THEN_CUE.test(after) && !CUE_THEN_NAME.test(before)) continue;
+      const surname = m[0].split(/\s+/).pop()!.replace(/['’]s$/, "").toLowerCase();
+      if (surname.length >= 3 && !NOT_NAMES.has(surname) && !DESCRIBING.has(surname)) people.add(surname);
+    }
+  }
+  return people;
+}
+
+function namesPerson(text: string, people: Set<string>): string | undefined {
+  return words(text).find((w) => people.has(w));
+}
+
+function checkClaim(claim: Claim, list: ClaimList, blocks: SourceBlock[], storyWords: Set<string>, careful = false, people = new Set<string>()): string[] {
   const errors: string[] = [];
   const text = typeof claim.text === "string" ? stripLabels(claim.text) : "";
   claim.text = text;
@@ -147,6 +178,9 @@ function checkClaim(claim: Claim, list: ClaimList, blocks: SourceBlock[], storyW
   if (PROFANITY.test(text)) errors.push("profanity");
   if (careful && ACCUSING.test(text) && !ATTRIBUTION.test(text)) errors.push("crime story: say who says so (police allege, the court heard, ... reported)");
   if (careful && OFFENDER_LABEL.test(text)) errors.push("crime story: don't label anyone as an offender");
+  const named = careful ? namesPerson(text, people) : undefined;
+  if (named) errors.push(`crime story: don't name people involved ("${named}"); describe them instead`);
+  if (META.test(text)) errors.push("talks about the sources instead of the news");
   if (!Array.isArray(claim.cites) || claim.cites.length === 0) return [...errors, "no citations"];
 
   const textWords = words(text);
@@ -195,6 +229,7 @@ export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: 
   const draft = raw as Partial<StorySummary>;
   const allText = [...blocks.map((b) => `${b.item.title} ${b.text} ${b.item.source.name}`), ...headlines].join(" ");
   const allWords = new Set(words(allText));
+  const people = careful ? peopleInvolved(blocks) : new Set<string>();
 
   const headline = typeof draft.headline === "string" ? stripLabels(draft.headline) : "";
   if (!headline) result.errors.push("headline missing");
@@ -202,6 +237,8 @@ export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: 
     if (headline.length > MAX_HEADLINE_CHARS) result.errors.push("headline too long");
     if (FORBIDDEN.test(headline) || PROFANITY.test(headline)) result.errors.push("headline has a link, markup or profanity");
     if (careful && OFFENDER_LABEL.test(headline)) result.errors.push("headline labels someone as an offender");
+    if (careful && namesPerson(headline, people)) result.errors.push("headline names a person involved in a crime story");
+    if (META.test(headline)) result.errors.push("headline talks about the sources instead of the news");
     for (const name of names(`X ${headline}`)) if (!nameSupported(name, allWords)) result.errors.push(`headline name "${name.join(" ")}" not in sources`);
     for (const num of headline.match(NUMBER) ?? []) if (!allText.replace(/,/g, "").includes(num.replace(/,/g, "").replace(/[.,]+$/, ""))) result.errors.push(`headline number ${num} not in sources`);
   }
@@ -212,7 +249,7 @@ export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: 
   for (const list of single ? (["summary"] as const) : CLAIM_LISTS) {
     const claims = Array.isArray(draft[list]) ? (draft[list] as Claim[]) : [];
     for (const claim of claims) {
-      const errors = checkClaim(claim, list, blocks, allWords, careful);
+      const errors = checkClaim(claim, list, blocks, allWords, careful, people);
       if (errors.length === 0) {
         clean[list].push({ text: claim.text, cites: claim.cites });
         result.kept++;

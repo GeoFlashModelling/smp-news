@@ -121,19 +121,25 @@ function pickHeadline(items: Item[]): Item {
   return best;
 }
 
+const CENTRAL_FIRST: readonly CoverageGroup[] = ["centre", "left", "right", "local", "unrated", "official"];
+
 export function buildStory(cluster: Cluster, now: Date): Story {
   const items = [...cluster.items].sort((a, b) => b.published.getTime() - a.published.getTime());
   const reporting = items.filter((i) => i.source.content_type !== "opinion");
   const independent = new Set(reporting.map((i) => i.source.owner_group)).size;
 
   const coverage: Record<CoverageGroup, number> = { left: 0, centre: 0, right: 0, local: 0, official: 0, unrated: 0 };
-  const counted = new Set<string>();
+  // One vote per owner group (7News and The West share copy), cast for the lean most of its reports in the story
+  // have; on a tie, the more central one.
+  const byOwner = new Map<string, Map<CoverageGroup, number>>();
   for (const i of reporting) {
-    const group = coverageGroup(i);
-    const key = `${group}|${i.source.owner_group}`;
-    if (counted.has(key)) continue;
-    counted.add(key);
-    coverage[group]++;
+    const groups = byOwner.get(i.source.owner_group) ?? new Map<CoverageGroup, number>();
+    groups.set(coverageGroup(i), (groups.get(coverageGroup(i)) ?? 0) + 1);
+    byOwner.set(i.source.owner_group, groups);
+  }
+  for (const groups of byOwner.values()) {
+    const vote = [...groups].sort(([a, na], [b, nb]) => nb - na || CENTRAL_FIRST.indexOf(a) - CENTRAL_FIRST.indexOf(b))[0]![0];
+    coverage[vote]++;
   }
   const rated = coverage.left + coverage.centre + coverage.right;
   const oneSided = rated >= 3 ? ((["left", "centre", "right"] as const).find((g) => coverage[g] === rated && g !== "centre") ?? null) : null;

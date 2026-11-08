@@ -25,7 +25,18 @@ export interface StoryWriteup {
   written: string;
   /** Failed attempts in a row; a failed story is tried again after a gap, up to MAX_FAILURES times. */
   failures?: number;
+  /** Version of the court and crime rules a careful write-up passed; older ones are rewritten, never shown. */
+  legalRules?: number;
 }
+
+/** Bump when the court and crime rules tighten, so every careful write-up is rewritten under the new rules. */
+const LEGAL_RULES = 2;
+
+/** A write-up that may still be shown: careful ones must have passed the current court and crime rules. */
+function stillValid(w: StoryWriteup | undefined, careful: boolean): w is StoryWriteup {
+  return Boolean(w?.summary) && !META_HEADLINE.test(w!.summary!.headline) && (!careful || (w!.legalRules ?? 0) >= LEGAL_RULES);
+}
+const META_HEADLINE = /\b(provided sources?|no (relevant )?(news )?event|not enough information)\b/i;
 
 interface State {
   version: number;
@@ -199,9 +210,12 @@ export async function summariseStories(stories: Story[], important: Set<string>,
     const prev = state.writeups[story.id];
     // Single-outlet stories are written only to fill front-page slots; earlier ones are kept for the section pages.
     if (story.independent < 2 && !prev && !important.has(story.id)) continue;
-    if (needsWriting(prev, blocks, now)) queue.push({ story, blocks });
-    else if (prev?.summary) {
-      writeups.set(story.id, prev);
+    const careful = legalMode(story.items) === "careful";
+    if (prev?.summary && !stillValid(prev, careful)) delete state.writeups[story.id];
+    const current = state.writeups[story.id];
+    if (needsWriting(current, blocks, now)) queue.push({ story, blocks });
+    else if (current?.summary) {
+      writeups.set(story.id, current);
       counts.kept++;
     }
   }
@@ -274,6 +288,7 @@ export async function summariseStories(stories: Story[], important: Set<string>,
       paid,
       written: now.toISOString(),
       ...(summary ? {} : { failures: (prev?.failures ?? 0) + 1 }),
+      ...(careful ? { legalRules: LEGAL_RULES } : {}),
     };
     state.writeups[story.id] = writeup;
     if (summary) {

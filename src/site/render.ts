@@ -181,6 +181,9 @@ function claimText(claim: Claim, writeup: StoryWriteup): string {
   return `${esc(claim.text)}${links ? ` <span class="cites">(${links})</span>` : ""}`;
 }
 
+/** Someone has been charged, accused or brought before a court: the presumption-of-innocence note applies. */
+const ACCUSATION = /\b(charged|charges|accused|alleged(ly)?|allegations?|arrested|court|trial|bail|remand(ed)?|custody|pleaded|suspects?)\b/i;
+
 function writeupBlock(story: Story, root: string): string {
   const w = story.writeup;
   const s = w?.summary;
@@ -197,7 +200,8 @@ function writeupBlock(story: Story, root: string): string {
     .filter((l) => s[l].length > 0)
     .map((l) => `<h2>${CLAIM_HEADINGS[l]}</h2><ul class="claims">${s[l].map((c) => `<li>${claimText(c, w)}</li>`).join("")}</ul>`)
     .join("");
-  const careful = legalMode(story.items) === "careful" ? `<p class="callout">Charges and allegations are not findings of guilt. Everyone is presumed innocent unless proven guilty in court.</p>` : "";
+  const accused = legalMode(story.items) === "careful" && story.items.some((i) => ACCUSATION.test(`${i.title} ${i.summary}`));
+  const careful = accused ? `<p class="callout">Charges and allegations are not findings of guilt. Everyone is presumed innocent unless proven guilty in court.</p>` : "";
   return `<section class="writeup" aria-label="Summary">
 ${careful}${s.summary.map((c) => `<p>${claimText(c, w)}</p>`).join("")}
 ${lists}
