@@ -2,6 +2,7 @@ import { isLegalRisk } from "../ai/legal-risk.js";
 import type { Story } from "../lib/stories.js";
 import { ImageCache } from "./cache.js";
 import { imageCandidates, placeCandidates } from "./entities.js";
+import { homeGround } from "./grounds.js";
 import { photoIdeas, topicFiles, TOPICS } from "./ideas.js";
 import { searchPhoto, type SearchBudget } from "./search.js";
 import { findFiles, findPhotos, type Photo } from "./wikimedia.js";
@@ -18,7 +19,10 @@ export interface PhotoCounts {
 
 /**
  * Every story gets a picture. The first of these that exists, else the section artwork:
- * 1. a free photo of the story's main person, organisation or thing (its Wikipedia lead photo);
+ * 1. a free photo of the story's main person, organisation or thing (its Wikipedia lead photo), then of the ground or
+ *    venue where its match or event was held. Sport is the other way round: photos of the game itself are almost all
+ *    copyright, and free ones of teams tend to be years old, so a current photo of the ground suits better. When the
+ *    reports don't name the venue, an Australian club's home ground stands in (grounds.ts);
  * 2. a photo found by searching Wikimedia Commons, then Openverse, for the place or object at the centre of the story,
  *    else for a common thing that stands for its topic ("wild cat", "Wi-Fi router");
  * 3. the Wikipedia photo of a place named in the reports;
@@ -41,6 +45,12 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
   const named = await findPhotos([...ideas.values()].map((i) => i.subject).filter(Boolean), "named", cache);
   const subjects = await findPhotos([...subjectsOf.values()].flat(), "subject", cache);
   const places = await findPhotos([...placesOf.values()].flat(), "place", cache);
+  const venueOf = new Map<string, string>();
+  for (const story of stories) {
+    const venue = ideas.get(story.id)?.venue || (story.section === "sport" ? homeGround(story) : null);
+    if (venue) venueOf.set(story.id, venue);
+  }
+  const venues = await findPhotos([...venueOf.values()], "place", cache);
   const library = await findFiles(new Map(TOPICS.map((t) => [t.file, t.caption])), cache);
 
   const photos = new Map<string, Photo>();
@@ -56,7 +66,9 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
 
   const pick = async (story: Story): Promise<void> => {
     const idea = ideas.get(story.id);
-    let photo = (idea?.subject && !legal.has(story.id) ? named.get(idea.subject) : null) ?? (subjectsOf.get(story.id) ?? []).map((n) => subjects.get(n)).find((p) => p);
+    const venue = venues.get(venueOf.get(story.id) ?? "") ?? null;
+    const subject = (idea?.subject && !legal.has(story.id) ? named.get(idea.subject) : null) ?? (subjectsOf.get(story.id) ?? []).map((n) => subjects.get(n)).find((p) => p);
+    let photo = story.section === "sport" ? (venue ?? subject) : (subject ?? venue);
     let tier: keyof PhotoCounts = "named";
     if (!photo) [photo, tier] = [await firstSearch([...(idea?.searches ?? []), ...(idea?.theme ? [idea.theme] : [])]), "search"];
     if (!photo) [photo, tier] = [(placesOf.get(story.id) ?? []).map((n) => places.get(n)).find((p) => p) ?? null, "place"];

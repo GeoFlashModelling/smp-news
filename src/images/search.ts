@@ -1,6 +1,6 @@
 import { USER_AGENT } from "../lib/http.js";
 import type { ImageCache } from "./cache.js";
-import { commonsPhoto, NOT_A_PHOTO, THUMB_WIDTH, type Photo } from "./wikimedia.js";
+import { commonsPhoto, NOT_A_PHOTO, THUMB_WIDTH, yearTaken, type Photo } from "./wikimedia.js";
 
 const COMMONS_API = "https://commons.wikimedia.org/w/api.php";
 const OPENVERSE_API = "https://api.openverse.org/v1/images/";
@@ -22,6 +22,9 @@ const PERSON_PHOTO =
 /** Old photos, scans and generated images: a 1927 team photo or a scanned catalogue isn't a file photo of today. */
 const NOT_CURRENT =
   /\bc?(1[0-8]\d\d|19[0-8]\d)\b|\b(LOC|DALL|Midjourney|Stable Diffusion|AI[- ]generated|catalogue|catalog|page|scan(ned)?|poster|leaflet|brochure|advertisement|newspaper|magazine|cover|screenshot|ranking|graph|table|statistics|infographic|illustration|drawing|painting|engraving|lithograph|postcard|stamp|Wellcome)\b/i;
+
+/** Found photos taken before this year look dated next to today's news (a 1955 football match); undated ones are kept. */
+const OLDEST_YEAR = 2005;
 
 const STOP = new Set(["the", "and", "of", "in", "on", "at", "for", "with", "from", "a", "an", "to", "by"]);
 
@@ -90,13 +93,13 @@ async function commonsSearch(query: string): Promise<Photo | null> {
   const params = new URLSearchParams({
     action: "query", format: "json", formatversion: "2", generator: "search", gsrnamespace: "6", gsrlimit: String(RESULTS),
     gsrsearch: `${query} filetype:bitmap filew:>${MIN_WIDTH - 1}`, prop: "imageinfo|categories", iiprop: "url|extmetadata|mime|size",
-    iiurlwidth: String(THUMB_WIDTH), iiextmetadatafilter: "LicenseShortName|Artist|NonFree", clcategories: REVIEWED.join("|"), cllimit: "max",
+    iiurlwidth: String(THUMB_WIDTH), iiextmetadatafilter: "LicenseShortName|Artist|NonFree|DateTimeOriginal", clcategories: REVIEWED.join("|"), cllimit: "max",
   });
   const body = await getJson(`${COMMONS_API}?${params}`);
   const pages = ((body.query?.pages ?? []) as any[]).sort((a, b) => Number(!!b.categories?.length) - Number(!!a.categories?.length) || a.index - b.index);
   const photos: Photo[] = [];
   for (const p of pages) {
-    if (!usableTitle(query, p.title)) continue;
+    if (!usableTitle(query, p.title) || (yearTaken(p.imageinfo?.[0]) ?? OLDEST_YEAR) < OLDEST_YEAR) continue;
     const photo = commonsPhoto(captionFromTitle(p.title), "search", p.imageinfo?.[0]);
     if (photo) photos.push(photo);
   }
@@ -154,7 +157,7 @@ const COMMONS_GAP_MS = 250;
  */
 export async function searchPhoto(query: string, cache: ImageCache, budget: SearchBudget): Promise<Photo | null> {
   if (!usableQuery(query)) return null;
-  const key = `search:${fold(query)}`;
+  const key = `search2:${fold(query)}`;
   if (cache.has(key)) return cache.get<Photo | null>(key) ?? null;
   if (budget.commons <= 0) return null;
   try {

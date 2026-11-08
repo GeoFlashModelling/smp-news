@@ -61,7 +61,7 @@ const NAMED_THING =
 
 /** A place worth showing when a story has no photo of its subject: "Walhalla" (town in Victoria), "Kraków" (city in Poland). */
 const PLACE =
-  /\b(city|capital|town|suburb|village|locality|state of|territory|province|region|island|county|shire|municipality|district|neighbourhood|borough|precinct|square|street|park|harbour|bay|beach|river|lake|mountain|landmark|building|barracks|bridge|stadium|museum|cathedral|church|temple|palace|castle|monument|airport|port)\b/i;
+  /\b(city|capital|town|suburb|village|locality|state of|territory|province|region|island|county|shire|municipality|district|neighbourhood|borough|precinct|square|street|park|harbour|bay|beach|river|lake|mountain|landmark|building|barracks|bridge|stadium|ground|oval|arena|venue|racecourse|racetrack|circuit|velodrome|showground|museum|cathedral|church|temple|palace|castle|monument|airport|port)\b/i;
 
 async function api(params: Record<string, string>): Promise<any> {
   const url = `${API}?${new URLSearchParams({ action: "query", format: "json", formatversion: "2", ...params })}`;
@@ -78,6 +78,12 @@ export function artistName(raw: string): string {
   const text = plainText(raw);
   if (!text || /see file history|unknown author/i.test(text)) return "Wikimedia Commons contributors";
   return text.length > 60 ? `${text.slice(0, 57)}…` : text;
+}
+
+/** The year a Commons photo was taken ("circa 1955" → 1955), or null when the file doesn't say. */
+export function yearTaken(ii: any): number | null {
+  const year = plainText(ii?.extmetadata?.DateTimeOriginal?.value ?? "").match(/\b(1[89]\d\d|20\d\d)\b/);
+  return year ? Number(year[1]) : null;
 }
 
 /**

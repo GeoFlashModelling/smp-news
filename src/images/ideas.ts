@@ -9,6 +9,8 @@ export interface PhotoIdea {
   searches: string[];
   /** A common thing, animal or scene that stands for the story's topic ("wild cat", "Wi-Fi router"); a free photo of it surely exists. */
   theme?: string;
+  /** Exact Wikipedia article title of the ground, stadium, course or venue where the story's match or event is held, or "". */
+  venue?: string;
 }
 
 /** Small batches: with more stories per request, Flash Lite starts giving one story's places to its neighbours. */
@@ -34,8 +36,9 @@ const SCHEMA = {
           subject: { type: "string" },
           searches: { type: "array", items: { type: "string" }, maxItems: MAX_SEARCHES },
           theme: { type: "string" },
+          venue: { type: "string" },
         },
-        required: ["id", "subject", "searches", "theme"],
+        required: ["id", "subject", "searches", "theme", "venue"],
       },
     },
   },
@@ -44,7 +47,8 @@ const SCHEMA = {
 
 const SYSTEM = `You choose pictures for an Australian news website. Pictures are free-licensed file photos from Wikipedia and Wikimedia Commons, never photos of the event itself.
 
-For each story you get its id, whether it is a court or crime story ("legal"), and its headlines. Return for each story:
+For each story you get its id, whether it is a court or crime story ("legal"), its headlines and sometimes the start of a report. Return for each story:
+- venue: for a sports match, race or tournament, or a concert, festival or show, the exact English Wikipedia article title of the ground, stadium, course, circuit or venue where it was or will be held. Examples: "Sydney Cricket Ground", "Perth Stadium", "Ikon Park", "Flemington Racecourse", "Albert Park Circuit". Use the venue the reports name; if they name none, use the home ground of the home (first-named) team when it is well known. Use "" when the story is not about such an event or the venue is unclear.
 - subject: the exact English Wikipedia article title of the one well-known person, organisation, team, product or place the story is mainly about, when a photo of it would suit the story. Examples: "Pope Leo XIV", "Real Madrid CF", "Australia national rugby union team", "Tesla Cybertruck", "Victoria Barracks, Sydney". Use "" when there is no single clear subject, when the subject is a private individual, or when legal is true.
 - searches: 1 to 3 short image-search phrases (2 to 4 words, no punctuation), most specific first, for a photo that illustrates the story without showing the event: the place where it happened ("Melbourne skyline", "Main Market Square Kraków", "Walhalla Victoria"), or the setting or object at its centre ("Hawaiian pizza", "open pit gold mine Western Australia", "Parliament House Canberra", "rugby union match").
 - theme: always one common thing, animal, food, vehicle, kind of building or landscape (1 to 3 words) that stands for the story's topic, so ordinary that a free photo of it surely exists. Examples: "wild cat", "snake", "racing bicycle", "wine glasses", "Wi-Fi router", "electric pickup truck", "video game controller", "glacier", "sake bottles", "cargo ship", "Australian rules football", "courthouse".
@@ -114,7 +118,8 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  */
 export async function photoIdeas(stories: Story[], legal: Set<string>, cache: ImageCache): Promise<Map<string, PhotoIdea>> {
   const key = (id: string) => `idea:${id}`;
-  const todo = stories.filter((s) => !cache.has(key(s.id)));
+  // Sport ideas from before venues were asked for are asked again, so match stories can show the ground.
+  const todo = stories.filter((s) => !cache.has(key(s.id)) || (s.section === "sport" && cache.get<PhotoIdea>(key(s.id))?.venue === undefined));
   const models = process.env.PHOTO_AI_MODEL ? [process.env.PHOTO_AI_MODEL] : FREE_MODELS;
   if (todo.length && process.env.GEMINI_API_KEY && process.env.PHOTO_AI !== "off") {
     let m = 0;
@@ -128,7 +133,12 @@ export async function photoIdeas(stories: Story[], legal: Set<string>, cache: Im
       const batch = todo.slice(i, i + BATCH);
       // Numbered 1..15 rather than story ids: easier for the model to keep its answers lined up.
       const lines = batch.map((s, n) =>
-        JSON.stringify({ id: String(n + 1), legal: legal.has(s.id), headlines: [s.headline.title, ...s.items.filter((it) => it !== s.headline).slice(0, 2).map((it) => it.title)] }),
+        JSON.stringify({
+          id: String(n + 1),
+          legal: legal.has(s.id),
+          headlines: [s.headline.title, ...s.items.filter((it) => it !== s.headline).slice(0, 2).map((it) => it.title)],
+          ...(s.section === "sport" || s.section === "entertainment" ? { report: tidy(s.items.find((it) => it.summary)?.summary, 300) } : {}),
+        }),
       );
       try {
         const reply = await geminiJson(model, SYSTEM, lines.join("\n"), SCHEMA);
@@ -140,7 +150,8 @@ export async function photoIdeas(stories: Story[], legal: Set<string>, cache: Im
             ? a.searches.map((q) => tidy(q, 60)).filter((q) => q.length >= 3).slice(0, MAX_SEARCHES)
             : [];
           const theme = tidy(a.theme, 40);
-          cache.set(key(story.id), { subject: legal.has(story.id) ? "" : tidy(a.subject, 100), searches, theme: theme.length >= 3 ? theme : "" } satisfies PhotoIdea);
+          const venue = tidy(a.venue, 100);
+          cache.set(key(story.id), { subject: legal.has(story.id) ? "" : tidy(a.subject, 100), searches, theme: theme.length >= 3 ? theme : "", venue: venue.length >= 3 ? venue : "" } satisfies PhotoIdea);
         }
         i += BATCH;
       } catch (err) {
