@@ -30,7 +30,7 @@ export interface Story {
   writeup?: StoryWriteup;
 }
 
-const SECTION_PRIORITY: readonly Section[] = ["local-wa", "australia", "politics", "world", "business", "science-tech", "sport", "entertainment", "feel-good"];
+const SECTION_PRIORITY: readonly Section[] = ["local-wa", "australia", "politics", "world", "business", "tech", "science-tech", "sport", "entertainment", "feel-good"];
 /**
  * A story's weight halves every 8 hours from its first report. Measured from the latest report instead, big stories
  * that some outlet keeps re-posting stayed on top for two days.
@@ -187,7 +187,7 @@ export function shownStories(stories: Story[]): Story[] {
 export function frontPage(stories: Story[], size = 12): FrontPage {
   const multi = stories.filter((s) => s.independent >= 2).sort((a, b) => b.lead - a.lead);
   const top: Story[] = [];
-  const caps: Partial<Record<Section, number>> = { "feel-good": 1, entertainment: 1, sport: 2, "science-tech": 2 };
+  const caps: Partial<Record<Section, number>> = { "feel-good": 1, entertainment: 1, sport: 2, "science-tech": 2, tech: 2 };
   const fits = (s: Story) => {
     const cap = caps[s.section];
     return !top.includes(s) && (cap === undefined || top.filter((t) => t.section === s.section).length < cap);

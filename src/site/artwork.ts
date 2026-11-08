@@ -33,6 +33,14 @@ ${[0, 1, 2, 3, 4].map((i) => `<rect x="${236 + i * 38}" y="172" width="20" heigh
   // Atom
   "science-tech": `${[0, 60, 120].map((a) => `<ellipse cx="320" cy="180" rx="118" ry="40" transform="rotate(${a} 320 180)" stroke="${STEEL}" stroke-width="9" fill="none"/>`).join("")}
 <circle cx="320" cy="180" r="22" fill="${GOLD}" stroke="#162939" stroke-width="4"/>`,
+  // Microchip with circuit pins
+  tech: `<rect x="250" y="110" width="140" height="140" rx="14" fill="${STEEL}"/>
+<rect x="290" y="150" width="60" height="60" rx="6" fill="${GOLD}" stroke="#162939" stroke-width="4"/>
+<g stroke="${STEEL}" stroke-width="9" stroke-linecap="round">${[0, 1, 2, 3].map((i) => {
+    const x = 271 + i * 33;
+    const y = 131 + i * 33;
+    return `<path d="M${x} 110v-26M${x} 250v26M250 ${y}h-26M390 ${y}h26"/>`;
+  }).join("")}</g>`,
   // Oval football with laces
   sport: `<ellipse cx="320" cy="180" rx="130" ry="82" transform="rotate(-24 320 180)" fill="${STEEL}"/>
 <path d="M232 210 Q320 150 408 150" stroke="#dcebf3" stroke-opacity=".6" stroke-width="5" fill="none"/>

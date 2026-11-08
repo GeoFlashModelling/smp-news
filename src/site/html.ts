@@ -13,14 +13,15 @@ export const SECTION_LABELS: Record<Section, string> = {
   politics: "Politics",
   world: "World",
   business: "Business",
-  "science-tech": "Science & Tech",
+  "science-tech": "Science & Space",
+  tech: "AI, Tech & Gadgets",
   sport: "Sport",
   entertainment: "Entertainment",
   "feel-good": "Feel Good",
 };
 
 /** Menu and front-page order: local first (Perth/WA for now), then Australia, the world, then the rest. */
-export const NAV_ORDER: readonly Section[] = ["local-wa", "australia", "world", "politics", "business", "science-tech", "sport", "entertainment", "feel-good"];
+export const NAV_ORDER: readonly Section[] = ["local-wa", "australia", "world", "politics", "business", "science-tech", "tech", "sport", "entertainment", "feel-good"];
 
 const ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 

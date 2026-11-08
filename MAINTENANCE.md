@@ -212,9 +212,11 @@ To **disable** a source: set `"enabled": false` and add a `notes` line saying wh
 To **fix a broken feed**: find the outlet's new feed address, replace `url`, then run `npm run check-feeds`.
 To **add a source**: copy an existing entry, change every field, then run `npm run validate-config`, `npm run check-terms` and `npm run check-feeds`.
 
-`lean` may be `null` for `community` and `official` sources, or for sources that publish only in sport, science-tech, entertainment or feel-good; those sources don't appear in the left / centre / right part of the bar. If a lean isn't from AllSides or Media Bias/Fact Check, say so in `notes` ("Lean is editorial judgement").
+`lean` may be `null` for `community` and `official` sources, or for sources that publish only in sport, science-tech, tech, entertainment or feel-good; those sources don't appear in the left / centre / right part of the bar. If a lean isn't from AllSides or Media Bias/Fact Check, say so in `notes` ("Lean is editorial judgement").
 
-Valid sections: `local-wa`, `australia`, `world`, `politics`, `business`, `sport`, `science-tech`, `entertainment`, `feel-good`. CI rejects any push where `sources.json` is invalid.
+Valid sections: `local-wa`, `australia`, `world`, `politics`, `business`, `sport`, `science-tech` (shown as "Science & Space"), `tech` (shown as "AI, Tech & Gadgets"), `entertainment`, `feel-good`. CI rejects any push where `sources.json` is invalid.
+
+Headlines that are plainly shopping posts (for example "save $80", "40% off", "lowest price", "promo code", gift guides, Black Friday deals) are dropped automatically; the patterns are in `src/lib/blocklist.ts`.
 
 ## Owner's calendar
 

@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-08T08:20:47.667Z",
+  "reviewed_at": "2026-11-08T08:32:19.534Z",
   "user_agent": "SMPNewsBot/0.1 (+https://thesmpnews.com)",
   "results": [
     {
@@ -1008,6 +1008,183 @@
         "Bytespider",
         "meta-externalagent"
       ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "techcrunch",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "engadget",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "mit-tech-review",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "PerplexityBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "nine-to-five",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Applebot-Extended",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "AI crawlers used only for model training or AI datasets."
+      ]
+    },
+    {
+      "source": "android-authority",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "techradar",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "Applebot-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "AI crawlers"
+      ]
+    },
+    {
+      "source": "toms-hardware",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "Applebot-Extended",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "AI crawlers"
+      ]
+    },
+    {
+      "source": "gizmodo",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "CCBot",
+        "Bytespider",
+        "meta-externalagent"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "Disallow AI training data collection"
+      ]
+    },
+    {
+      "source": "digital-trends",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot",
+        "ClaudeBot",
+        "CCBot",
+        "Google-Extended",
+        "Applebot-Extended",
+        "Bytespider"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": [
+        "--- AI search and user-fetch agents (previous OAI-SearchBot/Perplexity rules, minus /brc/) ---",
+        "--- AI model training (blocked) ---"
+      ]
+    },
+    {
+      "source": "404-media",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [
+        "GPTBot"
+      ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "channelnews",
+      "robots_status": 403,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
       "content_signal_ai_input": null,
       "collection_banned": false,
       "ai_use_banned": false,

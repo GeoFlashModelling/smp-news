@@ -93,7 +93,7 @@ export function renderFront(front: FrontPage, updated: Date): string {
     return `<section class="sec" aria-labelledby="h-${sec}">
   <h2 id="h-${sec}"><a href="${sec}/">${esc(SECTION_LABELS[sec])}</a></h2>
   ${multi.length ? `<div class="grid">${multi.map((s) => storyCard(s, root, false)).join("")}</div>` : ""}
-  ${singles.length ? `<h3 class="more">More ${esc(SECTION_LABELS[sec])} headlines</h3>${headlineList(singles, sec === "science-tech" ? 10 : multi.length ? 5 : 8, root)}` : ""}
+  ${singles.length ? `<h3 class="more">More ${esc(SECTION_LABELS[sec])} headlines</h3>${headlineList(singles, sec === "science-tech" || sec === "tech" ? 10 : multi.length ? 5 : 8, root)}` : ""}
   <p class="all"><a href="${sec}/">All ${esc(SECTION_LABELS[sec])} →</a></p>
 </section>`;
   }).join("");

@@ -21,11 +21,12 @@ export const SECTIONS = [
   "business",
   "sport",
   "science-tech",
+  "tech",
   "entertainment",
   "feel-good",
 ] as const;
 /** Sections where a source may have no political lean (it is then left out of the coverage bar). */
-export const NON_POLITICAL_SECTIONS: readonly Section[] = ["sport", "science-tech", "entertainment", "feel-good"];
+export const NON_POLITICAL_SECTIONS: readonly Section[] = ["sport", "science-tech", "tech", "entertainment", "feel-good"];
 
 export type Lean = (typeof LEANS)[number];
 export type BarLean = "left" | "centre" | "right";

@@ -154,6 +154,13 @@
             "world"
           ],
           "via": "direct"
+        },
+        {
+          "url": "https://www.theguardian.com/au/technology/rss",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
         }
       ],
       "agenda": true
@@ -185,7 +192,7 @@
         {
           "url": "https://theconversation.com/au/technology/articles.atom",
           "sections": [
-            "science-tech"
+            "tech"
           ],
           "via": "direct"
         },
@@ -499,6 +506,13 @@
             "business"
           ],
           "via": "direct"
+        },
+        {
+          "url": "https://www.smh.com.au/rss/technology.xml",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
         }
       ],
       "notes": "Metered paywall.",
@@ -714,7 +728,7 @@
         {
           "url": "https://www.itnews.com.au/RSS/rss.ashx",
           "sections": [
-            "science-tech"
+            "tech"
           ],
           "via": "direct"
         }
@@ -1541,6 +1555,7 @@
         {
           "url": "https://feeds.arstechnica.com/arstechnica/index",
           "sections": [
+            "tech",
             "science-tech"
           ],
           "via": "direct"
@@ -1563,7 +1578,7 @@
         {
           "url": "https://www.theverge.com/rss/index.xml",
           "sections": [
-            "science-tech"
+            "tech"
           ],
           "via": "direct"
         }
@@ -1585,11 +1600,332 @@
         {
           "url": "https://www.wired.com/feed/rss",
           "sections": [
-            "science-tech"
+            "tech"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://www.wired.com/feed/tag/ai/latest/rss",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://www.wired.com/feed/category/gear/latest/rss",
+          "sections": [
+            "tech"
           ],
           "via": "direct"
         }
       ]
+    },
+    {
+      "id": "techcrunch",
+      "name": "TechCrunch",
+      "homepage": "https://techcrunch.com",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "Yahoo",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://techcrunch.com/feed/",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Added 8 Nov 2026 for the AI, Tech & Gadgets section."
+    },
+    {
+      "id": "engadget",
+      "name": "Engadget",
+      "homepage": "https://www.engadget.com",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "Yahoo",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.engadget.com/rss.xml",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Added 8 Nov 2026 for the AI, Tech & Gadgets section."
+    },
+    {
+      "id": "the-register",
+      "name": "The Register",
+      "homepage": "https://www.theregister.com",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "Situation Publishing",
+      "paywall": "free",
+      "region_of_rating": "UK",
+      "enabled": false,
+      "full_text_allowed": false,
+      "ai_input_allowed": false,
+      "feeds": [
+        {
+          "url": "https://www.theregister.com/headlines.atom",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Added 8 Nov 2026 for the AI, Tech & Gadgets section. Disabled: robots.txt bans automated collection."
+    },
+    {
+      "id": "mit-tech-review",
+      "name": "MIT Technology Review",
+      "homepage": "https://www.technologyreview.com",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "MIT Technology Review",
+      "paywall": "partial",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.technologyreview.com/feed/",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Added 8 Nov 2026 for the AI, Tech & Gadgets section."
+    },
+    {
+      "id": "cnet",
+      "name": "CNET",
+      "homepage": "https://www.cnet.com",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "Ziff Davis",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": false,
+      "full_text_allowed": false,
+      "ai_input_allowed": false,
+      "feeds": [
+        {
+          "url": "https://www.cnet.com/rss/news/",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Added 8 Nov 2026 for the AI, Tech & Gadgets section. Disabled: robots.txt bans automated collection."
+    },
+    {
+      "id": "nine-to-five",
+      "name": "9to5Mac / 9to5Google",
+      "homepage": "https://9to5mac.com",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "9to5",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://9to5mac.com/feed/",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://9to5google.com/feed/",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Added 8 Nov 2026 for the AI, Tech & Gadgets section."
+    },
+    {
+      "id": "android-authority",
+      "name": "Android Authority",
+      "homepage": "https://www.androidauthority.com",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "Android Authority",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.androidauthority.com/feed/",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Added 8 Nov 2026 for the AI, Tech & Gadgets section."
+    },
+    {
+      "id": "techradar",
+      "name": "TechRadar",
+      "homepage": "https://www.techradar.com",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "Future plc",
+      "paywall": "free",
+      "region_of_rating": "UK",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.techradar.com/rss",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Added 8 Nov 2026 for the AI, Tech & Gadgets section."
+    },
+    {
+      "id": "toms-hardware",
+      "name": "Tom's Hardware",
+      "homepage": "https://www.tomshardware.com",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "Future plc",
+      "paywall": "free",
+      "region_of_rating": "UK",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.tomshardware.com/feeds/all",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Added 8 Nov 2026 for the AI, Tech & Gadgets section."
+    },
+    {
+      "id": "gizmodo",
+      "name": "Gizmodo",
+      "homepage": "https://gizmodo.com",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "Keleops",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://gizmodo.com/feed",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Added 8 Nov 2026 for the AI, Tech & Gadgets section."
+    },
+    {
+      "id": "digital-trends",
+      "name": "Digital Trends",
+      "homepage": "https://www.digitaltrends.com",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "Digital Trends Media Group",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.digitaltrends.com/feed/",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Added 8 Nov 2026 for the AI, Tech & Gadgets section."
+    },
+    {
+      "id": "404-media",
+      "name": "404 Media",
+      "homepage": "https://www.404media.co",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "404 Media",
+      "paywall": "partial",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.404media.co/rss/",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Added 8 Nov 2026 for the AI, Tech & Gadgets section."
+    },
+    {
+      "id": "channelnews",
+      "name": "ChannelNews",
+      "homepage": "https://www.channelnews.com.au",
+      "lean": null,
+      "content_type": "news",
+      "owner_group": "ChannelNews",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.channelnews.com.au/feed/",
+          "sections": [
+            "tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "stale_hours": 96,
+      "notes": "Added 8 Nov 2026 for the AI, Tech & Gadgets section."
     },
     {
       "id": "space-com",
@@ -2604,7 +2940,7 @@
         {
           "url": "https://www.innovationaus.com/feed/",
           "sections": [
-            "science-tech",
+            "tech",
             "business"
           ],
           "via": "direct"
@@ -2705,6 +3041,13 @@
           "url": "https://feeds.bbci.co.uk/sport/rss.xml",
           "sections": [
             "sport"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://www.bbc.co.uk/news/technology/rss.xml",
+          "sections": [
+            "tech"
           ],
           "via": "direct"
         }
