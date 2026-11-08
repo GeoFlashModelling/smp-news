@@ -101,14 +101,14 @@ async function loadState(file: string, now: Date): Promise<State> {
 }
 
 /**
- * Stories the model may summarise: not court or crime stories, and at least two usable reports; or, for a story only
- * one outlet has covered, that outlet's report if it allows AI use and says enough to write from.
+ * Stories the model may summarise: not court or crime stories, with at least two usable reports; or one usable report
+ * that says enough to write from (a story only one outlet has covered, or one where the others don't allow AI use).
  */
 export function summarisable(story: Story): SourceBlock[] | null {
   if (isLegalRisk(story.items)) return null;
   const blocks = selectSources(story.items);
-  if (story.independent < 2) return blocks.length === 1 && blocks[0]!.text.length >= SINGLE_MIN_CHARS ? blocks : null;
-  return blocks.length >= MIN_SOURCES ? blocks : null;
+  if (blocks.length >= MIN_SOURCES) return blocks;
+  return blocks.length === 1 && blocks[0]!.text.length >= SINGLE_MIN_CHARS ? blocks : null;
 }
 
 function needsWriting(prev: StoryWriteup | undefined, blocks: SourceBlock[], now: Date): boolean {
@@ -191,8 +191,8 @@ export async function summariseStories(stories: Story[], important: Set<string>,
     const blocks = summarisable(story);
     if (!blocks) continue;
     const prev = state.writeups[story.id];
-    // Single-outlet stories are written only to fill a front-page slot; earlier ones are kept for the section pages.
-    if (story.independent < 2 && !prev && !important.has(story.id)) continue;
+    // Stories written from one report only fill front-page slots; earlier ones are kept for the section pages.
+    if (blocks.length < MIN_SOURCES && !prev && !important.has(story.id)) continue;
     if (needsWriting(prev, blocks, now)) queue.push({ story, blocks });
     else if (prev?.summary) {
       writeups.set(story.id, prev);
