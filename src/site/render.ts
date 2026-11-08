@@ -1,8 +1,11 @@
+import { isLegalRisk } from "../ai/legal-risk.js";
+import type { Claim, ClaimList } from "../ai/schema.js";
+import type { StoryWriteup } from "../ai/summarise.js";
 import type { Section, Source } from "../config/sources.js";
 import type { Photo } from "../images/wikimedia.js";
 import type { Item } from "../lib/normalise.js";
 import { coverageGroup, SECTION_HEADLINES, type CoverageGroup, type FrontPage, type Story } from "../lib/stories.js";
-import { CORRECTIONS_EMAIL, NAV_ORDER, SECTION_LABELS, SITE_NAME, esc, page, plural, timeTag } from "./html.js";
+import { CORRECTIONS_EMAIL, NAV_ORDER, SECTION_LABELS, SITE_NAME, SUMMARIES_ON, esc, page, plural, timeTag } from "./html.js";
 
 const GROUP_LABELS: Record<CoverageGroup, string> = {
   left: "Left",
@@ -52,12 +55,19 @@ function picture(story: Story, root: string, cls: string, eager = false): string
   return `<img class="${cls}${p.height > p.width ? " portrait" : ""}" src="${esc(p.src)}"${large} alt="${esc(p.subject)}" width="${p.width}" height="${p.height}" ${loading} decoding="async">`;
 }
 
+/** Our neutral AI headline when the story has a checked summary, otherwise the most representative outlet headline. */
+function storyTitle(story: Story): string {
+  return story.writeup?.summary?.headline ?? story.headline.title;
+}
+
 function storyCard(story: Story, root: string, showSection = true): string {
   const sources = new Set(story.items.map((i) => i.source.id)).size;
+  const lead = story.writeup?.summary?.summary[0]?.text;
   return `<article class="card">
   <div class="pic">${picture(story, root, "pic-img")}${story.photo ? `<p class="pic-credit">${photoCredit(story.photo)}</p>` : ""}</div>
   ${showSection ? `<p class="kicker">${esc(SECTION_LABELS[story.section])}</p>` : ""}
-  <h3><a href="${root}story/${story.id}/">${esc(story.headline.title)}</a></h3>
+  <h3><a href="${root}story/${story.id}/">${esc(storyTitle(story))}</a></h3>
+  ${lead ? `<p class="dek">${esc(lead)}</p>` : ""}
   ${coverageBar(story)}${oneSidedNote(story)}
   <p class="meta">${plural(sources, "source")} · ${plural(story.independent, "independent owner")} · updated ${timeTag(story.last)}</p>
 </article>`;
@@ -113,6 +123,44 @@ function sourceRow(item: Item): string {
   return `<li><p class="outlet">${esc(s.name)} ${tags.map((t) => `<span class="tag">${esc(t!)}</span>`).join("")}</p><a href="${esc(item.url)}" rel="noopener">${esc(item.title)}</a><p class="meta">${timeTag(item.published)}${note ? " · " : ""}${note}</p></li>`;
 }
 
+const CLAIM_HEADINGS: Record<Exclude<ClaimList, "summary">, string> = {
+  agreed: "What all sides report",
+  differences: "How the coverage differs",
+  only_reported_by: "Only reported by one outlet",
+  conflicts: "Conflicting details",
+};
+
+/** Each claim ends with links to the reports it came from. */
+function claimText(claim: Claim, writeup: StoryWriteup): string {
+  const outlets = new Map<string, string>();
+  for (const c of claim.cites) {
+    const s = writeup.sources[c.source];
+    if (s && !outlets.has(s.name)) outlets.set(s.name, s.url);
+  }
+  const links = [...outlets].map(([name, url]) => `<a href="${esc(url)}" rel="noopener">${esc(name)}</a>`).join(", ");
+  return `${esc(claim.text)}${links ? ` <span class="cites">(${links})</span>` : ""}`;
+}
+
+function writeupBlock(story: Story, root: string): string {
+  const w = story.writeup;
+  const s = w?.summary;
+  if (!w || !s) {
+    const why = isLegalRisk(story.items)
+      ? "We don't write summaries of court, crime and similar stories, so that nothing we write could prejudice a case or misstate an allegation. Compare the coverage below."
+      : "A written summary isn't ready for this story yet. Until then, compare the coverage below.";
+    return `<div class="callout">${why} Grouping is automatic and can make mistakes: <a href="${root}about/#corrections">tell us</a> if a report doesn't belong here.</div>`;
+  }
+  const lists = (Object.keys(CLAIM_HEADINGS) as (keyof typeof CLAIM_HEADINGS)[])
+    .filter((l) => s[l].length > 0)
+    .map((l) => `<h2>${CLAIM_HEADINGS[l]}</h2><ul class="claims">${s[l].map((c) => `<li>${claimText(c, w)}</li>`).join("")}</ul>`)
+    .join("");
+  return `<section class="writeup" aria-label="Summary">
+${s.summary.map((c) => `<p>${claimText(c, w)}</p>`).join("")}
+${lists}
+<p class="ai-note">Written by AI from the outlets' headlines and descriptions, then checked automatically against them; updated ${timeTag(new Date(w.written))}. Mistakes are possible: email <a href="mailto:${CORRECTIONS_EMAIL}">${CORRECTIONS_EMAIL}</a>.</p>
+</section>`;
+}
+
 export function renderStory(story: Story, updated: Date): string {
   const root = "../../";
   const groups = LIST_GROUPS.map((g) => {
@@ -122,8 +170,8 @@ export function renderStory(story: Story, updated: Date): string {
   const sources = new Set(story.items.map((i) => i.source.id)).size;
   const body = `<article class="story">
 <p class="kicker"><a href="${root}${story.section}/">${esc(SECTION_LABELS[story.section])}</a></p>
-<h1>${esc(story.headline.title)}</h1>
-<p class="credit">Headline from ${esc(story.headline.source.name)}</p>
+<h1>${esc(storyTitle(story))}</h1>
+<p class="credit">${story.writeup?.summary ? `Summary of ${plural(Object.keys(story.writeup.sources).length, "report")}` : `Headline from ${esc(story.headline.source.name)}`}</p>
 <figure class="hero">${picture(story, root, "hero-img", true)}${
     story.photo
       ? `<figcaption>${story.photo.kind === "named" ? `File photo of ${esc(story.photo.subject)}` : `File photo: ${esc(story.photo.subject)}`}, not taken at this event. ${photoCredit(story.photo)}.</figcaption>`
@@ -131,10 +179,11 @@ export function renderStory(story: Story, updated: Date): string {
   }</figure>
 ${coverageBar(story, true)}${oneSidedNote(story)}
 <p class="facts">${plural(story.items.length, "report")} from ${plural(sources, "outlet")} and ${plural(story.independent, "independent owner")}. First reported ${timeTag(story.first)}; latest ${timeTag(story.last)}.</p>
-<div class="callout">Our written summary of what every side reports is coming soon. Until then, compare the coverage below. Grouping is automatic and can make mistakes: <a href="${root}about/#corrections">tell us</a> if a report doesn't belong here.</div>
+${writeupBlock(story, root)}
+${story.writeup?.summary ? `<h2>All coverage</h2>` : ""}
 ${groups}
 </article>`;
-  return page({ title: `${story.headline.title} | ${SITE_NAME}`, description: `How ${sources} outlets covered this story.`, root, active: story.section, body, updated });
+  return page({ title: `${storyTitle(story)} | ${SITE_NAME}`, description: `How ${sources} outlets covered this story.`, root, active: story.section, body, updated });
 }
 
 const LEAN_TEXT: Record<string, string> = { left: "Left", "centre-left": "Centre-left", centre: "Centre", "centre-right": "Centre-right", right: "Right" };
@@ -161,8 +210,15 @@ export function renderAbout(sources: Source[], updated: Date): string {
 <p>We never use photos from news outlets. Every picture is a free-licensed file photo from <a href="https://commons.wikimedia.org/" rel="noopener">Wikimedia Commons</a> or <a href="https://openverse.org/" rel="noopener">Openverse</a> (mostly Flickr), shown with its photographer and licence. They are not pictures of the event itself. We look, in order, for a photo of the story's main person, organisation or thing; then the place or object at the centre of the story; then a place named in the reports; then the story's broad topic. Search words are suggested by an AI model (Google Gemini) and every photo is checked by our software for its licence and that its title matches. If nothing suitable turns up, the story shows S.M.P. artwork for its section. Court and crime stories never show a person, only places, buildings or objects, so no one is pictured next to an allegation. If a picture is wrong for a story, <a href="#corrections">tell us</a>.</p>
 <h2>Where the lean ratings come from</h2>
 <p>Ratings are opinions, not facts. They come from <a href="https://www.allsides.com/media-bias/ratings" rel="noopener">AllSides</a> and <a href="https://mediabiasfactcheck.com/" rel="noopener">Media Bias/Fact Check</a> where available; otherwise they are our editorial judgement. World outlets are rated on a US/UK axis, which doesn't map exactly onto Australian politics. Local, community and student outlets aren't rated; official sources (government, universities) are listed separately.</p>
+${
+    SUMMARIES_ON
+      ? `<h2>Summaries</h2>
+<p>Story summaries, and the plain headline above them, are written by an AI model (Google Gemini) from the linked outlets' headlines and short descriptions only. It is told to use only what those reports say, in its own words, and to attribute disputed claims. Every sentence lists the outlets it came from. Before anything is published, our software checks each sentence: the cited outlets must contain the quoted words, every name and number must appear in their reports, and no sentence may copy an outlet's wording. Sentences that fail are dropped; if too many fail, the story shows headlines only. A summary is rewritten when several new outlets join a story. We don't summarise court, crime, sexual-offence or suicide stories. Mistakes are still possible: please <a href="#corrections">tell us</a>.</p>
 <h2>Preview edition</h2>
-<p>This is an early preview. Stories are grouped automatically and can include a report that doesn't belong. Written summaries of what all sides report, where coverage differs and what only one side mentions are being built next; they will be machine-written from the linked sources, with every fact cited.</p>
+<p>This is an early preview. Stories are grouped automatically and can include a report that doesn't belong.</p>`
+      : `<h2>Preview edition</h2>
+<p>This is an early preview. Stories are grouped automatically and can include a report that doesn't belong. Written summaries of what all sides report, where coverage differs and what only one side mentions are being built next; they will be machine-written from the linked sources, with every fact cited.</p>`
+  }
 <h2 id="corrections">Corrections and takedowns</h2>
 <p>Email <a href="mailto:${CORRECTIONS_EMAIL}">${CORRECTIONS_EMAIL}</a> if a report is wrongly grouped, a picture is wrong for a story, an outlet's details are out of date, or you want something taken down. Please include the story's web address. We reply within 48 hours.</p>
 <h2>Sources</h2>

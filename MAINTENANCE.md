@@ -53,7 +53,7 @@ npm run edition
 |---|---|---|
 | `STATE_REPO_TOKEN` | Fine-grained token `smp-news-state-writer`: Contents read/write on `smp-news-state` only | **6 Nov 2027** |
 | `GEMINI_API_KEY` | Google AI Studio key "SMP News (GitHub Actions)", free tier, no billing attached. Used for photo search words (up to 12 requests an hour on each of two Flash Lite models; the free daily limit is 500 each). Manage at aistudio.google.com → API keys. If it leaks: delete it there, create a new one, update this secret | No expiry |
-| `GEMINI_PAID_API_KEY` | Google AI Studio key "SMP News Paid (GitHub Actions)" on the separate project "SMP News Paid", which has billing. Not used by any workflow yet; reserved for AI summaries when every free model is used up. Same leak steps as above | No expiry |
+| `GEMINI_PAID_API_KEY` | Google AI Studio key "SMP News Paid (GitHub Actions)" on the separate project "SMP News Paid", which has billing. Used only when summaries are on, as a last resort for front-page stories whose free attempts all failed or ran out; the code stops at about A$3.20 a day (see "AI summaries" below). Same leak steps as above | No expiry |
 
 ### Google AI billing (pay-as-you-go, capped)
 
@@ -126,6 +126,17 @@ npm run cluster-report -- .cache/snapshots/<file>.json.gz 0.32
 ```
 
 Lists every story covered by two or more owners, with the headlines grouped into it. The second number is the similarity threshold (higher = stricter grouping); the live value is `DEFAULT_CLUSTER_OPTIONS` in `src/lib/cluster.ts`.
+
+### AI summaries: switch on or off
+
+Summaries are written during the hourly edition when the repository variable `SUMMARIES` is `on` (smp-news → Settings → Secrets and variables → Actions → Variables). Delete the variable, or set it to anything else, to switch them off; the next edition shows headlines only and the banner and About page change wording to match. Code: `src/ai/summarise.ts`.
+
+- **Which model:** for front-page stories, the free Flash models first (about 20 free requests a day each), then free Flash-Lite (about 500 a day each, shared with photo search words). Every answer goes through the support check (`src/ai/validate.ts`); a failed answer gets one retry with the reasons, then the next model tries. Busy models are skipped for a minute.
+- **Paid key:** only for front-page stories after every free model failed or ran out. The code stops at **A$3.20 a Perth day** and **A$0.40 per edition**, using an exchange rate of 1.6 to stay on the safe side; Google's A$100 monthly cap is the backstop. Change `DAILY_PAID_LIMIT_AUD` to adjust. `SUMMARY_PAID_MODEL` (variable) picks the paid model; only models with a price in `PAID_PRICES` can be used.
+- **Rewrites:** a summary is rewritten when 2 or more new independent owners join the story, at most every 3 hours. Court, crime, sexual-offence and suicide stories are never summarised (`src/ai/legal-risk.ts`).
+- **Each edition** spends at most 7 minutes on summaries; stories that don't fit wait for the next hour. The log line ends with counts, e.g. `summaries for 30/134 (new 23: free 23, paid 0; kept 7; failed checks 2; waiting 52; paid A$0.000 this run, A$0.00 today)`.
+- **Memory between runs:** `.cache/summaries.json` (summaries, today's paid spend, free models used up today), carried by GitHub's Actions cache. If it is lost, everything is rewritten over the next few hours; the per-edition limit still caps spending.
+- **Preview locally without publishing:** `$env:SUMMARIES="on"; $env:EDITION_OUT=".cache/preview"; $env:SUMMARY_STATE=".cache/summaries-local.json"; npm run edition` (uses only the free key unless `GEMINI_PAID_API_KEY` is set on the PC).
 
 ### Test AI summaries on a saved snapshot (nothing is published)
 

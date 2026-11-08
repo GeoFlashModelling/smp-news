@@ -22,7 +22,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -38,10 +38,20 @@ jobs:
           path: .cache/images.json
           key: images-${{ github.run_id }}
           restore-keys: images-
+      # Summaries already written, today's paid spend and which free models are used up for the day.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/summaries.json
+          key: summaries-${{ github.run_id }}
+          restore-keys: summaries-
       - run: npm run edition
         env:
-          # Only used for photo search words; without it photos fall back to names, places and the topic library.
+          # Free key: photo search words, and summaries when SUMMARIES is "on".
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Paid key: last resort for front-page summaries, capped at about A$3.20 a day in src/ai/summarise.ts.
+          GEMINI_PAID_API_KEY: ${{ secrets.GEMINI_PAID_API_KEY }}
+          SUMMARIES: ${{ vars.SUMMARIES }}
+          SUMMARY_PAID_MODEL: ${{ vars.SUMMARY_PAID_MODEL }}
           PHOTO_AI: ${{ vars.PHOTO_AI }}
           PHOTO_AI_MODEL: ${{ vars.PHOTO_AI_MODEL }}
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

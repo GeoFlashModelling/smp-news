@@ -4,6 +4,8 @@ export const SITE_NAME = "S.M.P. News";
 export const SITE_HOST = "thesmpnews.com";
 export const CORRECTIONS_EMAIL = `corrections@${SITE_HOST}`;
 export const TIME_ZONE = "Australia/Perth";
+/** AI summaries are switched on with SUMMARIES=on (a GitHub repository variable); the site's wording follows. */
+export const SUMMARIES_ON = process.env.SUMMARIES === "on";
 
 export const SECTION_LABELS: Record<Section, string> = {
   "local-wa": "Local WA",
@@ -74,7 +76,7 @@ export function page(o: PageOptions): string {
   </div>
   <nav class="sections" aria-label="Sections"><div class="wrap">${nav}<a href="${o.root}about/"${o.active === "about" ? ' aria-current="page"' : ""}>How this works</a></div></nav>
 </header>
-<div class="preview" role="note"><div class="wrap"><strong>Preview edition.</strong> Stories are grouped automatically from <a href="${o.root}about/">free news sources</a>. Written summaries of what every side reports are coming soon; for now you can see who covered each story and read it from several sides.</div></div>
+<div class="preview" role="note"><div class="wrap"><strong>Preview edition.</strong> Stories are grouped automatically from <a href="${o.root}about/">free news sources</a>. ${SUMMARIES_ON ? "Summaries are written by AI from those sources and checked automatically; open a story to compare every side." : "Written summaries of what every side reports are coming soon; for now you can see who covered each story and read it from several sides."}</div></div>
 <main id="main" class="wrap">
 ${o.body}
 </main>

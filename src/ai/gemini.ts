@@ -7,13 +7,26 @@ const TIMEOUT_MS = 2 * 60 * 1000;
 const RATE_LIMIT_RETRIES = 3;
 const RATE_LIMIT_WAIT_MS = 30_000;
 
+/** The model's allowance for today is used up; waiting won't help, so callers move to another model. */
+export class GeminiDailyQuotaError extends Error {}
+
+export interface GeminiOptions {
+  /** Environment variable holding the key: the free GEMINI_API_KEY unless a caller asks for the paid one. */
+  keyEnv?: string;
+  /** How often to wait and retry when the model is busy or rate-limited. */
+  retries?: number;
+  /** Upper bound on billed output (answer plus thinking), so the worst-case cost of a call is known. */
+  maxOutputTokens?: number;
+}
+
 /**
- * One structured-output call to Google Gemini. The key comes from GEMINI_API_KEY (a GitHub Actions secret in
+ * One structured-output call to Google Gemini. The key comes from an environment variable (a GitHub Actions secret in
  * production) and is sent as a header, never in the URL, so it can't leak into logs.
  */
-export async function geminiJson(model: string, system: string, user: string, schema: object = SUMMARY_JSON_SCHEMA): Promise<ModelReply> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error("GEMINI_API_KEY is not set");
+export async function geminiJson(model: string, system: string, user: string, schema: object = SUMMARY_JSON_SCHEMA, options: GeminiOptions = {}): Promise<ModelReply> {
+  const keyEnv = options.keyEnv ?? "GEMINI_API_KEY";
+  const key = process.env[keyEnv];
+  if (!key) throw new Error(`${keyEnv} is not set`);
   const started = Date.now();
   const request = () =>
     fetch(`${API}/${encodeURIComponent(model)}:generateContent`, {
@@ -28,14 +41,15 @@ export async function geminiJson(model: string, system: string, user: string, sc
           responseMimeType: "application/json",
           responseJsonSchema: schema,
           thinkingConfig: { thinkingLevel: "low" },
+          ...(options.maxOutputTokens ? { maxOutputTokens: options.maxOutputTokens } : {}),
         },
       }),
     });
   const busy = (status: number) => status === 429 || status === 503;
   let res = await request();
   // A used-up daily quota won't come back by waiting.
-  if (res.status === 429 && /PerDay/i.test(await res.clone().text())) throw new Error(`Gemini daily quota for ${model} used up (429)`);
-  for (let retry = 0; busy(res.status) && retry < RATE_LIMIT_RETRIES; retry++) {
+  if (res.status === 429 && /PerDay/i.test(await res.clone().text())) throw new GeminiDailyQuotaError(`Gemini daily quota for ${model} used up (429)`);
+  for (let retry = 0; busy(res.status) && retry < (options.retries ?? RATE_LIMIT_RETRIES); retry++) {
     await new Promise((r) => setTimeout(r, RATE_LIMIT_WAIT_MS));
     res = await request();
   }
@@ -43,7 +57,7 @@ export async function geminiJson(model: string, system: string, user: string, sc
   if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const body = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
-    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number };
   };
   const raw = body.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
   let json: unknown = null;
@@ -52,5 +66,7 @@ export async function geminiJson(model: string, system: string, user: string, sc
   } catch {
     json = null;
   }
-  return { json, raw, ms: Date.now() - started, promptTokens: body.usageMetadata?.promptTokenCount ?? 0, outputTokens: body.usageMetadata?.candidatesTokenCount ?? 0 };
+  const usage = body.usageMetadata;
+  // Thinking is billed as output.
+  return { json, raw, ms: Date.now() - started, promptTokens: usage?.promptTokenCount ?? 0, outputTokens: (usage?.candidatesTokenCount ?? 0) + (usage?.thoughtsTokenCount ?? 0) };
 }

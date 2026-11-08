@@ -101,6 +101,13 @@ h2 a:hover { text-decoration: underline; }
 .story h1 { font-size: 30px; }
 .credit { margin: 0 0 14px; font-size: 14px; color: var(--muted); }
 .facts { font-size: 15px; color: var(--muted); }
+.dek { margin: -4px 0 10px; font-size: 15px; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.writeup { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 6px 20px 14px; margin: 14px 0; font-family: var(--serif); font-size: 18px; line-height: 1.6; }
+.writeup h2 { font-size: 19px; margin: 20px 0 8px; }
+.claims { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.cites { font-family: var(--sans); font-size: 13px; color: var(--muted); white-space: normal; }
+.cites a { color: var(--muted); }
+.ai-note { font-family: var(--sans); font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; margin: 18px 0 0; }
 .callout { background: var(--paper); border-left: 4px solid var(--gold-2); padding: 12px 14px; border-radius: 6px; font-size: 15px; margin: 14px 0; }
 .group h2 { font-size: 19px; display: flex; align-items: center; gap: 8px; }
 .group h2::before { content: ""; width: 12px; height: 12px; border-radius: 3px; flex: none; background: var(--line); }

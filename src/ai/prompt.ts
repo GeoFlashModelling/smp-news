@@ -21,7 +21,7 @@ Rules:
 - Every claim cites one to four sources. In each citation, "source" is the source's label exactly as given (S1, S2, ...), never the outlet name, and "quote" is 5 to 20 words copied exactly from that source's TITLE or TEXT.
 - Leave out profanity and slogans; describe them instead (for example: "protesters carried anti-AI banners").
 - Attribute allegations, accusations and disputed claims to the outlet or person making them (for example: "..., ABC News reported").
-- headline: a plain, factual headline of at most 12 words. No questions, no clickbait, no quotes from people.
+- headline: a plain, factual headline of at most 12 words, in sentence case (capital letters only for the first word and for names). No questions, no clickbait, no quotes from people.
 - summary: 2 to 4 sentences giving the core facts of the event.
 - agreed: facts reported by at least two different outlets; cite each outlet that reports it.
 - differences: how coverage differs in emphasis or framing. Name the outlet in the text.

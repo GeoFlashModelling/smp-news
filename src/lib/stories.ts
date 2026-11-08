@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { SECTIONS, toBarLean, type BarLean, type Section } from "../config/sources.js";
 import { tokenize, type Cluster } from "./cluster.js";
+import type { StoryWriteup } from "../ai/summarise.js";
 import type { Photo } from "../images/wikimedia.js";
 import type { Item } from "./normalise.js";
 
@@ -21,6 +22,8 @@ export interface Story {
   score: number;
   /** Free-licensed file photo (subject, place, setting or topic); when absent the story shows its section artwork. */
   photo?: Photo;
+  /** AI summary that passed the support check; absent for court/crime stories and while none is available. */
+  writeup?: StoryWriteup;
 }
 
 const SECTION_PRIORITY: readonly Section[] = ["local-wa", "australia", "politics", "world", "business", "science-tech", "sport", "entertainment", "feel-good"];
