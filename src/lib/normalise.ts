@@ -11,6 +11,8 @@ export interface Item {
   summary: string;
   published: Date;
   sections: Section[];
+  /** Position (0 = first) in the outlet's top-stories feed, when it appears in one. */
+  frontRank?: number;
 }
 
 const WINDOW_HOURS = 48;
@@ -49,7 +51,8 @@ export function normalise(feeds: FeedSnapshot[], sources: Map<string, Source>, n
   for (const feed of feeds) {
     const source = sources.get(feed.source);
     if (!source?.enabled) continue;
-    for (const raw of feed.items) {
+    const top = source.feeds.find((f) => f.url === feed.url)?.top === true;
+    for (const [position, raw] of feed.items.entries()) {
       const key = canonicalUrl(raw.link);
       const published = raw.published ? new Date(raw.published) : null;
       if (!key || !raw.title.trim() || !published || Number.isNaN(published.getTime())) continue;
@@ -58,6 +61,7 @@ export function normalise(feeds: FeedSnapshot[], sources: Map<string, Source>, n
       const existing = byKey.get(key);
       if (existing) {
         for (const s of sections) if (!existing.sections.includes(s)) existing.sections.push(s);
+        if (top) existing.frontRank = Math.min(existing.frontRank ?? position, position);
         continue;
       }
       byKey.set(key, {
@@ -68,6 +72,7 @@ export function normalise(feeds: FeedSnapshot[], sources: Map<string, Source>, n
         summary: source.ai_input_allowed ? raw.summary : "",
         published,
         sections: [...sections],
+        ...(top ? { frontRank: position } : {}),
       });
     }
   }

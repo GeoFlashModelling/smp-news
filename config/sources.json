@@ -16,6 +16,18 @@
       "ai_input_allowed": true,
       "feeds": [
         {
+          "url": "https://www.abc.net.au/news/feed/45910/rss.xml",
+          "sections": [
+            "australia",
+            "world",
+            "politics",
+            "business",
+            "sport"
+          ],
+          "via": "direct",
+          "top": true
+        },
+        {
           "url": "https://www.abc.net.au/news/feed/10719986/rss.xml",
           "sections": [
             "australia"
@@ -276,7 +288,7 @@
       "ai_input_allowed": false,
       "feeds": [
         {
-          "url": "https://www.watoday.com.au/rss/feed.xml",
+          "url": "https://www.watoday.com.au/rss/national/western-australia.xml",
           "sections": [
             "local-wa"
           ],
@@ -290,7 +302,8 @@
           "via": "direct"
         }
       ],
-      "agenda": true
+      "agenda": true,
+      "notes": "8 Nov 2026: rss/feed.xml replaced by the WA feed; feed.xml is Nine's network-wide list (same as SMH), which labelled Sydney stories as Local WA."
     },
     {
       "id": "perthnow",
@@ -491,7 +504,8 @@
           "sections": [
             "australia"
           ],
-          "via": "direct"
+          "via": "direct",
+          "top": true
         },
         {
           "url": "https://www.smh.com.au/rss/politics/federal.xml",
@@ -536,7 +550,8 @@
           "sections": [
             "australia"
           ],
-          "via": "direct"
+          "via": "direct",
+          "top": true
         }
       ],
       "notes": "Metered paywall.",

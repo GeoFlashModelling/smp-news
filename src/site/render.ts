@@ -99,6 +99,7 @@ export function renderFront(front: FrontPage, updated: Date): string {
   }).join("");
   const body = `<h1 class="visually-hidden">${SITE_NAME}</h1>
 <section aria-labelledby="h-top"><h2 id="h-top">Top stories</h2><div class="grid">${top}</div></section>
+${front.alsoLeading.length ? `<section class="sec" aria-labelledby="h-leading"><h2 id="h-leading">Also in the headlines</h2><p class="note">Leading on major Australian news sites; only one outlet has reported it so far.</p>${headlineList(front.alsoLeading, front.alsoLeading.length, root)}</section>` : ""}
 ${sections}`;
   return page({ title: `${SITE_NAME}: every side of the story`, description: "Free Australian news that shows how left, centre and right sources cover the same event.", root, body, updated });
 }

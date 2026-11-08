@@ -22,6 +22,8 @@ export interface Story {
   score: number;
   /** Distinct owner groups among major Australian outlets (sources marked `agenda`) reporting the story. */
   agenda: number;
+  /** How prominently major outlets' homepages carry the story: per owner group, 1 at the top falling to 0 at FRONT_DEPTH. */
+  front: number;
   /** Order for top stories and story cards: what the major Australian outlets are leading with, then breadth and age. */
   lead: number;
   /** Free-licensed file photo (subject, place, setting or topic); when absent the story shows its section artwork. */
@@ -42,6 +44,15 @@ const INDEPENDENCE_WEIGHT = 1.2;
  * twenty overseas outlets cover but no Australian one does. Breadth of coverage still breaks ties.
  */
 const AGENDA_WEIGHT = 1.5;
+/**
+ * Being high on a major outlet's homepage counts for more than merely being published by it: every outlet's "latest"
+ * feed carries wire stories it doesn't lead with. Each owner group adds up to FRONT_WEIGHT, falling to nothing at
+ * position FRONT_DEPTH of its top-stories feed.
+ */
+const FRONT_WEIGHT = 2;
+const FRONT_DEPTH = 20;
+/** Beyond this many owner groups, more coverage doesn't lift a story: twenty overseas outlets on a wire story shouldn't outrank Australia's lead. */
+const LEAD_BREADTH_CAP = 5;
 
 export function coverageGroup(item: Item): CoverageGroup {
   const s = item.source;
@@ -130,7 +141,14 @@ export function buildStory(cluster: Cluster, now: Date): Story {
   const decay = Math.pow(0.5, Math.max(ageHours, 0) / HALF_LIFE_HOURS);
   const score = Math.pow(Math.max(independent, 1), INDEPENDENCE_WEIGHT) * decay;
   const agenda = new Set(reporting.filter((i) => i.source.agenda).map((i) => i.source.owner_group)).size;
-  const lead = Math.pow(1 + agenda, AGENDA_WEIGHT) * Math.sqrt(Math.max(independent, 1)) * decay;
+  const prominence = new Map<string, number>();
+  for (const i of reporting) {
+    if (i.frontRank === undefined || !i.source.agenda) continue;
+    const p = Math.max(0, 1 - i.frontRank / FRONT_DEPTH);
+    prominence.set(i.source.owner_group, Math.max(prominence.get(i.source.owner_group) ?? 0, p));
+  }
+  const front = [...prominence.values()].reduce((a, b) => a + b, 0);
+  const lead = Math.pow(1 + agenda + FRONT_WEIGHT * front, AGENDA_WEIGHT) * Math.sqrt(Math.min(Math.max(independent, 1), LEAD_BREADTH_CAP)) * decay;
   return {
     id: storyId(items),
     section: pickSection(items),
@@ -143,6 +161,7 @@ export function buildStory(cluster: Cluster, now: Date): Story {
     last: cluster.last,
     score,
     agenda,
+    front,
     lead,
   };
 }
@@ -153,17 +172,27 @@ export function buildStories(clusters: Cluster[], now: Date): Story[] {
 
 export interface FrontPage {
   top: Story[];
+  /** Single-outlet stories high on a major outlet's homepage: what the big sites lead with that no one else has yet. */
+  alsoLeading: Story[];
   bySection: Map<Section, Story[]>;
 }
+
+/** Homepage positions (0-based) that count as "leading with", and how many such headlines the front page lists. */
+const LEADING_RANK = 6;
+const ALSO_LEADING = 6;
 
 /** NASA, Phys.org, ScienceAlert and the like: every feed is science. General outlets' science feeds don't count. */
 function isScienceSource(source: Source): boolean {
   return source.feeds.every((f) => f.sections.every((s) => s === "science-tech"));
 }
 
-/** Top-story slots reserved for Australian and WA stories, so world news can't crowd them out. */
+/**
+ * Top-story slots reserved for Australian and WA stories, so world news can't crowd them out; WA_SLOTS of them go to
+ * Local WA (readers are in Perth). World stories are capped: Australian outlets lead mostly with Australian news.
+ */
 const HOME_SECTIONS: readonly Section[] = ["australia", "local-wa"];
-const HOME_SLOTS = 4;
+const HOME_SLOTS = 5;
+const WA_SLOTS = 2;
 
 /** Single-report headlines listed on each section page (the front page lists fewer). */
 export const SECTION_HEADLINES = 60;
@@ -187,12 +216,13 @@ export function shownStories(stories: Story[]): Story[] {
 export function frontPage(stories: Story[], size = 12): FrontPage {
   const multi = stories.filter((s) => s.independent >= 2).sort((a, b) => b.lead - a.lead);
   const top: Story[] = [];
-  const caps: Partial<Record<Section, number>> = { "feel-good": 1, entertainment: 1, sport: 2, "science-tech": 2, tech: 2 };
+  const caps: Partial<Record<Section, number>> = { "feel-good": 1, entertainment: 1, sport: 2, "science-tech": 2, tech: 2, world: 3 };
   const fits = (s: Story) => {
     const cap = caps[s.section];
     return !top.includes(s) && (cap === undefined || top.filter((t) => t.section === s.section).length < cap);
   };
-  for (const s of multi.filter((s) => HOME_SECTIONS.includes(s.section)).slice(0, HOME_SLOTS)) top.push(s);
+  for (const s of multi.filter((s) => s.section === "local-wa").slice(0, WA_SLOTS)) top.push(s);
+  for (const s of multi.filter((s) => HOME_SECTIONS.includes(s.section) && !top.includes(s)).slice(0, HOME_SLOTS - top.length)) top.push(s);
   const science = multi.find((s) => s.section === "science-tech" && s.items.some((i) => isScienceSource(i.source)));
   for (const s of multi) {
     if (top.length >= size - (science && !top.includes(science) ? 1 : 0)) break;
@@ -206,5 +236,9 @@ export function frontPage(stories: Story[], size = 12): FrontPage {
       return [sec, [...inSection.filter((s) => s.independent >= 2).sort((a, b) => b.lead - a.lead), ...inSection.filter((s) => s.independent < 2)]];
     }),
   );
-  return { top, bySection };
+  const alsoLeading = stories
+    .filter((s) => s.independent < 2 && s.items.some((i) => i.source.agenda && i.source.content_type !== "opinion" && (i.frontRank ?? Infinity) < LEADING_RANK))
+    .sort((a, b) => b.lead - a.lead)
+    .slice(0, ALSO_LEADING);
+  return { top, alsoLeading, bySection };
 }

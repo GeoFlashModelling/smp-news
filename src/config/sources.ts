@@ -36,6 +36,8 @@ export interface Feed {
   url: string;
   sections: Section[];
   via: (typeof FEED_VIA)[number];
+  /** The outlet's homepage or "top stories" list, in its own order: a story high in it is one the outlet is leading with. */
+  top?: boolean;
 }
 
 export interface Source {
@@ -141,6 +143,7 @@ export function validateSources(config: unknown): string[] {
       else if (urls.has(f.url)) problems.push(`${fat}: duplicate url`);
       else urls.add(f.url);
       if (!isOneOf(FEED_VIA, f?.via)) problems.push(`${fat}: via must be one of ${FEED_VIA.join(", ")}`);
+      if (f?.top !== undefined && typeof f.top !== "boolean") problems.push(`${fat}: top must be true or false`);
       if (!Array.isArray(f?.sections) || f.sections.length === 0 || !f.sections.every((x) => isOneOf(SECTIONS, x))) {
         problems.push(`${fat}: sections must be a non-empty list of ${SECTIONS.join(", ")}`);
       }
