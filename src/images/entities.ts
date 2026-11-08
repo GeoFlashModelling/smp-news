@@ -102,13 +102,16 @@ export function imageCandidates(items: Item[], max = 3, singleWords = true, head
  */
 export function placeCandidates(items: Item[], headline: string, max = 3): string[] {
   const counts = new Map<string, number>();
+  const ok = (name: string) => name.length >= 3 && name.split(" ").length <= 4 && (BROAD_PLACES.has(name.toLowerCase()) || !GENERIC.has(name.toLowerCase()));
   for (const item of items) {
     const seen = new Set<string>();
-    for (const run of capitalisedRuns(item.title, true)) {
-      const name = clean(run);
-      if (name.length >= 3 && name.split(" ").length <= 4 && (BROAD_PLACES.has(name.toLowerCase()) || !GENERIC.has(name.toLowerCase()))) seen.add(name);
-    }
+    for (const run of capitalisedRuns(item.title, true)) if (ok(clean(run))) seen.add(clean(run));
     for (const name of seen) counts.set(name, (counts.get(name) ?? 0) + 1);
+    // Places named only in the description ("struck in Shizuoka Prefecture") count half; multi-word names only, since
+    // a lone capitalised word in running text is too often something else.
+    for (const run of new Set(capitalisedRuns(item.summary.slice(0, 250)).map(clean))) {
+      if (!seen.has(run) && run.includes(" ") && ok(run)) counts.set(run, (counts.get(run) ?? 0) + 0.5);
+    }
   }
   const weight = (name: string, n: number) => n * (headline.includes(name) ? 3 : 1) / (BROAD_PLACES.has(name.toLowerCase()) ? 2 : 1);
   return [...counts]

@@ -80,6 +80,14 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
     if (photo) {
       photos.set(story.id, photo);
       counts[tier]++;
+    } else if (story.independent >= 2) {
+      console.log(`No photo: ${story.id} "${story.headline.title}" (idea ${JSON.stringify(idea ?? null)}; places ${JSON.stringify(placesOf.get(story.id) ?? [])})`);
+      // Forget the model's suggestions once, so the next edition asks again (headlines may have changed since).
+      const retried = `idea-retried:${story.id}`;
+      if (idea && !cache.has(retried)) {
+        cache.delete(`idea:${story.id}`);
+        cache.set(retried, true);
+      }
     }
   };
   for (const story of stories) await pick(story);

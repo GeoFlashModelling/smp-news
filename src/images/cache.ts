@@ -40,6 +40,10 @@ export class ImageCache {
     return this.has(key) ? (this.entries[key]!.value as T) : undefined;
   }
 
+  delete(key: string): void {
+    delete this.entries[key];
+  }
+
   set(key: string, value: unknown): void {
     this.entries[key] = { value, checked: this.now.toISOString() };
   }
