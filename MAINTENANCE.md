@@ -37,12 +37,26 @@ npm run edition
 
 If the token ever leaks, click **Delete** on the token page immediately, then create a new one with the same settings.
 
+### The hourly timer (Cloudflare Worker `smp-news-scheduler`)
+
+GitHub's own scheduled runs are often delayed or skipped, so a small Cloudflare Worker (`scheduler/`, free plan) starts the Edition workflow at :47 past every hour. It holds one secret, `GH_TOKEN`: the fine-grained token `smp-news-scheduler` (Actions read/write on `smp-news` only), **expires 6 Nov 2027**. GitHub's own timer still runs every 3 hours at :17 as a backup.
+
+- **Check it is running:** Cloudflare dashboard → Workers & Pages → `smp-news-scheduler` → Metrics (one invocation an hour), or the Actions tab shows Edition runs marked "Manually run" each hour.
+- **Renew the token:** GitHub → Developer settings → Fine-grained tokens → `smp-news-scheduler` → **Regenerate token** (custom expiry, up to a year) → copy. Then, without pasting it anywhere else:
+  ```
+  cd "D:\Cursor Projects\SMP_News\app\scheduler"
+  Get-Clipboard | npx wrangler secret put GH_TOKEN
+  Set-Clipboard " "
+  ```
+  (`npx wrangler login` first if asked.) The secret applies immediately; no redeploy needed.
+- **Change the time or code:** edit `scheduler/wrangler.toml` or `scheduler/worker.js`, then `npx wrangler deploy` from `scheduler/`. A new schedule can take up to 15 minutes to start firing.
+
 ## Automatic checks
 
 - **CI** (`.github/workflows/ci.yml`) runs the type check and a test edition on every push. A red cross on a commit means something broke.
 - **Dependabot** opens at most one grouped pull request per month for npm packages and one for GitHub Actions. Merge them if CI is green.
 - **Secret scanning with push protection** blocks any push that contains a recognisable password or token.
-- **Edition** (`.github/workflows/edition.yml`) builds the site from live feeds at :47 past every hour (and on every push that changes code or config) and publishes it to GitHub Pages at `https://thesmpnews.com`. If a build fails (for example fewer than 10 stories covered by two or more owners), nothing is deployed and the previous edition stays up. To rebuild now: Actions → Edition → **Run workflow**.
+- **Edition** (`.github/workflows/edition.yml`) builds the site from live feeds at :47 past every hour, started by the Cloudflare timer above (and on every push that changes code or config) and publishes it to GitHub Pages at `https://thesmpnews.com`. If a build fails (for example fewer than 10 stories covered by two or more owners), nothing is deployed and the previous edition stays up. To rebuild now: Actions → Edition → **Run workflow**.
 - **Snapshot (step 0.7)** (`.github/workflows/snapshot.yml`) captures every feed's items hourly into the private `smp-news-state` repo (`snapshots/step-0.7/`) until `SNAPSHOT_UNTIL`, then does nothing. `runs.csv` there records how late each scheduled run started. Once the window has passed, turn it off: Actions → Snapshot (step 0.7) → ⋯ → Disable workflow. Run one locally with `npm run snapshot` (writes to `.cache/snapshots/`).
 
 ## Recipes
