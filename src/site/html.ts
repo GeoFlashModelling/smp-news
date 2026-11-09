@@ -1,4 +1,13 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import type { Section } from "../config/sources.js";
+
+/** Changes whenever the stylesheet or script does, so browsers fetch the new one instead of a cached copy. */
+const ASSET_VERSION = createHash("sha256")
+  .update(readFileSync(new URL("../../assets/site.css", import.meta.url)))
+  .update(readFileSync(new URL("../../assets/site.js", import.meta.url)))
+  .digest("hex")
+  .slice(0, 10);
 
 export const SITE_NAME = "S.M.P. News";
 export const SITE_HOST = "thesmpnews.com";
@@ -60,7 +69,6 @@ export function page(o: PageOptions): string {
     [
       ["weather", "Weather"],
       ["quiz", "Quiz"],
-      ["about", "How this works"],
     ] as const
   )
     .map(([path, label]) => `<a href="${o.root}${path}/"${o.active === path ? ' aria-current="page"' : ""}>${label}</a>`)
@@ -76,14 +84,15 @@ export function page(o: PageOptions): string {
 <meta name="theme-color" content="#162939">
 <link rel="icon" href="${o.root}assets/favicon.svg" type="image/svg+xml">
 <link rel="manifest" href="${o.root}manifest.webmanifest">
-<link rel="stylesheet" href="${o.root}assets/site.css">
+<link rel="stylesheet" href="${o.root}assets/site.css?v=${ASSET_VERSION}">
 </head>
 <body>
 <a class="skip" href="#main">Skip to stories</a>
 <header class="masthead">
   <div class="wrap mast-row">
     <a class="brand" href="${o.root}" aria-label="${SITE_NAME} home"><img src="${o.root}assets/smp-wordmark.svg" alt="S.M.P." width="104" height="25"><span>News</span></a>
-    <p class="tagline">Every side of the story, side by side</p>
+    <p class="tagline"><strong>Concise. Transparent. Interesting.</strong> <span>News made in Australia, for Australians.</span></p>
+    <a class="how" href="${o.root}about/"${o.active === "about" ? ' aria-current="page"' : ""}>How this works</a>
   </div>
   <nav class="sections" aria-label="Sections"><div class="wrap">${nav}${extra}</div></nav>
 </header>
@@ -97,7 +106,7 @@ ${o.body}
     <p class="small">Edition updated ${timeTag(o.updated)}. Headlines and links belong to their publishers; we link to every source.</p>
   </div>
 </footer>
-<script src="${o.root}assets/site.js" defer></script>
+<script src="${o.root}assets/site.js?v=${ASSET_VERSION}" defer></script>
 </body>
 </html>
 `;

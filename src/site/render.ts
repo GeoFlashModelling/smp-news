@@ -117,11 +117,13 @@ const WIKIPEDIA_CREDIT = `<a href="https://creativecommons.org/licenses/by-sa/4.
 
 /** "On this day" (changes daily) and "Fun fact" (changes hourly), from Wikipedia; a box is left out when its fact is missing. */
 function factsStrip(facts: Facts, quiz: Quiz | null): string {
-  const box = (label: string, fact: Fact | null) =>
-    fact
-      ? `<div class="fact"><p class="fact-label">${esc(label)}</p><p>${esc(fact.text)}</p><p class="fact-credit"><a href="${esc(fact.url)}" rel="noopener">More on Wikipedia</a> · ${WIKIPEDIA_CREDIT}</p></div>`
-      : "";
-  const boxes = box(facts.onThisDay ? `On this day in ${facts.onThisDay.year}` : "", facts.onThisDay) + box("Fun fact", facts.funFact) + quizBox(quiz, "");
+  const credit = (fact: Fact) => `<p class="fact-credit"><a href="${esc(fact.url)}" rel="noopener">More on Wikipedia</a> · ${WIKIPEDIA_CREDIT}</p>`;
+  const day = facts.onThisDay;
+  const fun = facts.funFact;
+  const boxes =
+    (day ? `<div class="fact fact-day"><p class="fact-label">On this day</p><p class="fact-year">${day.year}</p><p class="fact-text">${esc(day.text)}</p>${credit(day)}</div>` : "") +
+    (fun ? `<div class="fact fact-fun"><p class="fact-label">Fun fact</p><p class="fact-title">Did you know?</p><p class="fact-text">${esc(fun.text)}</p>${credit(fun)}</div>` : "") +
+    quizBox(quiz, "");
   return boxes ? `<section class="facts" aria-label="Facts">${boxes}</section>` : "";
 }
 
@@ -153,7 +155,7 @@ ${front.alsoLeading.length ? `<section class="sec" aria-labelledby="h-leading"><
 ${news}
 ${front.interesting.length ? `<section class="sec" aria-labelledby="h-worth"><h2 id="h-worth">Worth a look</h2><p class="note">Less prominent stories from science, good news, tech, business and entertainment.</p>${mixedList(front.interesting, root)}</section>` : ""}
 ${rest}`;
-  return page({ title: `${SITE_NAME}: every side of the story`, description: "Free Australian news that shows how left, centre and right sources cover the same event.", root, body, updated });
+  return page({ title: `${SITE_NAME}: concise, transparent, interesting`, description: "Free Australian news, made in Australia for Australians, showing how left, centre and right sources cover the same event.", root, body, updated });
 }
 
 export function renderSection(section: Section, stories: Story[], updated: Date): string {
@@ -275,7 +277,17 @@ export function renderAbout(sources: Source[], updated: Date): string {
     .join("");
   const body = `<article class="prose">
 <h1>How this works</h1>
-<p>${SITE_NAME} collects headlines from ${enabled.length} news outlets every hour, groups reports about the same event, and shows how outlets from across the political spectrum covered it. It is free, has no ads and no tracking.</p>
+<p>${SITE_NAME} collects headlines from ${enabled.length} news outlets, groups reports about the same event, and shows how outlets from across the political spectrum covered it. It is made in Australia, is free, and has no ads and no tracking.</p>
+<p>The site is rebuilt every hour during the day. Between midnight and 6 am (Sydney time) it is rebuilt at about 1 am and 5 am only, because little changes overnight.</p>
+<h2>The front page</h2>
+<ul>
+<li><strong>Top stories:</strong> the events leading on major Australian news sites right now and covered by the most independent outlets, with fresher news ranked higher. Two places go to local stories. The last top story, marked "And finally", is chosen to end on a lighter note.</li>
+<li><strong>Sections:</strong> local news first (Western Australia for now), then Australia and the world, then politics, business, science, tech, sport, entertainment and good news. Each shows stories with our written summary, then more headlines.</li>
+<li><strong>Weather:</strong> seven-day forecasts for every capital city from <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> (CC BY 4.0). The front page shows your capital, guessed from your device's time zone; choose another with "Change". For official warnings, see the <a href="https://www.bom.gov.au/australia/warnings/" rel="noopener">Bureau of Meteorology</a>.</li>
+<li><strong>On this day and Did you know?:</strong> from Wikipedia's selected anniversaries and "Did you know" facts (CC BY-SA 4.0).</li>
+<li><strong>Daily quiz:</strong> ten general-knowledge questions a day from the <a href="https://opentdb.com/" rel="noopener">Open Trivia Database</a> (CC BY-SA 4.0).</li>
+</ul>
+<p>Your weather city and quiz answers are kept in your own browser only; nothing is sent to us.</p>
 <h2>What you see on a story</h2>
 <ul>
 <li><strong>Coverage bar:</strong> how many independent owners on the left, centre and right reported the story. Outlets owned by the same company count once. Opinion pieces are listed but not counted.</li>
