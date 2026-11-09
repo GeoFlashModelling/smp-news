@@ -1,6 +1,6 @@
 import { legalMode, SUICIDE } from "../ai/legal-risk.js";
 import type { Claim, ClaimList } from "../ai/schema.js";
-import type { StoryWriteup } from "../ai/summarise.js";
+import { summarisable, type StoryWriteup } from "../ai/summarise.js";
 import type { Section, Source } from "../config/sources.js";
 import type { Photo } from "../images/wikimedia.js";
 import type { Fact, Facts } from "../lib/facts.js";
@@ -203,8 +203,12 @@ function writeupBlock(story: Story, root: string): string {
   const w = story.writeup;
   const s = w?.summary;
   if (!w || !s) {
-    const why = !story.items.some((i) => i.source.ai_input_allowed && i.source.content_type !== "opinion")
-          ? "The outlets covering this story don't allow their reports to be used for machine-written summaries, so we show their headlines only."
+    const why = story.items.every((i) => i.source.content_type === "opinion")
+      ? "This is opinion or commentary. We summarise news reports only, so compare the pieces below."
+      : !story.items.some((i) => i.source.ai_input_allowed && i.source.content_type !== "opinion")
+        ? "The outlets covering this story don't allow their reports to be used for machine-written summaries, so we show their headlines only."
+        : SUMMARIES_ON && !summarisable(story)
+          ? "The outlets' descriptions of this story are too short to write a fair summary from. Compare the coverage below."
           : "A written summary isn't ready for this story yet. Until then, compare the coverage below.";
     return `<div class="callout">${why} Grouping is automatic and can make mistakes: <a href="${root}about/#corrections">tell us</a> if a report doesn't belong here.</div>`;
   }
