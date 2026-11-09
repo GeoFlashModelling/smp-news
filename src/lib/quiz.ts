@@ -39,7 +39,7 @@ const ATTEMPTS = 4;
 const TIMEOUT_MS = 15_000;
 
 /** Niche, very American or divisive categories that make a poor general quiz for Australian readers. */
-const LEFT_OUT = /video games|anime|board games|comics|cartoon|computers|gadgets|politics|celebrities/i;
+const LEFT_OUT = /video games|anime|board games|comics|cartoon|computers|gadgets|politics|celebrities|vehicles/i;
 const UNSUITABLE = /\*|\bf\W?\W?\W?k\b|fuck|shit|nazi|hitler|porn|drugs?\b/i;
 /** American leagues and trivia that few Australians would know. */
 const US_ONLY = /\b(MLS|NFL|NBA|NHL|MLB|NCAA|WNBA|NASCAR|Super Bowl|World Series|Stanley Cup|American football|baseball|U\.?S\.? states?|American states?|which state|state capital|zip code|Thanksgiving|presidents?|Congress|Senate|sports teams)\b/i;
