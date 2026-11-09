@@ -10,6 +10,8 @@ import { clusterItems } from "./lib/cluster.js";
 import { loadFacts } from "./lib/facts.js";
 import { fetchAllFeeds, type FeedSnapshot } from "./lib/fetch-feeds.js";
 import { normalise } from "./lib/normalise.js";
+import { loadQuiz } from "./lib/quiz.js";
+import { loadWeather } from "./lib/weather.js";
 import { buildStories, frontPage, sectionCards, shownStories } from "./lib/stories.js";
 import { generateSite } from "./site/generate.js";
 
@@ -55,7 +57,8 @@ async function main(): Promise<void> {
   for (const story of stories) story.photo = photos.get(story.id);
 
   const out = pathToFileURL(`${resolve(process.env.EDITION_OUT ?? "dist")}/`);
-  const files = await generateSite(out, stories, front, config.sources, now, await loadFacts(now));
+  const [facts, weather, quiz] = await Promise.all([loadFacts(now), loadWeather(), loadQuiz(resolve(process.env.QUIZ_STATE ?? ".cache/quiz.json"), now)]);
+  const files = await generateSite(out, stories, front, config.sources, now, { facts, weather, quiz });
 
   console.log(`Edition ${now.toISOString()}: ${feeds.length - failed.length}/${feeds.length} feeds OK, ${items.length} items, ${stories.length} stories (${multi.length} multi-source), photos for ${photos.size} (event ${counts.event}, object ${counts.object}, broad ${counts.broad}; ${multi.filter((s) => s.photo).length}/${multi.length} multi-source), ${summaryNote}, ${files} files in ${Date.now() - started} ms.`);
   if (failed.length > 0) console.log(`Failed feeds: ${failed.map((f) => `${f.source} (${f.problem})`).join(", ")}`);

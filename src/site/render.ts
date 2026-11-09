@@ -5,6 +5,9 @@ import type { Section, Source } from "../config/sources.js";
 import type { Photo } from "../images/wikimedia.js";
 import type { Fact, Facts } from "../lib/facts.js";
 import type { Item } from "../lib/normalise.js";
+import type { Quiz } from "../lib/quiz.js";
+import type { Forecast } from "../lib/weather.js";
+import { quizBox, weatherStrip } from "./extras.js";
 import { coverageGroup, SECTION_HEADLINES, SECTION_LINKS, sectionCards, type CoverageGroup, type FrontPage, type Story } from "../lib/stories.js";
 import { CORRECTIONS_EMAIL, NAV_ORDER, SECTION_LABELS, SITE_NAME, SUMMARIES_ON, esc, page, plural, timeTag } from "./html.js";
 
@@ -113,19 +116,19 @@ function mixedList(stories: Story[], root: string, showSection = true): string {
 const WIKIPEDIA_CREDIT = `<a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener license">CC BY-SA 4.0</a>`;
 
 /** "On this day" (changes daily) and "Fun fact" (changes hourly), from Wikipedia; a box is left out when its fact is missing. */
-function factsStrip(facts: Facts): string {
+function factsStrip(facts: Facts, quiz: Quiz | null): string {
   const box = (label: string, fact: Fact | null) =>
     fact
       ? `<div class="fact"><p class="fact-label">${esc(label)}</p><p>${esc(fact.text)}</p><p class="fact-credit"><a href="${esc(fact.url)}" rel="noopener">More on Wikipedia</a> · ${WIKIPEDIA_CREDIT}</p></div>`
       : "";
-  const boxes = box(facts.onThisDay ? `On this day in ${facts.onThisDay.year}` : "", facts.onThisDay) + box("Fun fact", facts.funFact);
+  const boxes = box(facts.onThisDay ? `On this day in ${facts.onThisDay.year}` : "", facts.onThisDay) + box("Fun fact", facts.funFact) + quizBox(quiz, "");
   return boxes ? `<section class="facts" aria-label="Facts">${boxes}</section>` : "";
 }
 
 /** Sections shown before "Worth a look": the day's news in the reader's order (local, national, world). */
 const NEWS_FIRST: readonly Section[] = ["local-wa", "australia", "world"];
 
-export function renderFront(front: FrontPage, updated: Date, facts: Facts): string {
+export function renderFront(front: FrontPage, updated: Date, facts: Facts, weather: Forecast[] | null, quiz: Quiz | null): string {
   const root = "";
   const top = front.top.map((s) => storyCard(s, root, true, s === front.finale ? "And finally" : undefined)).join("");
   const sectionBlock = (sec: Section) => {
@@ -143,7 +146,8 @@ export function renderFront(front: FrontPage, updated: Date, facts: Facts): stri
   const news = NAV_ORDER.filter((sec) => NEWS_FIRST.includes(sec)).map(sectionBlock).join("");
   const rest = NAV_ORDER.filter((sec) => !NEWS_FIRST.includes(sec)).map(sectionBlock).join("");
   const body = `<h1 class="visually-hidden">${SITE_NAME}</h1>
-${factsStrip(facts)}
+${weatherStrip(weather, root)}
+${factsStrip(facts, quiz)}
 <section aria-labelledby="h-top"><h2 id="h-top">Top stories</h2><div class="grid">${top}</div></section>
 ${front.alsoLeading.length ? `<section class="sec" aria-labelledby="h-leading"><h2 id="h-leading">Also in the headlines</h2><p class="note">Leading on major Australian news sites; only one outlet has reported it so far.</p>${headlineList(front.alsoLeading, front.alsoLeading.length, root)}</section>` : ""}
 ${news}

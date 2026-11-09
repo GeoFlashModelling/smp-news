@@ -151,6 +151,11 @@ npm run cluster-report -- .cache/snapshots/<file>.json.gz 0.32
 
 Lists every story covered by two or more owners, with the headlines grouped into it. The second number is the similarity threshold (higher = stricter grouping); the live value is `DEFAULT_CLUSTER_OPTIONS` in `src/lib/cluster.ts`.
 
+### Weather and daily quiz
+
+- **Weather** (`src/lib/weather.ts`, page `/weather/`, strip at the top of the front page): 7-day forecasts for the 8 capitals from [Open-Meteo](https://open-meteo.com/), one request per edition, free for non-commercial sites (no ads, no subscriptions), data CC BY 4.0 with the credit shown. The Bureau of Meteorology's website forecasts can't be republished or scraped (personal use only, bom.gov.au/other/copyright.shtml), and Open-Meteo no longer serves the Bureau's ACCESS model, so this is Open-Meteo's best blend. If the site ever carries ads or subscriptions, Open-Meteo needs a paid plan. The strip shows the reader's capital from their browser time zone or their choice (kept in their browser only); without scripts, Perth. If Open-Meteo is down, the strip is left out and the page says so.
+- **Daily quiz** (`src/lib/quiz.ts`, page `/quiz/`, box beside the Wikipedia facts): 10 multiple-choice questions from the [Open Trivia Database](https://opentdb.com/) (CC BY-SA 4.0), chosen once per Perth day, easiest first, at most 2 per category and 3 hard ones. Niche, American-only and divisive categories and wording are filtered out (`LEFT_OUT`, `US_ONLY`, `UNSUITABLE`). Today's quiz and every question used before are kept in `.cache/quiz.json` (GitHub's Actions cache), so questions don't repeat. Readers' answers stay in their browser.
+
 ### AI summaries: switch on or off
 
 Summaries are written during the hourly edition when the repository variable `SUMMARIES` is `on` (smp-news → Settings → Secrets and variables → Actions → Variables). Delete the variable, or set it to anything else, to switch them off; the next edition shows headlines only and the banner and About page change wording to match. Code: `src/ai/summarise.ts`.

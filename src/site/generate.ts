@@ -2,7 +2,10 @@ import { copyFile, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { SECTIONS, type Source } from "../config/sources.js";
 import type { Facts } from "../lib/facts.js";
 import type { FrontPage, Story } from "../lib/stories.js";
+import type { Quiz } from "../lib/quiz.js";
+import type { Forecast } from "../lib/weather.js";
 import { sectionArtwork } from "./artwork.js";
+import { renderQuiz, renderWeather } from "./extras.js";
 import { SITE_HOST, SITE_NAME } from "./html.js";
 import { renderAbout, renderFront, renderNotFound, renderSection, renderStory } from "./render.js";
 
@@ -15,7 +18,14 @@ async function put(dir: URL, path: string, content: string): Promise<void> {
 }
 
 /** Writes the whole static site into `dir` (emptied first). Returns the number of files written. */
-export async function generateSite(dir: URL, stories: Story[], front: FrontPage, sources: Source[], updated: Date, facts: Facts): Promise<number> {
+/** The front page's extras; each is null (and left out) when its service couldn't be reached. */
+export interface Extras {
+  facts: Facts;
+  weather: Forecast[] | null;
+  quiz: Quiz | null;
+}
+
+export async function generateSite(dir: URL, stories: Story[], front: FrontPage, sources: Source[], updated: Date, extras: Extras): Promise<number> {
   await mkdir(dir, { recursive: true });
   for (const entry of await readdir(dir)) await rm(new URL(entry, dir), { recursive: true, force: true });
   await mkdir(new URL("assets/", dir), { recursive: true });
@@ -28,7 +38,9 @@ export async function generateSite(dir: URL, stories: Story[], front: FrontPage,
   };
 
   for (const sec of SECTIONS) await write(`assets/sections/${sec}.svg`, sectionArtwork(sec));
-  await write("index.html", renderFront(front, updated, facts));
+  await write("index.html", renderFront(front, updated, extras.facts, extras.weather, extras.quiz));
+  await write("weather/index.html", renderWeather(extras.weather, updated));
+  await write("quiz/index.html", renderQuiz(extras.quiz, updated));
   for (const sec of SECTIONS) await write(`${sec}/index.html`, renderSection(sec, front.bySection.get(sec) ?? [], updated));
   for (const story of stories.filter((s) => s.independent >= 2 || s.writeup?.summary)) await write(`story/${story.id}/index.html`, renderStory(story, updated));
   await write("about/index.html", renderAbout(sources, updated));

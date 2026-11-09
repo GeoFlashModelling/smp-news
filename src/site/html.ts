@@ -47,7 +47,7 @@ export interface PageOptions {
   description: string;
   /** Path depth from the site root, for relative asset links: "" at root, "../../" for /story/x/. */
   root: string;
-  active?: Section | "about";
+  active?: Section | "about" | "weather" | "quiz";
   body: string;
   updated: Date;
 }
@@ -56,6 +56,15 @@ export function page(o: PageOptions): string {
   const nav = NAV_ORDER.map(
     (s) => `<a href="${o.root}${s}/"${o.active === s ? ' aria-current="page"' : ""}>${esc(SECTION_LABELS[s])}</a>`,
   ).join("");
+  const extra = (
+    [
+      ["weather", "Weather"],
+      ["quiz", "Quiz"],
+      ["about", "How this works"],
+    ] as const
+  )
+    .map(([path, label]) => `<a href="${o.root}${path}/"${o.active === path ? ' aria-current="page"' : ""}>${label}</a>`)
+    .join("");
   return `<!doctype html>
 <html lang="en-AU">
 <head>
@@ -76,7 +85,7 @@ export function page(o: PageOptions): string {
     <a class="brand" href="${o.root}" aria-label="${SITE_NAME} home"><img src="${o.root}assets/smp-wordmark.svg" alt="S.M.P." width="104" height="25"><span>News</span></a>
     <p class="tagline">Every side of the story, side by side</p>
   </div>
-  <nav class="sections" aria-label="Sections"><div class="wrap">${nav}<a href="${o.root}about/"${o.active === "about" ? ' aria-current="page"' : ""}>How this works</a></div></nav>
+  <nav class="sections" aria-label="Sections"><div class="wrap">${nav}${extra}</div></nav>
 </header>
 <div class="preview" role="note"><div class="wrap"><strong>Preview edition.</strong> Stories are grouped automatically from <a href="${o.root}about/">free news sources</a>. ${SUMMARIES_ON ? "Summaries are written by AI from those sources and checked automatically; open a story to compare every side." : "Written summaries of what every side reports are coming soon; for now you can see who covered each story and read it from several sides."}</div></div>
 <main id="main" class="wrap">
