@@ -6,7 +6,7 @@ How to keep the site running and fix common problems without an AI agent. Every 
 
 There is no server and nothing runs on the owner's PC. Every hour:
 
-1. **Cloudflare** (Worker `smp-news-scheduler`, cron `47 * * * *`) asks GitHub to start the **Edition** workflow. GitHub's own timer also starts it every 3 hours at :17 as a backup, and any push of code or config starts it too.
+1. **Cloudflare** (Worker `smp-news-scheduler`, cron `47 * * * *`) asks GitHub to start the **Edition** workflow. Overnight (midnight to 6 am Sydney) it runs only at 00:47 and 04:47. GitHub's own timer also starts it five times a day at :17 as a backup, and any push of code or config starts it too.
 2. **GitHub Actions** (a fresh `ubuntu-24.04` machine, free because the repo is public) runs `npm run edition`:
    - reads every enabled outlet's own RSS feed listed in `config/sources.json` (never Google News; outlets whose terms forbid it are switched off);
    - tidies and de-duplicates the items, drops anything in `config/blocklist.json`;
@@ -75,7 +75,7 @@ If the token ever leaks, click **Delete** on the token page immediately, then cr
 
 ### The hourly timer (Cloudflare Worker `smp-news-scheduler`)
 
-GitHub's own scheduled runs are often delayed or skipped, so a small Cloudflare Worker (`scheduler/`, free plan) starts the Edition workflow at :47 past every hour. It holds one secret, `GH_TOKEN`: the fine-grained token `smp-news-scheduler` (Actions read/write on `smp-news` only), **expires 6 Nov 2027**. GitHub's own timer still runs every 3 hours at :17 as a backup.
+GitHub's own scheduled runs are often delayed or skipped, so a small Cloudflare Worker (`scheduler/`, free plan) starts the Edition workflow at :47 past every hour, except overnight: between midnight and 6 am Sydney time it runs only at 00:47 and 04:47 (`NIGHT_HOURS` in `scheduler/worker.js`). It holds one secret, `GH_TOKEN`: the fine-grained token `smp-news-scheduler` (Actions read/write on `smp-news` only), **expires 6 Nov 2027**. GitHub's own timer still runs five times a day at :17 (Australian daytime) as a backup.
 
 - **Check it is running:** Cloudflare dashboard → Workers & Pages → `smp-news-scheduler` → Metrics (one invocation an hour), or the Actions tab shows Edition runs marked "Manually run" each hour.
 - **Renew the token:** GitHub → Developer settings → Fine-grained tokens → `smp-news-scheduler` → **Regenerate token** (custom expiry, up to a year) → copy. Then, without pasting it anywhere else:

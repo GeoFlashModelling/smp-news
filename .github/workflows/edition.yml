@@ -7,7 +7,7 @@ on:
   # Hourly runs come from the Cloudflare Worker in scheduler/ (GitHub's own timer skips runs at busy times).
   workflow_dispatch:
   schedule:
-    - cron: "17 */3 * * *" # backup, in case the Worker stops
+    - cron: "17 2,5,8,11,22 * * *" # backup, in case the Worker stops; Australian daytime only (UTC hours)
   push:
     branches: [main]
     paths: ["src/**", "assets/**", "config/**", "package-lock.json", ".github/workflows/edition.yml"]
