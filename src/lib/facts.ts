@@ -78,7 +78,8 @@ async function funFact(now: Date): Promise<Fact | null> {
   const hooks: Fact[] = [];
   for (const m of html.matchAll(/<li[^>]*>\s*(?:…|\.\.\.)\s*that([\s\S]*?)<\/li>/g)) {
     const raw = m[1]!;
-    const text = plain(raw).replace(/\?$/, "");
+    // Hooks like "... that, when X happened, ..." leave a leading comma once "that" is cut off.
+    const text = plain(raw).replace(/\?$/, "").replace(/^[\s,;:]+/, "");
     if (text.length < 20 || text.length > 260 || GRIM.test(text)) continue;
     const link = /<b>\s*<a href="\/wiki\/([^"#]+)"/.exec(raw) ?? /<a href="\/wiki\/([^"#:]+)"/.exec(raw);
     if (!link) continue;
