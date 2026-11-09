@@ -17,6 +17,8 @@ export interface GeminiOptions {
   retries?: number;
   /** Upper bound on billed output (answer plus thinking), so the worst-case cost of a call is known. */
   maxOutputTokens?: number;
+  /** Give up after this long; callers with another model to try use less than the 2-minute default. */
+  timeoutMs?: number;
 }
 
 /**
@@ -32,7 +34,7 @@ export async function geminiJson(model: string, system: string, user: string, sc
     fetch(`${API}/${encodeURIComponent(model)}:generateContent`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-goog-api-key": key },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(options.timeoutMs ?? TIMEOUT_MS),
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: [{ role: "user", parts: [{ text: user }] }],

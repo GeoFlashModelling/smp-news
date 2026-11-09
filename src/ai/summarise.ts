@@ -89,7 +89,9 @@ const DAILY_PAID_LIMIT_AUD = 3.2;
 const RUN_PAID_LIMIT_AUD = DAILY_PAID_LIMIT_AUD / 8;
 const MAX_OUTPUT_TOKENS = 4096;
 
-const RUN_SECONDS = 420;
+const RUN_SECONDS = 600;
+/** A summary normally comes back in 5 to 15 seconds; a call hanging longer is usually an overloaded model, so move on. */
+const CALL_TIMEOUT_MS = 45_000;
 const MAX_STORIES_PER_RUN = 150;
 /** Stories written at the same time; each works through the models on its own, within the shared per-minute gaps. */
 const WORKERS = 4;
@@ -178,7 +180,7 @@ export async function summariseStories(stories: Story[], important: Set<string>,
     const slot = Math.max(Date.now(), (lastCall.get(key) ?? 0) + gap);
     lastCall.set(key, slot);
     if (slot > Date.now()) await sleep(slot - Date.now());
-    return geminiJson(model, SYSTEM_PROMPT, prompt, undefined, { keyEnv: paid ? "GEMINI_PAID_API_KEY" : "GEMINI_API_KEY", retries: 0, maxOutputTokens: MAX_OUTPUT_TOKENS });
+    return geminiJson(model, SYSTEM_PROMPT, prompt, undefined, { keyEnv: paid ? "GEMINI_PAID_API_KEY" : "GEMINI_API_KEY", retries: 0, maxOutputTokens: MAX_OUTPUT_TOKENS, timeoutMs: CALL_TIMEOUT_MS });
   };
 
   /**
