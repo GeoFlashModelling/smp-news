@@ -1,4 +1,4 @@
-import { legalMode } from "../ai/legal-risk.js";
+import { legalMode, SUICIDE } from "../ai/legal-risk.js";
 import type { Claim, ClaimList } from "../ai/schema.js";
 import type { StoryWriteup } from "../ai/summarise.js";
 import type { Section, Source } from "../config/sources.js";
@@ -47,13 +47,22 @@ function photoCredit(photo: Photo): string {
   return `<a class="credit-link" href="${esc(photo.page)}" rel="noopener">Photo: ${esc(photo.artist)}, ${esc(photo.licence)}, via ${esc(photo.via)}</a>`;
 }
 
+/**
+ * Portraits and near-square photos lose the face when cropped to 16:9 (often only eyes and forehead remain), so they
+ * are shown whole over a blurred copy of themselves instead.
+ */
+const TALL_RATIO = 1.25;
+function isTall(story: Story): boolean {
+  return Boolean(story.photo && story.photo.width / story.photo.height < TALL_RATIO);
+}
+
 /** The story's picture: a free-licensed photo, or the section artwork (decorative, so no alt text). */
 function picture(story: Story, root: string, cls: string, eager = false): string {
   const loading = eager ? `fetchpriority="high"` : `loading="lazy"`;
   const p = story.photo;
   if (!p) return `<img class="${cls}" src="${root}assets/sections/${story.section}.svg" alt="" width="640" height="360" ${loading} decoding="async">`;
   const large = eager && p.large ? ` srcset="${esc(p.src)} 500w, ${esc(p.large)} 960w" sizes="(min-width: 800px) 760px, 100vw"` : "";
-  return `<img class="${cls}${p.height > p.width ? " portrait" : ""}" src="${esc(p.src)}"${large} alt="${esc(p.subject)}" width="${p.width}" height="${p.height}" ${loading} decoding="async">`;
+  return `<img class="${cls}${isTall(story) ? " portrait" : ""}" src="${esc(p.src)}"${large} alt="${esc(p.subject)}" width="${p.width}" height="${p.height}" ${loading} decoding="async">`;
 }
 
 /** Our neutral AI headline when the story has a checked summary, otherwise the most representative outlet headline. */
@@ -66,7 +75,7 @@ function storyCard(story: Story, root: string, showSection = true, label?: strin
   const lead = story.writeup?.summary?.summary[0]?.text;
   const kicker = [label, showSection ? SECTION_LABELS[story.section] : undefined].filter(Boolean).join(" · ");
   return `<article class="card">
-  <div class="pic">${picture(story, root, "pic-img")}${story.photo ? `<p class="pic-credit">${photoCredit(story.photo)}</p>` : ""}</div>
+  <div class="pic${isTall(story) ? " tall" : ""}">${isTall(story) ? `<img class="pic-bg" src="${esc(story.photo!.src)}" alt="" aria-hidden="true" loading="lazy" decoding="async">` : ""}${picture(story, root, "pic-img")}${story.photo ? `<p class="pic-credit">${photoCredit(story.photo)}</p>` : ""}</div>
   ${kicker ? `<p class="kicker">${esc(kicker)}</p>` : ""}
   <h3><a href="${root}story/${story.id}/">${esc(storyTitle(story))}</a></h3>
   ${lead ? `<p class="dek">${esc(lead)}</p>` : ""}
@@ -75,10 +84,10 @@ function storyCard(story: Story, root: string, showSection = true, label?: strin
 </article>`;
 }
 
-/** Shown as a card: stories we've written, plus multi-source ones we deliberately don't write or can't yet (summaries off). */
+/** Shown as a card: stories we've written, plus multi-source ones when summaries are switched off. */
 function isCard(story: Story): boolean {
   if (story.writeup?.summary) return true;
-  return story.independent >= 2 && (!SUMMARIES_ON || legalMode(story.items) === "never");
+  return story.independent >= 2 && !SUMMARIES_ON;
 }
 
 function headlineList(stories: Story[], limit: number, root: string): string {
@@ -184,14 +193,17 @@ function claimText(claim: Claim, writeup: StoryWriteup): string {
 /** Someone has been charged, accused or brought before a court: the presumption-of-innocence note applies. */
 const ACCUSATION = /\b(charged|charges|accused|alleged(ly)?|allegations?|arrested|court|trial|bail|remand(ed)?|custody|pleaded|suspects?)\b/i;
 
+/** Summary sentences in paragraphs of two to three, in the order written (what happened, details, what next). */
+function paragraphs(claims: Claim[]): Claim[][] {
+  const count = Math.ceil(claims.length / 3);
+  return Array.from({ length: count }, (_, p) => claims.slice(Math.round((p * claims.length) / count), Math.round(((p + 1) * claims.length) / count)));
+}
+
 function writeupBlock(story: Story, root: string): string {
   const w = story.writeup;
   const s = w?.summary;
   if (!w || !s) {
-    const why =
-      legalMode(story.items) === "never"
-        ? "We don't write summaries of stories involving sexual offences, young people accused of crimes, suicide, or suppressed names, to protect the people involved. Compare the coverage below."
-        : !story.items.some((i) => i.source.ai_input_allowed && i.source.content_type !== "opinion")
+    const why = !story.items.some((i) => i.source.ai_input_allowed && i.source.content_type !== "opinion")
           ? "The outlets covering this story don't allow their reports to be used for machine-written summaries, so we show their headlines only."
           : "A written summary isn't ready for this story yet. Until then, compare the coverage below.";
     return `<div class="callout">${why} Grouping is automatic and can make mistakes: <a href="${root}about/#corrections">tell us</a> if a report doesn't belong here.</div>`;
@@ -200,11 +212,19 @@ function writeupBlock(story: Story, root: string): string {
     .filter((l) => s[l].length > 0)
     .map((l) => `<h2>${CLAIM_HEADINGS[l]}</h2><ul class="claims">${s[l].map((c) => `<li>${claimText(c, w)}</li>`).join("")}</ul>`)
     .join("");
-  const accused = legalMode(story.items) === "careful" && story.items.some((i) => ACCUSATION.test(`${i.title} ${i.summary}`));
-  const careful = accused ? `<p class="callout">Charges and allegations are not findings of guilt. Everyone is presumed innocent unless proven guilty in court.</p>` : "";
+  const mode = legalMode(story.items);
+  const text = story.items.map((i) => `${i.title} ${i.summary}`);
+  const notes = [
+    mode !== "normal" && text.some((t) => ACCUSATION.test(t)) ? "Charges and allegations are not findings of guilt. Everyone is presumed innocent unless proven guilty in court." : "",
+    mode === "brief" ? "To protect the people involved, this summary is kept brief and leaves out names and identifying details." : "",
+  ].filter(Boolean);
+  const callout = notes.length ? `<p class="callout">${notes.join(" ")}</p>` : "";
+  const support = text.some((t) => SUICIDE.test(t))
+    ? `<p class="callout">If this story raises concerns for you, support is available from Lifeline on <a href="tel:131114">13 11 14</a> or Beyond Blue on <a href="tel:1300224636">1300 22 4636</a>.</p>`
+    : "";
   return `<section class="writeup" aria-label="Summary">
-${careful}${s.summary.map((c) => `<p>${claimText(c, w)}</p>`).join("")}
-${lists}
+${callout}${paragraphs(s.summary).map((p) => `<p>${p.map((c) => claimText(c, w)).join(" ")}</p>`).join("")}
+${support}${lists}
 <p class="ai-note">Written by AI from the outlets' headlines and descriptions, then checked automatically against them; updated ${timeTag(new Date(w.written))}. Mistakes are possible: email <a href="mailto:${CORRECTIONS_EMAIL}">${CORRECTIONS_EMAIL}</a>.</p>
 </section>`;
 }
@@ -261,7 +281,7 @@ export function renderAbout(sources: Source[], updated: Date): string {
 ${
     SUMMARIES_ON
       ? `<h2>Summaries</h2>
-<p>Story summaries, and the plain headline above them, are written by an AI model (Google Gemini) from the linked outlets' headlines and short descriptions only. It is told to use only what those reports say, in its own words, and to attribute disputed claims. Every sentence lists the outlets it came from. Before anything is published, our software checks each sentence: the cited outlets must contain the quoted words, every name and number must appear in their reports, and no sentence may copy an outlet's wording. Sentences that fail are dropped; if too many fail, the story shows headlines only. A summary is rewritten when several new outlets join a story. Court and crime stories are written with extra care: every allegation is attributed to the police, the court or the outlet reporting it, and nobody is described as guilty unless convicted. We don't summarise stories involving sexual offences, young people accused of crimes, suicide, or suppressed names. Mistakes are still possible: please <a href="#corrections">tell us</a>.</p>
+<p>Story summaries, and the plain headline above them, are written by an AI model (Google Gemini) from the linked outlets' headlines and short descriptions only. It is told to use only what those reports say, in its own words, and to attribute disputed claims. Every sentence lists the outlets it came from. Before anything is published, our software checks each sentence: the cited outlets must contain the quoted words, every name and number must appear in their reports, and no sentence may copy an outlet's wording. Sentences that fail are dropped; if too many fail, the story shows headlines only. A summary is as long as the reports allow, up to three paragraphs, and is rewritten when several new outlets join a story. Court and crime stories are written with extra care: nobody involved is named, every allegation is attributed to the police, the court or the outlet reporting it, and nobody is described as guilty unless convicted. Stories involving sexual offences, young people, suicide or suppression orders get a brief factual summary only, without names, relationships, places or other details that could identify anyone. Mistakes are still possible: please <a href="#corrections">tell us</a>.</p>
 <h2>Preview edition</h2>
 <p>This is an early preview. Stories are grouped automatically and can include a report that doesn't belong.</p>`
       : `<h2>Preview edition</h2>

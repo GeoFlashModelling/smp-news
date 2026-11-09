@@ -65,7 +65,10 @@ h2 a:hover { text-decoration: underline; }
 .hero { margin: 4px 0 14px; }
 .hero-img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: 50% 25%; border-radius: 10px; background: var(--navy); }
 .hero-img.portrait { object-fit: contain; }
-.pic-img.portrait, .thumb.portrait { object-position: 50% 15%; }
+.thumb.portrait { object-position: 50% 15%; }
+.pic.tall { overflow: hidden; border-radius: 10px 10px 0 0; background: var(--navy); }
+.pic-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(14px) brightness(0.55); transform: scale(1.15); }
+.pic.tall .pic-img { position: relative; object-fit: contain; background: transparent; }
 .hero figcaption { margin-top: 6px; font-size: 13px; color: var(--muted); }
 .hero figcaption a { color: var(--muted); }
 .thumb { flex: none; width: 72px; height: 72px; object-fit: cover; object-position: 50% 25%; border-radius: 8px; background: var(--navy); }

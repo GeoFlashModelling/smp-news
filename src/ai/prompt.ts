@@ -1,5 +1,6 @@
 import { toBarLean } from "../config/sources.js";
 import type { Item } from "../lib/normalise.js";
+import type { LegalMode } from "./legal-risk.js";
 
 /** One report given to the model, labelled S1, S2, ... */
 export interface SourceBlock {
@@ -22,7 +23,7 @@ Rules:
 - Leave out profanity and slogans; describe them instead (for example: "protesters carried anti-AI banners").
 - Attribute allegations, accusations and disputed claims to the outlet or person making them (for example: "..., ABC News reported").
 - headline: a plain, factual headline of at most 12 words, in sentence case (capital letters only for the first word and for names). No questions, no clickbait, no quotes from people.
-- summary: 2 to 4 sentences giving the core facts of the event.
+- summary: the story told in your own words, one sentence per claim, in this order: what happened; then the details the reports give (who, where, when, numbers, how it unfolded); then reactions, consequences or what happens next. A reader should understand the event without opening the sources, so include every distinct fact the reports give (each report usually adds something: a figure, a place, a quote's substance, a reaction, a next step). The request says how many sentences at most; use that many when the reports hold that many distinct facts, fewer when they don't. Never repeat a fact or pad to reach the number.
 - agreed: facts reported by at least two different outlets; cite each outlet that reports it.
 - differences: how coverage differs in emphasis or framing. Name the outlet in the text.
 - only_reported_by: an important detail reported by only one outlet. Name the outlet in the text.
@@ -73,16 +74,37 @@ const CAREFUL_RULES = `This is a crime or court story. Extra rules:
 - Don't call anyone a murderer, killer, criminal or similar. Mention victims only as far as needed to understand the event.
 - Never name the people involved: accused, suspects, victims, witnesses or their families. Describe them instead ("a 34-year-old man", "the driver"). Leave out anything else that could identify them: street addresses, workplaces, schools, relatives. Officials speaking in their role may be described by role ("police", "the magistrate").`;
 
-export function userPrompt(blocks: SourceBlock[], careful = false): string {
-  return careful ? `${CAREFUL_RULES}\n\n${eventPrompt(blocks)}` : eventPrompt(blocks);
+/**
+ * Sexual offences, young people in crime stories, suicide and suppression orders (legalMode "brief"): a short factual
+ * account only. validate.ts rejects names, family relationships and suicide methods in these.
+ */
+const BRIEF_RULES = `This story involves a sexual offence, a young person, suicide or a suppression order, where identifying anyone can be a crime or cause harm. Extra rules:
+- Write at most 3 summary sentences: what happened, the charge or court step if any, and the city or region. Nothing more.
+- Never mention family or personal relationships between the people involved (daughter, stepfather, partner, teacher and so on), their schools, workplaces, suburbs or streets, or the ages of victims.
+- For suicide or self-harm, never describe the method or the place.`;
+
+/** At most three paragraphs of three sentences; fewer when the reports give less to work from. */
+const SENTENCE_CHARS = 170;
+const MAX_SENTENCES = 9;
+const BRIEF_SENTENCES = 3;
+
+export function summarySentences(blocks: SourceBlock[], mode: LegalMode = "normal"): number {
+  const material = blocks.reduce((n, b) => n + b.item.title.length + b.text.length, 0);
+  const n = Math.max(blocks.length === 1 ? 2 : 3, Math.min(MAX_SENTENCES, Math.round(material / SENTENCE_CHARS)));
+  return mode === "brief" ? Math.min(n, BRIEF_SENTENCES) : n;
 }
 
-function eventPrompt(blocks: SourceBlock[]): string {
+export function userPrompt(blocks: SourceBlock[], mode: LegalMode = "normal"): string {
+  const rules = mode === "brief" ? `${CAREFUL_RULES}\n${BRIEF_RULES}\n\n` : mode === "careful" ? `${CAREFUL_RULES}\n\n` : "";
+  return `${rules}${eventPrompt(blocks, summarySentences(blocks, mode))}`;
+}
+
+function eventPrompt(blocks: SourceBlock[], sentences: number): string {
   const body = blocks
     .map((b) => `<<<SOURCE ${b.id} | outlet: ${b.item.source.name}>>>\nTITLE: ${b.item.title.replace(/<<<|>>>/g, " ")}\nTEXT: ${b.text}\n<<<END ${b.id}>>>`)
     .join("\n\n");
   if (blocks.length === 1) {
-    return `One report about a news event:\n\n${body}\n\nReturn the JSON object for this event. With a single report, write only the headline and a summary of 1 to 3 sentences; leave agreed, differences, only_reported_by and conflicts empty.`;
+    return `One report about a news event:\n\n${body}\n\nReturn the JSON object for this event. With a single report, write only the headline and a summary of at most ${sentences} sentences; leave agreed, differences, only_reported_by and conflicts empty.`;
   }
-  return `Reports about one news event:\n\n${body}\n\nReturn the JSON object for this event.`;
+  return `Reports about one news event:\n\n${body}\n\nReturn the JSON object for this event, with a summary of at most ${sentences} sentences.`;
 }

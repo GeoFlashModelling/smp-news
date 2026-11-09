@@ -1,4 +1,5 @@
-import type { SourceBlock } from "./prompt.js";
+import type { LegalMode } from "./legal-risk.js";
+import { summarySentences, type SourceBlock } from "./prompt.js";
 import { CLAIM_LISTS, type Claim, type ClaimList, type StorySummary } from "./schema.js";
 
 /**
@@ -168,7 +169,13 @@ function namesPerson(text: string, people: Set<string>): string | undefined {
   return words(text).find((w) => people.has(w));
 }
 
-function checkClaim(claim: Claim, list: ClaimList, blocks: SourceBlock[], storyWords: Set<string>, careful = false, people = new Set<string>()): string[] {
+/** Brief-mode stories (legal-risk.ts): relationships, places and methods that could identify a victim or cause harm. */
+const IDENTIFYING =
+  /\b(daughters?|sons?|step\w+|niece|nephew|grand(daughter|son|child\w*)|wife|husband|partner|girlfriend|boyfriend|mother|father|mum|dad|brother|sister|uncle|aunt|cousin|relatives?|teacher|coach|school|street|road|suburb|home in)\b/i;
+const SUICIDE_METHOD = /\b(hang\w*|overdos\w*|jump\w*|fell from|poison\w*|gunshot|shot (him|her|them)self|drown\w*|method)\b/i;
+
+function checkClaim(claim: Claim, list: ClaimList, blocks: SourceBlock[], storyWords: Set<string>, mode: LegalMode, people = new Set<string>()): string[] {
+  const careful = mode !== "normal";
   const errors: string[] = [];
   const text = typeof claim.text === "string" ? stripLabels(claim.text) : "";
   claim.text = text;
@@ -180,6 +187,8 @@ function checkClaim(claim: Claim, list: ClaimList, blocks: SourceBlock[], storyW
   if (careful && OFFENDER_LABEL.test(text)) errors.push("crime story: don't label anyone as an offender");
   const named = careful ? namesPerson(text, people) : undefined;
   if (named) errors.push(`crime story: don't name people involved ("${named}"); describe them instead`);
+  if (mode === "brief" && IDENTIFYING.test(text)) errors.push("sensitive story: leave out relationships, schools, workplaces and places that could identify anyone");
+  if (mode === "brief" && SUICIDE_METHOD.test(text)) errors.push("sensitive story: never describe how or where someone died or was harmed");
   if (META.test(text)) errors.push("talks about the sources instead of the news");
   if (!Array.isArray(claim.cites) || claim.cites.length === 0) return [...errors, "no citations"];
 
@@ -223,7 +232,8 @@ function checkClaim(claim: Claim, list: ClaimList, blocks: SourceBlock[], storyW
 }
 
 /** `headlines` are every report's headline for the story; the new headline may use names and numbers from them. */
-export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: string[] = [], careful = false): ValidationResult {
+export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: string[] = [], mode: LegalMode = "normal"): ValidationResult {
+  const careful = mode !== "normal";
   const result: ValidationResult = { summary: null, errors: [], dropped: 0, kept: 0 };
   if (typeof raw !== "object" || raw === null) return { ...result, errors: ["not a JSON object"] };
   const draft = raw as Partial<StorySummary>;
@@ -238,18 +248,21 @@ export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: 
     if (FORBIDDEN.test(headline) || PROFANITY.test(headline)) result.errors.push("headline has a link, markup or profanity");
     if (careful && OFFENDER_LABEL.test(headline)) result.errors.push("headline labels someone as an offender");
     if (careful && namesPerson(headline, people)) result.errors.push("headline names a person involved in a crime story");
+    if (mode === "brief" && (IDENTIFYING.test(headline) || SUICIDE_METHOD.test(headline))) result.errors.push("headline has identifying or harmful detail in a sensitive story");
     if (META.test(headline)) result.errors.push("headline talks about the sources instead of the news");
     for (const name of names(`X ${headline}`)) if (!nameSupported(name, allWords)) result.errors.push(`headline name "${name.join(" ")}" not in sources`);
     for (const num of headline.match(NUMBER) ?? []) if (!allText.replace(/,/g, "").includes(num.replace(/,/g, "").replace(/[.,]+$/, ""))) result.errors.push(`headline number ${num} not in sources`);
   }
 
   const clean: StorySummary = { headline, summary: [], agreed: [], differences: [], only_reported_by: [], conflicts: [] };
-  // With one report there is nothing to compare, so only the summary is kept.
+  // With one report there is nothing to compare, and a sensitive story gets no detail beyond its brief summary.
   const single = blocks.length === 1;
-  for (const list of single ? (["summary"] as const) : CLAIM_LISTS) {
-    const claims = Array.isArray(draft[list]) ? (draft[list] as Claim[]) : [];
+  const maxSentences = summarySentences(blocks, mode);
+  for (const list of single || mode === "brief" ? (["summary"] as const) : CLAIM_LISTS) {
+    const all = Array.isArray(draft[list]) ? (draft[list] as Claim[]) : [];
+    const claims = list === "summary" ? all.slice(0, maxSentences) : all;
     for (const claim of claims) {
-      const errors = checkClaim(claim, list, blocks, allWords, careful, people);
+      const errors = checkClaim(claim, list, blocks, allWords, mode, people);
       if (errors.length === 0) {
         clean[list].push({ text: claim.text, cites: claim.cites });
         result.kept++;

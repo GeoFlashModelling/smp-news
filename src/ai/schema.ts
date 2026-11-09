@@ -46,7 +46,8 @@ export const SUMMARY_JSON_SCHEMA = {
   type: "object",
   properties: {
     headline: { type: "string" },
-    summary: claims(2, 4),
+    // No maxItems: Gemini rejects the whole schema above about 6 here. validate.ts trims to summarySentences() instead.
+    summary: { type: "array", minItems: 1, items: claimSchema },
     agreed: claims(0, 5),
     differences: claims(0, 4),
     only_reported_by: claims(0, 4),

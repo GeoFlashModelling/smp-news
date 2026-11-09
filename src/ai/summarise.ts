@@ -2,9 +2,9 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { Story } from "../lib/stories.js";
 import { geminiJson, GeminiDailyQuotaError } from "./gemini.js";
-import { legalMode } from "./legal-risk.js";
+import { legalMode, type LegalMode } from "./legal-risk.js";
 import type { ModelReply } from "./ollama.js";
-import { selectSources, SYSTEM_PROMPT, userPrompt, type SourceBlock } from "./prompt.js";
+import { selectSources, summarySentences, SYSTEM_PROMPT, userPrompt, type SourceBlock } from "./prompt.js";
 import type { StorySummary } from "./schema.js";
 import { validateSummary } from "./validate.js";
 
@@ -27,14 +27,22 @@ export interface StoryWriteup {
   failures?: number;
   /** Version of the court and crime rules a careful write-up passed; older ones are rewritten, never shown. */
   legalRules?: number;
+  /** Written under the sensitive-story rules (legal mode "brief"). */
+  brief?: boolean;
+  /** Write-up format; 1 (or missing) is the old 2-to-4-sentence summary. */
+  format?: number;
 }
 
 /** Bump when the court and crime rules tighten, so every careful write-up is rewritten under the new rules. */
 const LEGAL_RULES = 2;
+/** Summaries sized to the material, up to three paragraphs (8 Nov 2026). */
+const FORMAT = 2;
 
-/** A write-up that may still be shown: careful ones must have passed the current court and crime rules. */
-function stillValid(w: StoryWriteup | undefined, careful: boolean): w is StoryWriteup {
-  return Boolean(w?.summary) && !META_HEADLINE.test(w!.summary!.headline) && (!careful || (w!.legalRules ?? 0) >= LEGAL_RULES);
+/** A write-up that may still be shown: careful ones must have passed the current court and crime rules, sensitive ones the brief rules. */
+function stillValid(w: StoryWriteup | undefined, mode: LegalMode): w is StoryWriteup {
+  if (!w?.summary || META_HEADLINE.test(w.summary.headline)) return false;
+  if (mode === "brief") return w.brief === true;
+  return mode === "normal" || (w.legalRules ?? 0) >= LEGAL_RULES;
 }
 const META_HEADLINE = /\b(provided sources?|no (relevant )?(news )?event|not enough information)\b/i;
 
@@ -63,6 +71,8 @@ const FREE_LITE = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite"];
 /** Keeps each model under its free per-minute limit (15 a minute for Flash-Lite, fewer for Flash). */
 const MIN_GAP_MS: Record<string, number> = { lite: 4_500, flash: 12_500 };
 const COOL_MS = 60_000;
+/** The paid key has no free-tier per-minute limit; a short gap just keeps bursts polite. */
+const PAID_GAP_MS = 400;
 
 /** Paid prices in US$ per million tokens [input, output]; a model missing here is never used with the paid key. */
 const PAID_PRICES: Record<string, [number, number]> = {
@@ -82,7 +92,7 @@ const MAX_OUTPUT_TOKENS = 4096;
 const RUN_SECONDS = 420;
 const MAX_STORIES_PER_RUN = 150;
 /** Stories written at the same time; each works through the models on its own, within the shared per-minute gaps. */
-const WORKERS = 2;
+const WORKERS = 4;
 
 export interface SummaryCounts {
   written: number;
@@ -115,23 +125,24 @@ async function loadState(file: string, now: Date): Promise<State> {
 }
 
 /**
- * Stories the model may summarise: not court or crime stories, with at least two usable reports; or one usable report
- * that says enough to write from (a story only one outlet has covered, or one where the others don't allow AI use).
+ * Stories the model may summarise: at least two usable reports, or one usable report that says enough to write from
+ * (a story only one outlet has covered, or one where the others don't allow AI use).
  */
 export function summarisable(story: Story): SourceBlock[] | null {
-  if (legalMode(story.items) === "never") return null;
   const blocks = selectSources(story.items);
   if (blocks.length >= MIN_SOURCES) return blocks;
   return blocks.length === 1 && blocks[0]!.text.length >= SINGLE_MIN_CHARS ? blocks : null;
 }
 
-function needsWriting(prev: StoryWriteup | undefined, blocks: SourceBlock[], now: Date): boolean {
+function needsWriting(prev: StoryWriteup | undefined, blocks: SourceBlock[], mode: LegalMode, now: Date): boolean {
   if (!prev) return true;
   const hoursSince = (now.getTime() - Date.parse(prev.written)) / 3_600_000;
   if (!prev.summary) return (prev.failures ?? 1) < MAX_FAILURES && hoursSince >= REWRITE_GAP_HOURS;
   if ((prev.failures ?? 0) >= MAX_FAILURES) return false;
   // Written from one outlet and now covered by more: rewrite once as a comparison.
   if (prev.owners.length < MIN_SOURCES && blocks.length >= MIN_SOURCES) return true;
+  // Written in the old short format when the reports support a fuller account: rewrite once, longer.
+  if ((prev.format ?? 1) < FORMAT && prev.summary.summary.length < summarySentences(blocks, mode) - 1) return true;
   const used = new Set(prev.owners);
   const fresh = new Set(blocks.map((b) => b.item.source.owner_group).filter((o) => !used.has(o)));
   return fresh.size >= REWRITE_NEW_OWNERS && now.getTime() - Date.parse(prev.written) >= REWRITE_GAP_HOURS * 3_600_000;
@@ -144,13 +155,14 @@ function costAud(model: string, promptTokens: number, outputTokens: number): num
 
 /**
  * Writes AI summaries for the edition's stories (step 2.1). Free models first, best one with requests left today;
- * every answer must pass the support check (validate.ts) or the next model tries. The paid key is a last resort for
- * `important` stories only, within a daily limit enforced here. Stories nobody could summarise show headlines only.
+ * every answer must pass the support check (validate.ts) or the next model tries. The paid key is the last resort
+ * (front-page stories are queued first), within a daily limit enforced here. Stories nobody could summarise show headlines only.
  */
 export async function summariseStories(stories: Story[], important: Set<string>, stateFile: string, now: Date): Promise<{ writeups: Map<string, StoryWriteup>; counts: SummaryCounts }> {
   const state = await loadState(stateFile, now);
   const pacific = dayIn("America/Los_Angeles", now);
-  const paidModel = process.env.SUMMARY_PAID_MODEL ?? DEFAULT_PAID_MODEL;
+  // `||`, not `??`: the workflow passes an unset repository variable as "", which once silently disabled the paid key.
+  const paidModel = process.env.SUMMARY_PAID_MODEL || DEFAULT_PAID_MODEL;
   const paidReady = Boolean(process.env.GEMINI_PAID_API_KEY) && paidModel in PAID_PRICES;
   const counts: SummaryCounts = { written: 0, kept: 0, failed: 0, free: 0, paid: 0, paidAud: 0, dayAud: 0, waiting: 0 };
   const lastCall = new Map<string, number>();
@@ -161,9 +173,10 @@ export async function summariseStories(stories: Story[], important: Set<string>,
 
   const call = async (model: string, paid: boolean, prompt: string): Promise<ModelReply> => {
     // Book the slot before waiting, so parallel workers don't both take it.
-    const gap = MIN_GAP_MS[model.includes("lite") ? "lite" : "flash"]!;
-    const slot = Math.max(Date.now(), (lastCall.get(model) ?? 0) + gap);
-    lastCall.set(model, slot);
+    const gap = paid ? PAID_GAP_MS : MIN_GAP_MS[model.includes("lite") ? "lite" : "flash"]!;
+    const key = paid ? `paid:${model}` : model;
+    const slot = Math.max(Date.now(), (lastCall.get(key) ?? 0) + gap);
+    lastCall.set(key, slot);
     if (slot > Date.now()) await sleep(slot - Date.now());
     return geminiJson(model, SYSTEM_PROMPT, prompt, undefined, { keyEnv: paid ? "GEMINI_PAID_API_KEY" : "GEMINI_API_KEY", retries: 0, maxOutputTokens: MAX_OUTPUT_TOKENS });
   };
@@ -172,8 +185,8 @@ export async function summariseStories(stories: Story[], important: Set<string>,
    * One model, up to two tries: the second is told which checks the first answer failed. `answered` is false when
    * the model never replied (busy, out of requests, over the spending limit), so the story is retried next hour.
    */
-  const attempt = async (model: string, paid: boolean, blocks: SourceBlock[], headlines: string[], careful: boolean): Promise<{ summary: StorySummary | null; answered: boolean }> => {
-    let prompt = userPrompt(blocks, careful);
+  const attempt = async (model: string, paid: boolean, blocks: SourceBlock[], headlines: string[], mode: LegalMode): Promise<{ summary: StorySummary | null; answered: boolean }> => {
+    let prompt = userPrompt(blocks, mode);
     let answered = false;
     for (let n = 0; n < 2; n++) {
       let reply: ModelReply;
@@ -194,9 +207,9 @@ export async function summariseStories(stories: Story[], important: Set<string>,
         counts.paidAud += aud;
       } else reply = await call(model, paid, prompt);
       answered = true;
-      const result = reply.json === null ? null : validateSummary(reply.json, blocks, headlines, careful);
+      const result = reply.json === null ? null : validateSummary(reply.json, blocks, headlines, mode);
       if (result?.summary) return { summary: result.summary, answered };
-      prompt = `${userPrompt(blocks, careful)}\n\nYour previous answer failed these checks; fix them and return the full JSON again:\n- ${(result?.errors ?? ["reply was not valid JSON"]).slice(0, 8).join("\n- ")}`;
+      prompt = `${userPrompt(blocks, mode)}\n\nYour previous answer failed these checks; fix them and return the full JSON again:\n- ${(result?.errors ?? ["reply was not valid JSON"]).slice(0, 8).join("\n- ")}`;
     }
     return { summary: null, answered };
   };
@@ -210,10 +223,10 @@ export async function summariseStories(stories: Story[], important: Set<string>,
     const prev = state.writeups[story.id];
     // Single-outlet stories are written only to fill front-page slots; earlier ones are kept for the section pages.
     if (story.independent < 2 && !prev && !important.has(story.id)) continue;
-    const careful = legalMode(story.items) === "careful";
-    if (prev?.summary && !stillValid(prev, careful)) delete state.writeups[story.id];
+    const mode = legalMode(story.items);
+    if (prev?.summary && !stillValid(prev, mode)) delete state.writeups[story.id];
     const current = state.writeups[story.id];
-    if (needsWriting(current, blocks, now)) queue.push({ story, blocks });
+    if (needsWriting(current, blocks, mode, now)) queue.push({ story, blocks });
     else if (current?.summary) {
       writeups.set(story.id, current);
       counts.kept++;
@@ -228,7 +241,7 @@ export async function summariseStories(stories: Story[], important: Set<string>,
 
   const write = async ({ story, blocks }: { story: Story; blocks: SourceBlock[] }, worker: number): Promise<void> => {
     const headlines = story.items.map((i) => i.title);
-    const careful = legalMode(story.items) === "careful";
+    const mode = legalMode(story.items);
     // Each worker starts on a different Flash-Lite model, so both models' per-minute allowances are used.
     const lite = worker % 2 === 0 ? FREE_LITE : [...FREE_LITE].reverse();
     const ladder = [...(important.has(story.id) ? FREE_FLASH : []), ...lite];
@@ -246,7 +259,7 @@ export async function summariseStories(stories: Story[], important: Set<string>,
     for (const model of ladder) {
       if (state.exhausted[model] || (cooling.get(model) ?? 0) > Date.now()) continue;
       try {
-        const r = await attempt(model, false, blocks, headlines, careful);
+        const r = await attempt(model, false, blocks, headlines, mode);
         summary = r.summary;
         answered ||= r.answered;
       } catch (err) {
@@ -261,9 +274,9 @@ export async function summariseStories(stories: Story[], important: Set<string>,
         break;
       }
     }
-    if (!summary && paidReady && important.has(story.id)) {
+    if (!summary && paidReady) {
       try {
-        const r = await attempt(paidModel, true, blocks, headlines, careful);
+        const r = await attempt(paidModel, true, blocks, headlines, mode);
         summary = r.summary;
         answered ||= r.answered;
       } catch (err) {
@@ -288,7 +301,8 @@ export async function summariseStories(stories: Story[], important: Set<string>,
       paid,
       written: now.toISOString(),
       ...(summary ? {} : { failures: (prev?.failures ?? 0) + 1 }),
-      ...(careful ? { legalRules: LEGAL_RULES } : {}),
+      ...(mode === "careful" ? { legalRules: LEGAL_RULES } : mode === "brief" ? { brief: true } : {}),
+      format: FORMAT,
     };
     state.writeups[story.id] = writeup;
     if (summary) {
