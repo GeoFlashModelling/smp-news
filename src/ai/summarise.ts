@@ -42,8 +42,8 @@ export interface StoryWriteup {
 const LEGAL_RULES = 2;
 /** Summaries sized to the material, up to three paragraphs (8 Nov 2026). */
 const FORMAT = 2;
-/** Bump when the support checks are relaxed or fixed, so stories that failed the old ones are tried again (10 Nov 2026: brief stories need one sentence). */
-const CHECKS = 2;
+/** Bump when the support checks are relaxed or fixed, so stories that failed the old ones are tried again (10 Nov 2026: brief stories need one sentence; headline openers, country aliases, one dropped sentence in three). */
+const CHECKS = 3;
 
 /** A write-up that may still be shown: careful ones must have passed the current court and crime rules, sensitive ones the brief rules. */
 function stillValid(w: StoryWriteup | undefined, mode: LegalMode): w is StoryWriteup {

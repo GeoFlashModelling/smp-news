@@ -17,7 +17,8 @@ const MAX_HEADLINE_CHARS = 110;
 const MAX_CLAIM_CHARS = 360;
 const MIN_QUOTE_WORDS = 4;
 const QUOTE_MATCH = 0.8;
-const MAX_DROPPED_SHARE = 0.3;
+/** One unsupported sentence in three is dropped and the rest kept; more than that and the answer is retried. */
+const MAX_DROPPED_SHARE = 0.34;
 const FORBIDDEN = /https?:|www\.|<[a-z/!]|\]\(|\*\*|`|#{2,}/i;
 
 /** Lower-case words with quote marks, dashes and punctuation evened out, so a near-exact copy still matches. */
@@ -111,8 +112,18 @@ function nameSupported(name: string[], support: Set<string>): boolean {
   if (last.every((w) => support.has(w))) return true;
   const phrase = name.join(" ").toLowerCase();
   const country = DEMONYMS[phrase] ?? DEMONYMS[last.join(" ")];
-  return country !== undefined && (support.has(country) || (country === "wa" && support.has("western")));
+  if (country !== undefined && (support.has(country) || (country === "wa" && support.has("western")))) return true;
+  if ((COUNTRY_ALIASES[phrase] ?? []).some((a) => support.has(a))) return true;
+  // The other way round: "New Zealand" when the reports say "Kiwis".
+  return Object.entries(DEMONYMS).some(([demonym, place]) => last.join(" ") === place && support.has(demonym));
 }
+
+/** Countries the reports often give by a short name ("UK" for "United Kingdom"). */
+const COUNTRY_ALIASES: Record<string, string[]> = {
+  "united kingdom": ["uk", "britain", "british", "england", "london"],
+  "united states": ["us", "usa", "america", "american", "americans"],
+  "new zealand": ["nz", "kiwi", "kiwis", "aotearoa"],
+};
 
 /** "CNA (Channel NewsAsia)" may be written as "CNA" or "Channel NewsAsia". */
 function outletNames(name: string): string[] {
@@ -250,7 +261,12 @@ export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: 
     if (careful && namesPerson(headline, people)) result.errors.push("headline names a person involved in a crime story");
     if (mode === "brief" && (IDENTIFYING.test(headline) || SUICIDE_METHOD.test(headline))) result.errors.push("headline has identifying or harmful detail in a sensitive story");
     if (META.test(headline)) result.errors.push("headline talks about the sources instead of the news");
-    for (const name of names(`X ${headline}`)) if (!nameSupported(name, allWords)) result.errors.push(`headline name "${name.join(" ")}" not in sources`);
+    // A lone capitalised first word is just sentence case ("Television star…"); names after it, or longer ones, are checked.
+    const opener = headline.split(/\s+/)[0]!.replace(/^[^\p{L}]+|[^\p{L}]+$/gu, "");
+    for (const name of names(`X ${headline}`)) {
+      if (name.length === 1 && name[0] === opener) continue;
+      if (!nameSupported(name, allWords)) result.errors.push(`headline name "${name.join(" ")}" not in sources`);
+    }
     for (const num of headline.match(NUMBER) ?? []) if (!allText.replace(/,/g, "").includes(num.replace(/,/g, "").replace(/[.,]+$/, ""))) result.errors.push(`headline number ${num} not in sources`);
   }
 
