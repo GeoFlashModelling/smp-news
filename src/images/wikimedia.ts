@@ -20,7 +20,13 @@ export interface Photo {
   page: string;
   /** Wikipedia's short description of the subject ("New Zealand comedian"); kept for "person" lookups. */
   description?: string;
+  /** Where the camera was, when the file records it: tells a Canberra building from one in Savannah, Georgia. */
+  lat?: number;
+  lon?: number;
 }
+
+/** File details asked of Commons: the licence and author for the credit, and the camera's position when recorded. */
+export const META_FIELDS = "LicenseShortName|Artist|NonFree|GPSLatitude|GPSLongitude";
 
 /** How strictly a looked-up name must match: see lookupBatch. */
 export type LookupMode = "subject" | "named" | "place" | "person";
@@ -117,7 +123,10 @@ export function commonsPhoto(subject: string, kind: Photo["kind"], ii: any): Pho
   const licence = plainText(meta.LicenseShortName?.value ?? "");
   if (meta.NonFree?.value || !FREE_LICENCE.test(licence)) return null;
   const large = ii.width >= 960 && ii.thumburl.includes(`/${THUMB_WIDTH}px-`) ? ii.thumburl.replace(`/${THUMB_WIDTH}px-`, "/960px-") : undefined;
-  return { subject, kind, src: ii.thumburl, large, width: ii.thumbwidth, height: ii.thumbheight, artist: artistName(meta.Artist?.value ?? ""), licence, via: "Wikimedia Commons", page: ii.descriptionurl };
+  const lat = Number.parseFloat(plainText(meta.GPSLatitude?.value ?? ""));
+  const lon = Number.parseFloat(plainText(meta.GPSLongitude?.value ?? ""));
+  const where = Number.isFinite(lat) && Number.isFinite(lon) && (lat !== 0 || lon !== 0) ? { lat, lon } : {};
+  return { subject, kind, src: ii.thumburl, large, width: ii.thumbwidth, height: ii.thumbheight, artist: artistName(meta.Artist?.value ?? ""), licence, via: "Wikimedia Commons", page: ii.descriptionurl, ...where };
 }
 
 /**
@@ -143,7 +152,7 @@ async function lookupBatch(names: string[], mode: LookupMode): Promise<Map<strin
   }
   if (fileOf.size === 0) return found;
 
-  const files = await api({ titles: [...new Set(fileOf.values())].join("|"), prop: "imageinfo", iiprop: "url|extmetadata|mime|size", iiurlwidth: String(THUMB_WIDTH), iiextmetadatafilter: "LicenseShortName|Artist|NonFree" });
+  const files = await api({ titles: [...new Set(fileOf.values())].join("|"), prop: "imageinfo", iiprop: "url|extmetadata|mime|size", iiurlwidth: String(THUMB_WIDTH), iiextmetadatafilter: META_FIELDS });
   const info = new Map<string, any>();
   for (const p of files.query?.pages ?? []) info.set(p.title.replace(/_/g, " "), p.imageinfo?.[0]);
   for (const [name, title] of target) {
@@ -162,12 +171,12 @@ async function lookupBatch(names: string[], mode: LookupMode): Promise<Map<strin
  * Hand-picked Commons files (name → caption), re-checked weekly so a file that is deleted or relicensed drops out.
  */
 export async function findFiles(files: Map<string, string>, cache: ImageCache): Promise<Map<string, Photo | null>> {
-  const key = (f: string) => `file:${f}`;
+  const key = (f: string) => `file2:${f}`;
   const todo = [...files.keys()].filter((f) => !cache.has(key(f)));
   for (let i = 0; i < todo.length; i += BATCH) {
     const batch = todo.slice(i, i + BATCH);
     try {
-      const params = new URLSearchParams({ action: "query", format: "json", formatversion: "2", titles: batch.map((f) => `File:${f}`).join("|"), prop: "imageinfo", iiprop: "url|extmetadata|mime|size", iiurlwidth: String(THUMB_WIDTH), iiextmetadatafilter: "LicenseShortName|Artist|NonFree" });
+      const params = new URLSearchParams({ action: "query", format: "json", formatversion: "2", titles: batch.map((f) => `File:${f}`).join("|"), prop: "imageinfo", iiprop: "url|extmetadata|mime|size", iiurlwidth: String(THUMB_WIDTH), iiextmetadatafilter: META_FIELDS });
       const res = await fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { headers: { "user-agent": USER_AGENT }, signal: AbortSignal.timeout(TIMEOUT_MS) });
       if (!res.ok) throw new Error(`Commons API ${res.status}`);
       const pages = ((await res.json()).query?.pages ?? []) as any[];
@@ -185,8 +194,8 @@ export async function findFiles(files: Map<string, string>, cache: ImageCache): 
  * edition: the story just falls through to the next kind of picture.
  */
 export async function findPhotos(names: string[], mode: LookupMode, cache: ImageCache): Promise<Map<string, Photo | null>> {
-  // "wiki3": answers from older notToShow rules are looked up again rather than kept for the rest of the week.
-  const key = (n: string) => `wiki3:${mode}:${n}`;
+  // "wiki4": answers from before camera positions were kept are looked up again rather than kept for the rest of the week.
+  const key = (n: string) => `wiki4:${mode}:${n}`;
   const unique = [...new Set(names)];
   const todo = unique.filter((n) => !cache.has(key(n)));
   for (let i = 0; i < todo.length; i += BATCH) {

@@ -4,7 +4,7 @@ import { ImageCache } from "./cache.js";
 import { imageCandidates, placeCandidates } from "./entities.js";
 import { homeGround, venueMentioned } from "./grounds.js";
 import { confirmedPerson, deceasedName, isDeathStory, MEDICAL, medicalFile, photoIdeas, standIns, topicFiles, TOPICS } from "./ideas.js";
-import { searchPhoto, type SearchBudget } from "./search.js";
+import { searchPhotos, type SearchBudget } from "./search.js";
 import { findFiles, findPhotos, type Photo } from "./wikimedia.js";
 
 const COMMONS_SEARCHES_PER_EDITION = 300;
@@ -24,19 +24,78 @@ const COUNTRY = (() => {
   return new RegExp(`(?<![\\p{L}])(${[...found].map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?![\\p{L}])`, "gu");
 })();
 
+const US_STATES =
+  "Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming";
+const US_STATE = new RegExp(`\\b(${US_STATES})\\b|\\bU\\.S\\.`);
+/** Other ways reports name a country: a story saying "US" or "Britain" is about the United States or United Kingdom. */
+const ALSO_NAMED: Record<string, RegExp> = {
+  "United States": new RegExp(`\\b(United States|USA|US|U\\.S\\.|America|Americans?|Trump|White House|Congress|Pentagon|Republicans?|Democrats?|${US_STATES})\\b`),
+  "United Kingdom": /\b(United Kingdom|UK|Britain|British|England|English|Scotland|Scottish|Wales|Welsh|London)\b/,
+  "New Zealand": /\b(New Zealand|NZ|Kiwis?|Aotearoa|Auckland|Wellington|Christchurch)\b/,
+  Australia: /\b(Australia|Australian?s?|Aussies?|Canberra|Sydney|Melbourne|Brisbane|Perth|Adelaide|Hobart|Darwin)\b/,
+};
+ALSO_NAMED.USA = ALSO_NAMED["United States"]!;
+ALSO_NAMED.UK = ALSO_NAMED["United Kingdom"]!;
+ALSO_NAMED.England = ALSO_NAMED["United Kingdom"]!;
+ALSO_NAMED.Scotland = ALSO_NAMED["United Kingdom"]!;
+ALSO_NAMED.Wales = ALSO_NAMED["United Kingdom"]!;
+
+function storyText(story: Story): string {
+  return story.items.map((i) => `${i.title} ${i.summary ?? ""}`).join(" ");
+}
+
+function mentions(text: string, country: string): boolean {
+  return (ALSO_NAMED[country] ?? new RegExp(`(?<![\\p{L}])${country.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}])`, "u")).test(text);
+}
+
+/** Roughly where a camera position is: the Australian mainland and Tasmania, New Zealand, or anywhere else. */
+function regionOf(lat: number, lon: number): "Australia" | "New Zealand" | "abroad" {
+  if (lat >= -44.5 && lat <= -9 && lon >= 112 && lon <= 154.5) return "Australia";
+  if (lat >= -48 && lat <= -33.5 && lon >= 165.5 && lon <= 179.99) return "New Zealand";
+  return "abroad";
+}
+
+/** Whether the story is about somewhere other than Australia and New Zealand. */
+function aboutAbroad(story: Story, text: string): boolean {
+  if (story.section === "world") return true;
+  return [...text.matchAll(COUNTRY)].some((m) => m[1] !== "New Zealand") || mentions(text, "United States") || mentions(text, "United Kingdom");
+}
+
 /**
- * A found photo whose title names a country the story's reports never mention shows somewhere else: "Parliament of
- * Victoria" finds the British Columbia Parliament Building in Victoria, Canada.
+ * A photo of somewhere the story isn't about would mislead (owner, 10 Nov 2026: a US federal building on an
+ * Australian story). Two tests:
+ * 1. where the camera was, when the file records it: abroad is only for stories about abroad; New Zealand only for
+ *    stories that mention it, and Australia, for New Zealand stories, only when they mention Australia;
+ * 2. the caption: a country (or US state) the story's reports never mention. "Parliament of Victoria" finds the
+ *    British Columbia Parliament Building in Victoria, Canada.
  */
-export function shotElsewhere(caption: string, story: Story): boolean {
-  const text = story.items.map((i) => `${i.title} ${i.summary ?? ""}`).join(" ");
-  return [...caption.matchAll(COUNTRY)].some((m) => !text.includes(m[1]!));
+export function shotElsewhere(photo: Photo, story: Story): boolean {
+  const text = storyText(story);
+  if (photo.lat !== undefined && photo.lon !== undefined) {
+    const region = regionOf(photo.lat, photo.lon);
+    if (region === "abroad" && !aboutAbroad(story, text)) return true;
+    if (region === "New Zealand" && story.section !== "new-zealand" && !mentions(text, "New Zealand")) return true;
+    if (region === "Australia" && story.section === "new-zealand" && !mentions(text, "Australia")) return true;
+  }
+  const countries = [...photo.subject.matchAll(COUNTRY)].map((m) => m[1]!);
+  if (US_STATE.test(photo.subject)) countries.push("United States");
+  // Captions name cities more often than countries: "Royal Perth Hospital" belongs on a New Zealand story only when it mentions Australia.
+  if (story.section === "new-zealand" && mentions(photo.subject, "Australia")) countries.push("Australia");
+  if (story.section !== "new-zealand" && mentions(photo.subject, "New Zealand")) countries.push("New Zealand");
+  return countries.some((c) => !mentions(text, c));
 }
 
 export interface PhotoCounts {
   event: number;
   object: number;
   broad: number;
+  /** Stories that had to show a photo another story already shows (counted in their tier too). */
+  shared: number;
+}
+
+/** A photo's subject as a search for other photos of the same thing: "Parliament House, Canberra" → "Parliament House Canberra". */
+function sameThing(subject: string): string {
+  return subject.replace(/\s*\(.*?\)/g, "").replace(/^(the|a|an) /i, "").replace(/[^\p{L}\p{N}'’ -]+/gu, " ").replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -51,6 +110,10 @@ export interface PhotoCounts {
  * 3. broad: a common thing that stands for the topic ("wild cat", "Wi-Fi router"), searched the same way, else a
  *    hand-picked photo for the topic (police, court, rugby…);
  * 4. otherwise the section artwork.
+ * No two stories share a photo while another good one exists (owner, 10 Nov 2026: repeats must not mean weaker
+ * pictures): each search keeps several results, and when a story's photo of its subject or place is taken, other
+ * photos of that same subject or place are searched for before a weaker kind of picture is tried. Photos of
+ * somewhere the story isn't about are refused (`shotElsewhere`).
  * Stories about someone's death skip all of these: the person's own Wikipedia photo when it is surely them
  * (`confirmedPerson`), else a medical photo suited to the cause (ideas.ts `MEDICAL`).
  */
@@ -91,36 +154,54 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
   const library = await findFiles(new Map([...TOPICS, ...MEDICAL].map((t) => [t.file, t.caption])), cache);
 
   const photos = new Map<string, Photo>();
-  const counts: PhotoCounts = { event: 0, object: 0, broad: 0 };
+  const counts: PhotoCounts = { event: 0, object: 0, broad: 0, shared: 0 };
   const budget: SearchBudget = { commons: COMMONS_SEARCHES_PER_EDITION, openverse: OPENVERSE_SEARCHES_PER_EDITION };
   // Stories are picked in order of prominence, so the more prominent story keeps a photo two stories could share.
   const used = new Set<string>();
   // The same file comes back with different tracking parameters ("?utm_source=en.wikipedia.org" or commons).
   const fileOf = (p: Photo) => p.src.split("?")[0]!;
-  const firstSearch = async (queries: string[], story: Story, fresh: (p: Photo | null | undefined) => Photo | null) => {
-    for (const q of queries) {
-      const photo = await searchPhoto(q, cache, budget);
-      if (photo && !shotElsewhere(photo.subject, story) && fresh(photo)) return photo;
-    }
-    return null;
-  };
 
   const pick = async (story: Story): Promise<void> => {
     // The best photo no other story uses yet; failing that, the best one even if shared.
     let fallback: [Photo, keyof PhotoCounts] | null = null;
     let tier: keyof PhotoCounts = "event";
+    // Good photos another story already shows, with their tier: other photos of the same thing are looked for.
+    const taken: [Photo, keyof PhotoCounts][] = [];
     const fresh = (p: Photo | null | undefined): Photo | null => {
       if (!p) return null;
       fallback ??= [p, tier];
-      return used.has(fileOf(p)) ? null : p;
+      if (!used.has(fileOf(p))) return p;
+      taken.push([p, tier]);
+      return null;
     };
     const first = (list: (Photo | null | undefined)[]) => list.map(fresh).find((p) => p) ?? null;
+    const here = (p: Photo | null | undefined) => (p && !shotElsewhere(p, story) ? p : null);
+    const firstSearch = async (queries: string[]) => {
+      for (const q of queries) {
+        for (const photo of await searchPhotos(q, cache, budget)) if (!shotElsewhere(photo, story) && fresh(photo)) return photo;
+      }
+      return null;
+    };
+    const tried = new Set<string>();
+    // Another photo of something a taken photo shows ("Parliament House, Canberra" → search for it), at that photo's tier.
+    const alternative = async (tiers: (keyof PhotoCounts)[], most: number) => {
+      for (const [p, t] of taken.filter(([, t]) => tiers.includes(t))) {
+        const query = sameThing(p.subject);
+        if (tried.has(query) || tried.size >= most) continue;
+        tried.add(query);
+        tier = t;
+        const photo = await firstSearch([query]);
+        if (photo) return photo;
+      }
+      return null;
+    };
     const choose = (photo: Photo | null) => {
       const [chosen, chosenTier] = photo ? [photo, tier] : (fallback ?? [null, tier]);
       if (!chosen) return false;
       photos.set(story.id, chosen);
       used.add(fileOf(chosen));
       counts[chosenTier]++;
+      if (!photo) counts.shared++;
       return true;
     };
     if (death.has(story.id)) {
@@ -134,20 +215,21 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       return;
     }
     const idea = ideas.get(story.id);
-    const venue = venues.get(venueOf.get(story.id) ?? "") ?? null;
+    const venue = here(venues.get(venueOf.get(story.id) ?? ""));
     const subjectList = [idea?.subject && !legal.has(story.id) ? named.get(idea.subject) : null, ...(subjectsOf.get(story.id) ?? []).map((n) => subjects.get(n))];
-    const placeList = (placesOf.get(story.id) ?? []).map((n) => places.get(n));
+    const placeList = (placesOf.get(story.id) ?? []).map((n) => here(places.get(n)));
     let photo = first([...(story.section === "sport" ? [venue, ...subjectList] : [...subjectList, venue]), ...placeList]);
+    if (!photo) photo = await alternative(["event"], 2);
     if (!photo) {
       tier = "object";
-      photo = await firstSearch(idea?.searches ?? [], story, fresh);
+      photo = await firstSearch(idea?.searches ?? []);
     }
     if (!photo) {
       tier = "broad";
-      photo = (idea?.theme ? await firstSearch([idea.theme], story, fresh) : null) ?? first(topicFiles(story).map((f) => library.get(f)));
+      photo = (idea?.theme ? await firstSearch([idea.theme]) : null) ?? first(topicFiles(story).map((f) => here(library.get(f))));
     }
-    const taken = (fallback as [Photo, keyof PhotoCounts] | null)?.[0];
-    if (!photo && taken) photo = first(standIns(taken.subject, taken.src).map((f) => library.get(f)));
+    for (const [p] of [...taken]) if (!photo) photo = first(standIns(p.subject, p.src).map((f) => here(library.get(f))));
+    if (!photo) photo = await alternative(["object", "broad"], 4);
     if (!choose(photo) && story.independent >= 2) {
       console.log(`No photo: ${story.id} "${story.headline.title}" (idea ${JSON.stringify(idea ?? null)}; places ${JSON.stringify(placesOf.get(story.id) ?? [])})`);
       // Forget the model's suggestions once, so the next edition asks again (headlines may have changed since).

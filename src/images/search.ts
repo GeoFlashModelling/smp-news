@@ -1,6 +1,6 @@
 import { USER_AGENT } from "../lib/http.js";
 import type { ImageCache } from "./cache.js";
-import { commonsPhoto, NOT_A_PHOTO, THUMB_WIDTH, yearTaken, type Photo } from "./wikimedia.js";
+import { commonsPhoto, META_FIELDS, NOT_A_PHOTO, THUMB_WIDTH, yearTaken, type Photo } from "./wikimedia.js";
 
 const COMMONS_API = "https://commons.wikimedia.org/w/api.php";
 const OPENVERSE_API = "https://api.openverse.org/v1/images/";
@@ -70,9 +70,13 @@ export function usableQuery(query: string): boolean {
   return !EVENT_PHOTO.test(query) && !PERSON_PHOTO.test(query) && !/\b(police|polic[ií]a)\b.*\b(tape|line)\b/i.test(query);
 }
 
-/** Landscape pictures fill the 16:9 card; a portrait one is only used when nothing else fits. */
-function best(photos: Photo[]): Photo | null {
-  return photos.find((p) => p.width >= p.height) ?? photos[0] ?? null;
+/**
+ * Several good results per search, so a story whose first choice another story already shows takes the next photo
+ * of the same thing rather than a weaker kind of picture. Landscape pictures fill the 16:9 card, so they come first.
+ */
+const KEEP = 5;
+function best(photos: Photo[]): Photo[] {
+  return [...photos.filter((p) => p.width >= p.height), ...photos.filter((p) => p.width < p.height)].slice(0, KEEP);
 }
 
 /** The host refused us (HTTP 429, or 403 from Openverse's anonymous limit): stop searching it for the rest of this edition. */
@@ -89,11 +93,11 @@ async function getJson(url: string): Promise<any> {
 const REVIEWED = ["Category:Quality images", "Category:Valued images", "Category:Featured pictures on Wikimedia Commons"];
 
 /** Wikimedia Commons file search: large bitmaps, reviewed photos first, otherwise in the search engine's ranking order. */
-async function commonsSearch(query: string): Promise<Photo | null> {
+async function commonsSearch(query: string): Promise<Photo[]> {
   const params = new URLSearchParams({
     action: "query", format: "json", formatversion: "2", generator: "search", gsrnamespace: "6", gsrlimit: String(RESULTS),
     gsrsearch: `${query} filetype:bitmap filew:>${MIN_WIDTH - 1}`, prop: "imageinfo|categories", iiprop: "url|extmetadata|mime|size",
-    iiurlwidth: String(THUMB_WIDTH), iiextmetadatafilter: "LicenseShortName|Artist|NonFree|DateTimeOriginal", clcategories: REVIEWED.join("|"), cllimit: "max",
+    iiurlwidth: String(THUMB_WIDTH), iiextmetadatafilter: `${META_FIELDS}|DateTimeOriginal`, clcategories: REVIEWED.join("|"), cllimit: "max",
   });
   const body = await getJson(`${COMMONS_API}?${params}`);
   const pages = ((body.query?.pages ?? []) as any[]).sort((a, b) => Number(!!b.categories?.length) - Number(!!a.categories?.length) || a.index - b.index);
@@ -112,7 +116,7 @@ const OPENVERSE_LICENCE: Record<string, string> = { by: "CC BY", "by-sa": "CC BY
  * Openverse (openly licensed photos from Flickr and other collections). Only licences that allow changes and any use;
  * Commons results are skipped since Commons was searched first.
  */
-async function openverseSearch(query: string): Promise<Photo | null> {
+async function openverseSearch(query: string): Promise<Photo[]> {
   const params = new URLSearchParams({ q: query, license_type: "commercial,modification", page_size: String(RESULTS), mature: "false" });
   const body = await getJson(`${OPENVERSE_API}?${params}`);
   const photos: Photo[] = [];
@@ -152,31 +156,34 @@ export interface SearchBudget {
 const COMMONS_GAP_MS = 250;
 
 /**
- * Searches Commons, then (budget allowing) Openverse, for one query. Answers, including "nothing found", are cached
- * for a week; a failure or an exhausted budget is not cached, so the next edition tries again.
+ * Searches Commons, then (budget allowing) Openverse, for one query: the best few photos, best first. Answers,
+ * including "nothing found", are cached for a week; a failure or an exhausted budget is not cached, so the next
+ * edition tries again. Until a query is searched again, its single answer from before lists were kept still counts.
  */
-export async function searchPhoto(query: string, cache: ImageCache, budget: SearchBudget): Promise<Photo | null> {
-  if (!usableQuery(query)) return null;
-  const key = `search2:${fold(query)}`;
-  if (cache.has(key)) return cache.get<Photo | null>(key) ?? null;
-  if (budget.commons <= 0) return null;
+export async function searchPhotos(query: string, cache: ImageCache, budget: SearchBudget): Promise<Photo[]> {
+  if (!usableQuery(query)) return [];
+  const key = `search3:${fold(query)}`;
+  if (cache.has(key)) return cache.get<Photo[]>(key) ?? [];
+  const old = cache.get<Photo | null>(`search2:${fold(query)}`);
+  const before = old ? [old] : [];
+  if (budget.commons <= 0) return before;
   try {
     budget.commons--;
     await new Promise((r) => setTimeout(r, COMMONS_GAP_MS));
-    let photo = await commonsSearch(query);
-    if (!photo) {
-      if (budget.openverse <= 0) return null;
+    let photos = await commonsSearch(query);
+    if (!photos.length) {
+      if (budget.openverse <= 0) return before;
       budget.openverse--;
-      photo = await openverseSearch(query);
+      photos = await openverseSearch(query);
     }
-    cache.set(key, photo);
-    return photo;
+    cache.set(key, photos);
+    return photos;
   } catch (err) {
     if (err instanceof SlowDown) {
       if (err.message.startsWith("commons")) budget.commons = 0;
       else budget.openverse = 0;
     }
     console.log(`Photo search failed for "${query}": ${err instanceof Error ? err.message : err}`);
-    return null;
+    return before;
   }
 }
