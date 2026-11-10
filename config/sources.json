@@ -179,7 +179,7 @@
     },
     {
       "id": "the-conversation-au",
-      "name": "The Conversation (AU)",
+      "name": "The Conversation",
       "homepage": "https://theconversation.com/au",
       "lean": "centre-left",
       "content_type": "analysis",
@@ -221,9 +221,74 @@
             "science-tech"
           ],
           "via": "direct"
+        },
+        {
+          "url": "https://theconversation.com/nz/articles.atom",
+          "sections": [
+            "new-zealand"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://theconversation.com/global/articles.atom",
+          "sections": [
+            "world"
+          ],
+          "via": "direct"
         }
       ],
-      "notes": "Academic authors; articles licensed CC BY-ND (republish unaltered with attribution; no derivatives). Summaries use title + description only."
+      "notes": "Academic authors; articles licensed CC BY-ND (republish unaltered with attribution; no derivatives). Australian, New Zealand and global editions. Full articles are read in memory only, as research for our own summaries."
+    },
+    {
+      "id": "360info",
+      "name": "360info",
+      "homepage": "https://360info.org/",
+      "lean": "centre-left",
+      "content_type": "analysis",
+      "owner_group": "360info",
+      "paywall": "free",
+      "region_of_rating": "AU",
+      "enabled": true,
+      "full_text_allowed": true,
+      "terms_url": "https://360info.org/about/",
+      "full_text_basis": "Creative Commons Attribution 4.0 (stated on every article)",
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://360info.org/feed/",
+          "sections": [
+            "world",
+            "science-tech"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "Research-led journalism hosted by the ANU, written with academics. Not rated by MBFC; centre-left by editorial judgement (like The Conversation). Full articles read in memory only."
+    },
+    {
+      "id": "global-voices",
+      "name": "Global Voices",
+      "homepage": "https://globalvoices.org/",
+      "lean": "left",
+      "content_type": "news",
+      "owner_group": "Global Voices",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": true,
+      "terms_url": "https://globalvoices.org/about/global-voices-attribution-policy/",
+      "full_text_basis": "Creative Commons Attribution (republishing guidelines, updated 9 Apr 2025)",
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://globalvoices.org/feed/",
+          "sections": [
+            "world"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "International citizen-media newsroom. MBFC: Left, high factual reporting. Full articles read in memory only."
     },
     {
       "id": "crikey",
