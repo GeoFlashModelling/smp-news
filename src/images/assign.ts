@@ -33,7 +33,7 @@ const US_STATES =
 const US_STATE = new RegExp(`\\b(${US_STATES})\\b|\\bU\\.S\\.`);
 /** Other ways reports name a country: a story saying "US" or "Britain" is about the United States or United Kingdom. */
 const ALSO_NAMED: Record<string, RegExp> = {
-  "United States": new RegExp(`\\b(United States|USA|US|U\\.S\\.|America|Americans?|Trump|White House|Congress|Pentagon|Republicans?|Democrats?|${US_STATES})\\b`),
+  "United States": new RegExp(`\\b(United States|USA|US|U\\.S\\.|America|Americans?|Trump|White House|Congress|Capitol Hill|Pentagon|Republicans?|Democrats?|GOP|bipartisan|filibuster|${US_STATES})\\b`),
   "United Kingdom": /\b(United Kingdom|UK|Britain|British|England|English|Scotland|Scottish|Wales|Welsh|London)\b/,
   "New Zealand": /\b(New Zealand|NZ|Kiwis?|Aotearoa|Auckland|Wellington|Christchurch)\b/,
   Australia: /\b(Australia|Australian?s?|Aussies?|Canberra|Sydney|Melbourne|Brisbane|Perth|Adelaide|Hobart|Darwin)\b/,
