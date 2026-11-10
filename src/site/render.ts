@@ -235,7 +235,7 @@ function writeupBlock(story: Story, root: string): string {
   return `<section class="writeup" aria-label="Summary">
 ${callout}${paragraphs(s.summary).map((p) => `<p>${p.map((c) => claimText(c, w)).join(" ")}</p>`).join("")}
 ${support}${lists}
-<p class="ai-note">Written by AI from the outlets' headlines and descriptions${w.articles ? `, and the full text of ${w.articles === 1 ? "one article" : `${w.articles} articles`} whose publishers allow it` : ""}, then checked automatically against them; updated ${timeTag(new Date(w.written))}. Mistakes are possible: email <a href="mailto:${CORRECTIONS_EMAIL}">${CORRECTIONS_EMAIL}</a>.</p>
+<p class="ai-note">Written by AI from the outlets' headlines and descriptions${w.articles ? `, and the full text of ${w.articles === 1 ? "one article whose publisher allows" : `${w.articles} articles whose publishers allow`} it` : ""}, then checked automatically against them; updated ${timeTag(new Date(w.written))}. Mistakes are possible: email <a href="mailto:${CORRECTIONS_EMAIL}">${CORRECTIONS_EMAIL}</a>.</p>
 </section>`;
 }
 
