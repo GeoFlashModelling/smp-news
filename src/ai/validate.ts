@@ -164,7 +164,10 @@ const DESCRIBING = new Set("man men woman women boy boys girl girls teen teens t
 export function peopleInvolved(blocks: SourceBlock[]): Set<string> {
   const people = new Set<string>();
   for (const b of blocks) {
-    const text = `${b.item.title}. ${b.text}`;
+    // Title Case headlines ("Krakow Shooting Suspect Dies") make every word look like a name.
+    const titleWords = b.item.title.split(/\s+/).filter((w) => /^\p{L}/u.test(w));
+    const titleCase = titleWords.filter((w) => /^\p{Lu}/u.test(w)).length >= titleWords.length * 0.7;
+    const text = titleCase ? b.text : `${b.item.title}. ${b.text}`;
     for (const m of text.matchAll(/\b\p{Lu}[\p{L}'’-]+(?:\s+\p{Lu}[\p{L}'’-]+){0,3}/gu)) {
       const before = text.slice(Math.max(0, m.index! - 20), m.index);
       const after = text.slice(m.index! + m[0].length, m.index! + m[0].length + 40);
