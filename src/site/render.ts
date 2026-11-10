@@ -155,7 +155,7 @@ ${front.alsoLeading.length ? `<section class="sec" aria-labelledby="h-leading"><
 ${news}
 ${front.interesting.length ? `<section class="sec" aria-labelledby="h-worth"><h2 id="h-worth">Worth a look</h2><p class="note">Less prominent stories from science, good news, tech, business and entertainment.</p>${mixedList(front.interesting, root)}</section>` : ""}
 ${rest}`;
-  return page({ title: `${SITE_NAME}: concise, transparent, interesting`, description: "Free Australian news, made in Australia for Australians, showing how left, centre and right sources cover the same event.", root, body, updated });
+  return page({ title: `${SITE_NAME}: Our Country, Our Stories. No Agenda.`, description: "Free Australian news, made in Australia for Australians, showing how left, centre and right sources cover the same event.", root, body, updated });
 }
 
 export function renderSection(section: Section, stories: Story[], updated: Date): string {
