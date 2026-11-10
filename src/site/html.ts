@@ -91,7 +91,7 @@ export function page(o: PageOptions): string {
 <header class="masthead">
   <div class="wrap mast-row">
     <a class="brand" href="${o.root}" aria-label="${SITE_NAME} home"><img src="${o.root}assets/smp-wordmark.svg" alt="S.M.P." width="104" height="25"><span>News</span></a>
-    <p class="tagline"><strong>Concise. Transparent. Interesting.</strong> <span>News made in Australia, for Australians.</span></p>
+    <p class="tagline"><strong>Our Country, Our Stories.</strong> <span>No Agenda.</span></p>
     <a class="how" href="${o.root}about/"${o.active === "about" ? ' aria-current="page"' : ""}>How this works</a>
   </div>
   <nav class="sections" aria-label="Sections"><div class="wrap">${nav}${extra}</div></nav>
