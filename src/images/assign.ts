@@ -63,8 +63,8 @@ const BUILT =
 const STATES: RegExp[] = [
   /\b(Western Australian?|WA|Perth|Fremantle|Mandurah|Bunbury|Kalgoorlie|Geraldton|Albany|Broome|Karratha|Port Hedland|Pilbara|Kimberley|Rottnest)\b/,
   /\b(South Australian?|SA|Adelaide|Mount Gambier|Whyalla|Port Augusta|Barossa)\b/,
-  /\b(Northern Territory|NT|Darwin|Alice Springs|Katherine|Uluru)\b/,
-  /\b(Queensland(er)?s?|Qld|QLD|Brisbane|Gold Coast|Sunshine Coast|Cairns|Townsville|Toowoomba|Mackay|Rockhampton)\b/,
+  /\b(Northern Territory|NT|Darwin|Alice Springs|Uluru)\b/,
+  /\b(Queensland(er)?s?|Qld|QLD|Brisbane|Gold Coast|Sunshine Coast|Cairns|Townsville|Toowoomba|Rockhampton)\b/,
   /\b(New South Wales|NSW|Sydney|Newcastle|Wollongong|Bondi|Parramatta|Byron Bay)\b/,
   /\b(Victorian?s?|Vic|Melbourne|Geelong|Ballarat|Bendigo)\b/,
   /\b(Tasmanian?s?|Tas|Hobart|Launceston|Beaconsfield)\b/,
@@ -108,8 +108,10 @@ export function shotElsewhere(photo: Photo, story: Story, place = BUILT.test(pho
     if (region === "New Zealand" && story.section !== "new-zealand" && !mentions(text, "New Zealand")) return true;
     if (region === "Australia" && story.section === "new-zealand" && !mentions(text, "Australia")) return true;
   }
-  const caption = photo.title ?? photo.subject;
-  const countries = [...caption.matchAll(COUNTRY)].map((m) => m[1]!);
+  // "New South Wales" isn't Wales.
+  const caption = (photo.title ?? photo.subject).replace(/New South Wales/gi, "NSW");
+  const home = story.section === "new-zealand" ? "New Zealand" : "Australia";
+  const countries = [...caption.matchAll(COUNTRY)].map((m) => m[1]!).filter((c) => c !== home);
   if (US_STATE.test(caption)) countries.push("United States");
   // Captions name cities more often than countries: "Royal Perth Hospital" belongs on a New Zealand story only when it mentions Australia.
   if (story.section === "new-zealand" && mentions(caption, "Australia")) countries.push("Australia");
