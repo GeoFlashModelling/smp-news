@@ -92,6 +92,8 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
   const budget: SearchBudget = { commons: COMMONS_SEARCHES_PER_EDITION, openverse: OPENVERSE_SEARCHES_PER_EDITION };
   // Stories are picked in order of importance, so the more prominent story keeps a photo two stories could share.
   const used = new Set<string>();
+  // The same file comes back with different tracking parameters ("?utm_source=en.wikipedia.org" or commons).
+  const fileOf = (p: Photo) => p.src.split("?")[0]!;
   const firstSearch = async (queries: string[], story: Story, fresh: (p: Photo | null | undefined) => Photo | null) => {
     for (const q of queries) {
       const photo = await searchPhoto(q, cache, budget);
@@ -107,14 +109,14 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
     const fresh = (p: Photo | null | undefined): Photo | null => {
       if (!p) return null;
       fallback ??= [p, tier];
-      return used.has(p.src) ? null : p;
+      return used.has(fileOf(p)) ? null : p;
     };
     const first = (list: (Photo | null | undefined)[]) => list.map(fresh).find((p) => p) ?? null;
     const choose = (photo: Photo | null) => {
       const [chosen, chosenTier] = photo ? [photo, tier] : (fallback ?? [null, tier]);
       if (!chosen) return false;
       photos.set(story.id, chosen);
-      used.add(chosen.src);
+      used.add(fileOf(chosen));
       counts[chosenTier]++;
       return true;
     };
