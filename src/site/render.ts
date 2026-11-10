@@ -290,7 +290,7 @@ export function renderAbout(sources: Source[], updated: Date): string {
   const body = `<article class="prose">
 <h1>How this works</h1>
 <p>${SITE_NAME} collects headlines from ${enabled.length} news outlets, groups reports about the same event, and shows how outlets from across the political spectrum covered it. It is made in Australia, is free, and has no ads and no tracking.</p>
-<p>The site is rebuilt every hour during the day. Between midnight and 6 am (Sydney time) it is rebuilt at about 1 am and 5 am only, because little changes overnight.</p>
+<p>The site is rebuilt every hour during the day. Between midnight and 6 am (Sydney time) it is rebuilt once, at about 4 am, because little changes overnight.</p>
 <h2>The front page</h2>
 <ul>
 <li><strong>Top stories:</strong> the events leading on major Australian news sites right now and covered by the most independent outlets, with fresher news ranked higher. Two places go to local stories. The last top story, marked "And finally", is chosen to end on a lighter note.</li>
