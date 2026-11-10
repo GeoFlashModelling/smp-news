@@ -3,7 +3,7 @@ import type { Story } from "../lib/stories.js";
 import { ImageCache } from "./cache.js";
 import { imageCandidates, placeCandidates } from "./entities.js";
 import { homeGround, venueMentioned } from "./grounds.js";
-import { confirmedPerson, deceasedName, isDeathStory, MEDICAL, medicalFile, photoIdeas, topicFiles, TOPICS } from "./ideas.js";
+import { confirmedPerson, deceasedName, isDeathStory, MEDICAL, medicalFile, photoIdeas, standIns, topicFiles, TOPICS } from "./ideas.js";
 import { searchPhoto, type SearchBudget } from "./search.js";
 import { findFiles, findPhotos, type Photo } from "./wikimedia.js";
 
@@ -141,6 +141,8 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
       tier = "broad";
       photo = (idea?.theme ? await firstSearch([idea.theme], story, fresh) : null) ?? first(topicFiles(story).map((f) => library.get(f)));
     }
+    const taken = (fallback as [Photo, keyof PhotoCounts] | null)?.[0].subject;
+    if (!photo && taken) photo = first(standIns(taken).map((f) => library.get(f)));
     if (!choose(photo) && story.independent >= 2) {
       console.log(`No photo: ${story.id} "${story.headline.title}" (idea ${JSON.stringify(idea ?? null)}; places ${JSON.stringify(placesOf.get(story.id) ?? [])})`);
       // Forget the model's suggestions once, so the next edition asks again (headlines may have changed since).

@@ -172,6 +172,25 @@ export function medicalFile(story: Story): string {
   return MEDICAL.find((m) => m.match.test(text))!.file;
 }
 
+/** Other library photos of the same place, tried before a story repeats a photo another story already shows. */
+const STAND_INS: { match: RegExp; files: string[] }[] = [
+  {
+    match: /\bParliament House\b.*\bCanberra\b|\bParliament of Australia\b|\bAustralian Parliament House\b/i,
+    files: [
+      "Parliament House at dusk, Canberra ACT.jpg",
+      "Canberra (AU), Parliament House -- 2019 -- 1745.jpg",
+      "Australian House of Representatives - Parliament of Australia.jpg",
+      "Australian Senate - Parliament of Australia.jpg",
+      "Canberra (AU), Parliament House -- 2019 -- 1754.jpg",
+    ],
+  },
+];
+
+/** Library photos (file names) showing the same place as a photo (by what it shows), for when that one is taken. */
+export function standIns(subject: string): string[] {
+  return STAND_INS.find((s) => s.match.test(subject))?.files ?? [];
+}
+
 /** Library photos (file names) that suit a story, best match first, from its report titles. */
 export function topicFiles(story: Story): string[] {
   const text = story.items.slice(0, 5).map((i) => i.title).join(" ");
