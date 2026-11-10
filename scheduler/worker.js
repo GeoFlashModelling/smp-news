@@ -7,10 +7,10 @@ const DISPATCH = "https://api.github.com/repos/GeoFlashModelling/smp-news/action
 
 /**
  * Overnight on the east coast (midnight to 6 am Sydney time, 9 pm to 3 am Perth in summer) little changes and few
- * people read, so editions run only at 00:47 and 04:47 Sydney time, saving AI requests and paid spend.
+ * people read, so one edition runs, at 03:47 Sydney time, saving AI requests and paid spend.
  */
 const NIGHT_HOURS = new Set([0, 1, 2, 3, 4, 5]);
-const NIGHT_EVERY = 4;
+const NIGHT_RUN = 3;
 
 function sydneyHour(date) {
   return Number(new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", hourCycle: "h23" }).format(date));
@@ -19,7 +19,7 @@ function sydneyHour(date) {
 export default {
   async scheduled(event, env) {
     const hour = sydneyHour(new Date(event.scheduledTime));
-    if (NIGHT_HOURS.has(hour) && hour % NIGHT_EVERY !== 0) return;
+    if (NIGHT_HOURS.has(hour) && hour !== NIGHT_RUN) return;
     const res = await fetch(DISPATCH, {
       method: "POST",
       headers: {
