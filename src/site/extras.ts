@@ -55,7 +55,7 @@ ${cities}
 export function quizBox(quiz: Quiz | null, root: string): string {
   if (!quiz) return "";
   const topics = [...new Set(quiz.questions.map((q) => q.category))].slice(0, 4).join(", ");
-  return `<div class="fact fact-quiz"><p class="fact-label">Daily quiz</p><p class="fact-title">Ten questions. How many can you get?</p><p class="fact-text">Today: ${esc(topics)} and more. New questions every day.</p><p><a class="quiz-go" href="${root}quiz/">Play today's quiz</a></p></div>`;
+  return `<div class="fact fact-quiz"><p class="fact-label">Daily quiz</p><p class="fact-title">Need a break? Ten Questions. You Can Do It!</p><p class="fact-text">Today: ${esc(topics)} and more. New questions every day.</p><p><a class="quiz-go" href="${root}quiz/">Play today's quiz</a></p></div>`;
 }
 
 export function renderQuiz(quiz: Quiz | null, updated: Date): string {

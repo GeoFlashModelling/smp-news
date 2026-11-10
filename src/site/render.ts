@@ -50,7 +50,28 @@ function oneSidedNote(story: Story): string {
 
 /** Credit required by the photo's licence: author, licence, and a link to the file page with the full terms. */
 function photoCredit(photo: Photo): string {
-  return `<a class="credit-link" href="${esc(photo.page)}" rel="noopener">Photo: ${esc(photo.artist)}, ${esc(photo.licence)}, via ${esc(photo.via)}</a>`;
+  return `<a class="credit-link" href="${esc(photo.page)}" rel="noopener">${esc(creditText(photo))}</a>`;
+}
+
+function creditText(photo: Photo): string {
+  return `Photo: ${photo.artist}, ${photo.licence}, via ${photo.via}`;
+}
+
+/**
+ * Pictures outside the story page carry no visible credit (owner: credits clutter small images). The licences allow
+ * crediting in any reasonable way, including a link to where the credit is shown: a story page shows it in full, and
+ * a picture beside an outlet's headline (no story page of ours) links to the photo's file page itself.
+ */
+function thumb(story: Story, root: string, linkCredit: boolean): string {
+  const img = picture(story, root, "thumb");
+  if (!story.photo || !linkCredit) return withCredit(img, story.photo);
+  const credit = esc(creditText(story.photo));
+  return `<a class="thumb-link" href="${esc(story.photo.page)}" rel="noopener" title="${credit}" aria-label="${credit}">${img}</a>`;
+}
+
+/** The credit as the picture's tooltip, for cards and pictures that open our story page (which shows it in full). */
+function withCredit(img: string, photo: Photo | undefined): string {
+  return photo ? img.replace("<img ", `<img title="${esc(creditText(photo))}" `) : img;
 }
 
 /**
@@ -92,7 +113,7 @@ function storyCard(story: Story, root: string, showSection = true, label?: strin
   ${coverageBar(story)}${oneSidedNote(story)}
   <p class="meta">${story.independent < 2 ? `Only ${esc(story.headline.source.name)} so far` : `${plural(sources, "source")} · ${plural(story.independent, "independent owner")}`} · updated ${timeTag(story.last)}</p>`;
   return `<article class="card${lead ? " lead" : ""}">
-  <div class="pic${isTall(story) ? " tall" : ""}">${isTall(story) ? `<img class="pic-bg" src="${esc(story.photo!.src)}" alt="" aria-hidden="true" loading="lazy" decoding="async">` : ""}${picture(story, root, "pic-img", lead ? LEAD_SIZES : undefined)}${story.photo ? `<p class="pic-credit">${photoCredit(story.photo)}</p>` : ""}</div>
+  <div class="pic${isTall(story) ? " tall" : ""}">${isTall(story) ? `<img class="pic-bg" src="${esc(story.photo!.src)}" alt="" aria-hidden="true" loading="lazy" decoding="async">` : ""}${withCredit(picture(story, root, "pic-img", lead ? LEAD_SIZES : undefined), story.photo)}</div>
   ${lead ? `<div class="lead-text">${text}</div>` : text}
 </article>`;
 }
@@ -107,7 +128,7 @@ function headlineList(stories: Story[], limit: number, root: string): string {
   if (stories.length === 0) return "";
   const rows = stories.slice(0, limit).map((s) => {
     const i = s.headline;
-    return `<li>${picture(s, root, "thumb")}<div><a href="${esc(i.url)}" rel="noopener">${esc(i.title)}</a> <span class="src">${esc(i.source.name)}${i.source.paywall === "paywalled" ? " · Paywall" : ""} · ${timeTag(i.published)}</span>${s.photo ? `<span class="thumb-credit">${photoCredit(s.photo)}</span>` : ""}</div></li>`;
+    return `<li>${thumb(s, root, true)}<div><a href="${esc(i.url)}" rel="noopener">${esc(i.title)}</a> <span class="src">${esc(i.source.name)}${i.source.paywall === "paywalled" ? " · Paywall" : ""} · ${timeTag(i.published)}</span></div></li>`;
   });
   return `<ul class="headlines">${rows.join("")}</ul>`;
 }
@@ -118,7 +139,7 @@ function mixedList(stories: Story[], root: string, showSection = true): string {
     const ours = s.independent >= 2 || Boolean(s.writeup?.summary);
     const href = ours ? `${root}story/${s.id}/` : s.headline.url;
     const from = s.independent >= 2 ? plural(new Set(s.items.map((i) => i.source.id)).size, "source") : `${s.headline.source.name}${s.headline.source.paywall === "paywalled" ? " · Paywall" : ""}`;
-    return `<li>${picture(s, root, "thumb")}<div><a href="${esc(href)}"${ours ? "" : ' rel="noopener"'}>${esc(storyTitle(s))}</a> <span class="src">${showSection ? `${esc(SECTION_LABELS[s.section])} · ` : ""}${esc(from)} · ${timeTag(s.last)}</span>${s.photo ? `<span class="thumb-credit">${photoCredit(s.photo)}</span>` : ""}</div></li>`;
+    return `<li>${thumb(s, root, !ours)}<div><a href="${esc(href)}"${ours ? "" : ' rel="noopener"'}>${esc(storyTitle(s))}</a> <span class="src">${showSection ? `${esc(SECTION_LABELS[s.section])} · ` : ""}${esc(from)} · ${timeTag(s.last)}</span></div></li>`;
   });
   return `<ul class="headlines">${rows.join("")}</ul>`;
 }
@@ -249,8 +270,15 @@ function writeupBlock(story: Story, root: string): string {
   return `<section class="writeup" aria-label="Summary">
 ${callout}${paragraphs(s.summary).map((p) => `<p>${p.map((c) => claimText(c, w)).join(" ")}</p>`).join("")}
 ${support}${lists}
-<p class="ai-note">Written by AI from the outlets' headlines and descriptions${w.articles ? `, and the full text of ${w.articles === 1 ? "one article whose publisher allows" : `${w.articles} articles whose publishers allow`} it` : ""}, then checked automatically against them; updated ${timeTag(new Date(w.written))}. Mistakes are possible: email <a href="mailto:${CORRECTIONS_EMAIL}">${CORRECTIONS_EMAIL}</a>.</p>
 </section>`;
+}
+
+/** How the summary was made, for the end of the story page beside the report counts. */
+function aiNote(story: Story): string {
+  const w = story.writeup;
+  if (!w?.summary) return "";
+  const articles = w.articles ? `, and the full text of ${w.articles === 1 ? "one article whose publisher allows" : `${w.articles} articles whose publishers allow`} it` : "";
+  return `<p class="ai-note">Summary written by AI ${timeTag(new Date(w.written))} from the outlets' headlines and descriptions${articles}, then checked automatically against them. Mistakes are possible: email <a href="mailto:${CORRECTIONS_EMAIL}">${CORRECTIONS_EMAIL}</a>.</p>`;
 }
 
 export function renderStory(story: Story, updated: Date): string {
@@ -266,7 +294,7 @@ export function renderStory(story: Story, updated: Date): string {
 <p class="credit">${story.writeup?.summary ? `Summary of ${plural(Object.keys(story.writeup.sources).length, "report")}${story.independent < 2 ? `: only ${esc(story.headline.source.name)} has reported this so far` : ""}` : `Headline from ${esc(story.headline.source.name)}`}</p>
 <figure class="hero">${picture(story, root, "hero-img", STORY_SIZES)}${
     story.photo
-      ? `<figcaption>${story.photo.kind === "named" ? `File photo of ${esc(story.photo.subject)}` : `File photo: ${esc(story.photo.subject)}`}, not taken at this event. ${photoCredit(story.photo)}.</figcaption>`
+      ? `<figcaption>${story.photo.kind === "named" ? `File photo of ${esc(story.photo.subject)}` : `File photo: ${esc(story.photo.subject)}`}. ${photoCredit(story.photo)}.</figcaption>`
       : ""
   }</figure>
 ${coverageBar(story, true)}${oneSidedNote(story)}
@@ -274,6 +302,7 @@ ${writeupBlock(story, root)}
 ${story.writeup?.summary ? `<h2>All coverage</h2>` : ""}
 ${groups}
 <p class="story-stats">${plural(story.items.length, "report")} from ${plural(sources, "outlet")} and ${plural(story.independent, "independent owner")}. First reported ${timeTag(story.first)}; latest ${timeTag(story.last)}.</p>
+${aiNote(story)}
 </article>`;
   return page({ title: `${storyTitle(story)} | ${SITE_NAME}`, description: `How ${plural(sources, "outlet")} covered this story.`, root, active: story.section, body, updated });
 }
