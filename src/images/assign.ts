@@ -9,6 +9,8 @@ import { findFiles, findPhotos, type Photo } from "./wikimedia.js";
 
 const COMMONS_SEARCHES_PER_EDITION = 300;
 const OPENVERSE_SEARCHES_PER_EDITION = 15;
+/** Searching stops after this long; stories still without a search answer get one in the next edition. */
+const SEARCH_MINUTES = 6;
 
 /** Every country's English name, plus short forms common in photo titles. Australia is home, so it never counts. */
 const COUNTRY = (() => {
@@ -162,7 +164,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
 
   const photos = new Map<string, Photo>();
   const counts: PhotoCounts = { event: 0, object: 0, broad: 0, shared: 0, elsewhere: 0 };
-  const budget: SearchBudget = { commons: COMMONS_SEARCHES_PER_EDITION, openverse: OPENVERSE_SEARCHES_PER_EDITION };
+  const budget: SearchBudget = { commons: COMMONS_SEARCHES_PER_EDITION, openverse: OPENVERSE_SEARCHES_PER_EDITION, until: Date.now() + SEARCH_MINUTES * 60_000 };
   // Stories are picked in order of prominence, so the more prominent story keeps a photo two stories could share.
   const used = new Set<string>();
   // The same file comes back with different tracking parameters ("?utm_source=en.wikipedia.org" or commons).

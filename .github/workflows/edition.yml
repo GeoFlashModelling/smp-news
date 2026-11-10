@@ -22,7 +22,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # Summaries stop at 8 minutes and photo searches at 6; this is the backstop.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -50,6 +51,12 @@ jobs:
           path: .cache/quiz.json
           key: quiz-${{ github.run_id }}
           restore-keys: quiz-
+      # Each edition's numbers for the last few days, read by the nightly report (report.yml).
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/history.json
+          key: history-${{ github.run_id }}
+          restore-keys: history-
       - run: npm run edition
         env:
           # Free key: photo search words, and summaries when SUMMARIES is "on".

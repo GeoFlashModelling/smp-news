@@ -8,6 +8,7 @@ import { applyBlocklist, loadBlocklist } from "./lib/blocklist.js";
 import { assignPhotos } from "./images/assign.js";
 import { clusterItems } from "./lib/cluster.js";
 import { loadFacts } from "./lib/facts.js";
+import { recordEdition, type EditionRecord } from "./lib/history.js";
 import { fetchAllFeeds, type FeedSnapshot } from "./lib/fetch-feeds.js";
 import { normalise } from "./lib/normalise.js";
 import { loadQuiz } from "./lib/quiz.js";
@@ -36,11 +37,13 @@ async function main(): Promise<void> {
     feeds = await fetchAllFeeds(config.sources);
   }
 
+  const fedAt = Date.now();
   const failed = feeds.filter((f) => !f.ok);
   const items = applyBlocklist(normalise(feeds, sources, now), await loadBlocklist());
   const stories = buildStories(clusterItems(items), now);
   const multi = stories.filter((s) => s.independent >= 2);
   let summaryNote = "summaries off";
+  let summaries: EditionRecord["summaries"];
   const front = frontPage(stories, now, (s) => process.env.SUMMARIES !== "on" || summarisable(s) !== null);
   if (process.env.SUMMARIES === "on") {
     // The top stories and each section's first writable stories fill the front page's written slots.
@@ -50,19 +53,35 @@ async function main(): Promise<void> {
     for (const story of stories) story.writeup = writeups.get(story.id);
     const multiWritten = multi.filter((s) => writeups.has(s.id)).length;
     summaryNote = `summaries for ${multiWritten}/${multi.length} multi-source + ${writeups.size - multiWritten} single-outlet (new ${c.written}: free ${c.free}, paid ${c.paid}, from full articles ${c.fromArticles}; kept ${c.kept}; failed checks ${c.failed}; waiting ${c.waiting}; paid A$${c.paidAud.toFixed(3)} this run, A$${c.dayAud.toFixed(2)} today)`;
+    summaries = { multiWritten, single: writeups.size - multiWritten, written: c.written, free: c.free, paid: c.paid, fromArticles: c.fromArticles, failed: c.failed, paidAud: c.paidAud, dayAud: c.dayAud };
   }
+  const summarisedAt = Date.now();
 
   // After the summaries, so a sport photo can follow the headline readers see (the summary's, when there is one).
   const writable = (s: Story) => process.env.SUMMARIES !== "on" || summarisable(s) !== null;
   const onFront = [...front.top, ...front.alsoLeading, ...front.interesting, ...[...front.bySection.values()].flatMap((list) => sectionCards(list, front.top, writable))];
   const { photos, counts } = await assignPhotos(shownStories(stories), resolve(process.env.IMAGE_CACHE ?? ".cache/images.json"), now, onFront);
   for (const story of stories) story.photo = photos.get(story.id);
+  const photosAt = Date.now();
 
   const out = pathToFileURL(`${resolve(process.env.EDITION_OUT ?? "dist")}/`);
   const [facts, weather, quiz] = await Promise.all([loadFacts(now), loadWeather(), loadQuiz(resolve(process.env.QUIZ_STATE ?? ".cache/quiz.json"), now)]);
   const files = await generateSite(out, stories, front, config.sources, now, { facts, weather, quiz });
 
   console.log(`Edition ${now.toISOString()}: ${feeds.length - failed.length}/${feeds.length} feeds OK, ${items.length} items, ${stories.length} stories (${multi.length} multi-source), photos for ${photos.size} (event ${counts.event}, object ${counts.object}, broad ${counts.broad}, shared ${counts.shared}, refused as elsewhere ${counts.elsewhere}; ${multi.filter((s) => s.photo).length}/${multi.length} multi-source), ${summaryNote}, ${files} files in ${Date.now() - started} ms.`);
+  const done = Date.now();
+  await recordEdition(resolve(process.env.HISTORY ?? ".cache/history.json"), {
+    at: now.toISOString(),
+    ms: done - started,
+    stageMs: { feeds: fedAt - started, summaries: summarisedAt - fedAt, photos: photosAt - summarisedAt, site: done - photosAt },
+    feeds: { ok: feeds.length - failed.length, total: feeds.length, failed: failed.map((f) => `${f.source} (${f.problem})`) },
+    items: items.length,
+    stories: stories.length,
+    multi: multi.length,
+    photos: { total: photos.size, ...counts, multiWithPhoto: multi.filter((s) => s.photo).length },
+    summaries,
+    files,
+  });
   if (failed.length > 0) console.log(`Failed feeds: ${failed.map((f) => `${f.source} (${f.problem})`).join(", ")}`);
   if (multi.length < 10) throw new Error(`Only ${multi.length} multi-source stories; not publishing a thin edition.`);
 }

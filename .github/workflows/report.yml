@@ -1,0 +1,37 @@
+name: Nightly report
+
+# Emails the owner how the site did over the last 24 hours (scripts/report.ts). Started at 9:30 pm Perth time by the
+# Cloudflare Worker in scheduler/, which also sends the email (Cloudflare Email Routing, to the owner's verified
+# address, kept as a Worker secret so it never appears in this public repository).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  report:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # The editions' own numbers. Restore only: this workflow never writes the cache.
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/history.json
+          key: history-none
+          restore-keys: history-
+      - run: npx tsx scripts/report.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPORT_URL: ${{ vars.REPORT_URL }}
+          REPORT_TOKEN: ${{ secrets.REPORT_TOKEN }}

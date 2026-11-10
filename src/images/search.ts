@@ -150,6 +150,8 @@ async function openverseSearch(query: string): Promise<Photo[]> {
 export interface SearchBudget {
   commons: number;
   openverse: number;
+  /** No new searches after this time (ms since 1970): a slow search host must not hold up the edition. */
+  until: number;
 }
 
 /** Pause between Commons searches; Wikimedia asks API clients to make requests one at a time. */
@@ -166,7 +168,7 @@ export async function searchPhotos(query: string, cache: ImageCache, budget: Sea
   if (cache.has(key)) return cache.get<Photo[]>(key) ?? [];
   const old = cache.get<Photo | null>(`search2:${fold(query)}`);
   const before = old ? [old] : [];
-  if (budget.commons <= 0) return before;
+  if (budget.commons <= 0 || Date.now() > budget.until) return before;
   try {
     budget.commons--;
     await new Promise((r) => setTimeout(r, COMMONS_GAP_MS));

@@ -1,7 +1,14 @@
 name = "smp-news-scheduler"
 main = "worker.js"
 compatibility_date = "2026-11-01"
-workers_dev = false
+# The workers.dev address serves only POST /report (token required), for the Nightly report workflow.
+workers_dev = true
+preview_urls = false
 
 [triggers]
-crons = ["47 * * * *"]
+# Every hour at :47 for editions; 13:30 UTC (9:30 pm Perth) for the nightly report (REPORT_CRON in worker.js).
+crons = ["47 * * * *", "30 13 * * *"]
+
+# Sends the nightly report to the owner's verified Email Routing destination (secret REPORT_TO).
+[[send_email]]
+name = "EMAIL"

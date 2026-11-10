@@ -96,7 +96,8 @@ const DAILY_PAID_LIMIT_AUD = 3.2;
 const RUN_PAID_LIMIT_AUD = DAILY_PAID_LIMIT_AUD / 8;
 const MAX_OUTPUT_TOKENS = 4096;
 
-const RUN_SECONDS = 600;
+/** With photos (up to 6 minutes) and feeds, an edition stays well inside the workflow's 30-minute limit. */
+const RUN_SECONDS = 480;
 /** A summary normally comes back in 5 to 15 seconds; a call hanging longer is usually an overloaded model, so move on. */
 const CALL_TIMEOUT_MS = 45_000;
 const MAX_STORIES_PER_RUN = 150;
