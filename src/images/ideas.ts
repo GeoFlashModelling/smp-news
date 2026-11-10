@@ -75,6 +75,7 @@ export const TOPICS: { match: RegExp; file: string; caption: string }[] = [
   { match: /\bheatwave\b|\bheat wave\b|\bscorcher\b/i, file: "Cottesloe Beach from the south, March 2022.jpg", caption: "Cottesloe Beach, Perth" },
   { match: /\bdrought\b/i, file: "Drought, Hughenden, Queensland, Australia 2014-08-09 11-19.jpg", caption: "drought near Hughenden, Queensland" },
   { match: /\bclimate\b|\bCOP ?\d+\b|\bemissions\b|\bnet zero\b|\bfossil fuels?\b|\brenewables?\b|\bglobal warming\b/i, file: "Albany Wind Farm, September 2026 10.jpg", caption: "the Albany Wind Farm, Western Australia" },
+  { match: /\bclimate\b|\bCOP ?\d+\b|\bemissions\b|\bnet zero\b|\bfossil fuels?\b|\brenewables?\b|\bglobal warming\b/i, file: "Albany Wind Farm, September 2026 10.jpg", caption: "the Albany Wind Farm, Western Australia" },
   { match: /\bcourt\b|\btrial\b|\bsentenced?\b|\bguilty\b|\bjury\b|\bcharged\b|\bmagistrates?\b|\baccused\b|\babus(e|ed|ing)\b/i, file: "Legal Gavel (27571702173).jpg", caption: "a judge's gavel" },
   { match: /\bpolice\b|\bdetectives?\b|\bstabbed\b|\bstabbing\b|\bmissing\b|\bcrash\b|\bdrink[- ]driv(ing|er)\b/i, file: "NSW Police car 2006 NYE.jpg", caption: "a police car at night" },
   { match: /\bReserve Bank\b|\bRBA\b|\binterest rates?\b|\binflation\b|\brate (cut|rise|hike)s?\b/i, file: "RBA Building August 2025.jpg", caption: "the Reserve Bank of Australia, Sydney" },
