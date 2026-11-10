@@ -3,7 +3,7 @@ import type { Story } from "../lib/stories.js";
 import { ImageCache } from "./cache.js";
 import { imageCandidates, placeCandidates } from "./entities.js";
 import { homeGround, venueMentioned } from "./grounds.js";
-import { isDeathStory, MEDICAL, medicalFile, photoIdeas, topicFiles, TOPICS } from "./ideas.js";
+import { confirmedPerson, deceasedName, isDeathStory, MEDICAL, medicalFile, photoIdeas, topicFiles, TOPICS } from "./ideas.js";
 import { searchPhoto, type SearchBudget } from "./search.js";
 import { findFiles, findPhotos, type Photo } from "./wikimedia.js";
 
@@ -51,7 +51,8 @@ export interface PhotoCounts {
  * 3. broad: a common thing that stands for the topic ("wild cat", "Wi-Fi router"), searched the same way, else a
  *    hand-picked photo for the topic (police, court, rugby…);
  * 4. otherwise the section artwork.
- * Stories about someone's death skip all of these for a medical photo suited to the cause (ideas.ts `MEDICAL`).
+ * Stories about someone's death skip all of these: the person's own Wikipedia photo when it is surely them
+ * (`confirmedPerson`), else a medical photo suited to the cause (ideas.ts `MEDICAL`).
  */
 export async function assignPhotos(shown: Story[], cacheFile: string, now: Date): Promise<{ photos: Map<string, Photo>; counts: PhotoCounts }> {
   // Multi-source stories first, then by rank: they get the AI requests and search budget before single headlines.
@@ -82,6 +83,8 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
     if (venue) venueOf.set(story.id, venue);
   }
   const venues = await findPhotos([...venueOf.values()], "place", cache);
+  const deceasedOf = new Map(stories.filter((s) => death.has(s.id)).map((s) => [s.id, deceasedName(s.headline.title)] as const).filter((e): e is [string, string] => e[1] !== null));
+  const people = await findPhotos([...deceasedOf.values()], "person", cache);
   const library = await findFiles(new Map([...TOPICS, ...MEDICAL].map((t) => [t.file, t.caption])), cache);
 
   const photos = new Map<string, Photo>();
@@ -97,10 +100,12 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
 
   const pick = async (story: Story): Promise<void> => {
     if (death.has(story.id)) {
-      const photo = library.get(medicalFile(story));
+      const person = people.get(deceasedOf.get(story.id) ?? "") ?? null;
+      const own = person?.description && confirmedPerson(story, person.description, now) ? person : null;
+      const photo = own ?? library.get(medicalFile(story));
       if (photo) {
         photos.set(story.id, photo);
-        counts.broad++;
+        counts[own ? "event" : "broad"]++;
       }
       return;
     }

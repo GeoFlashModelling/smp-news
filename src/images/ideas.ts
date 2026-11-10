@@ -134,6 +134,33 @@ export function isDeathStory(story: Story): boolean {
   return DEATH.test(story.headline.title) || titles.filter((t) => DEATH.test(t)).length * 2 > titles.length;
 }
 
+const NAME = String.raw`\p{Lu}[\p{L}'’.-]+(?:\s+(?:de|van|von|da|del|bin|al|le|la)?\s*\p{Lu}[\p{L}'’.-]+){1,3}`;
+const NAME_BEFORE = new RegExp(String.raw`(${NAME})(?:,[^,]{1,80},)?\s+(?:dies|died|has died|passes away|passed away|dead at)\b`, "u");
+const NAME_AFTER = new RegExp(String.raw`\bdeath of\b.*?(${NAME})`, "u");
+
+/** The full name of the person a death headline is about ("Dai Henwood"), or null when it names nobody. */
+export function deceasedName(title: string): string | null {
+  const name = (title.match(NAME_BEFORE) ?? title.match(NAME_AFTER))?.[1] ?? null;
+  // The run of capitals can start with a description ("New Zealand comedian Dai Henwood" → keep "Dai Henwood").
+  return name ? name.split(/\s+/).slice(-3).join(" ").replace(/^(New|South|North|West|East|Zealand|Australian?|American|British) /, "") : null;
+}
+
+const STOP = new Set(["the", "and", "of", "in", "for", "from", "with", "who", "was", "has", "his", "her", "former", "born"]);
+
+/**
+ * Certain enough to show a famous person's own photo on news of their death (the article already has exactly their
+ * full name): any age in the reports fits the birth year Wikipedia gives, and either the ages agree or the
+ * description shares a describing word with the reports ("comedian", "actor").
+ */
+export function confirmedPerson(story: Story, description: string, now: Date): boolean {
+  const text = story.items.slice(0, 5).map((i) => `${i.title} ${i.summary}`).join(" ").toLowerCase();
+  const born = description.match(/(?:\bborn |\()(1[89]\d\d|20[0-2]\d)\b/);
+  const age = text.match(/\b(?:dies at|died at|dead at|aged|age of) (\d{1,3})\b/);
+  if (born && age) return Math.abs(now.getFullYear() - Number(born[1]) - Number(age[1])) <= 1;
+  const words = description.toLowerCase().match(/\p{L}{4,}/gu) ?? [];
+  return words.some((w) => !STOP.has(w) && new RegExp(`\\b${w}`).test(text));
+}
+
 /** The medical photo (file name) for a death story, by the cause its reports give. */
 export function medicalFile(story: Story): string {
   const text = story.items.slice(0, 5).map((i) => `${i.title} ${i.summary}`).join(" ");

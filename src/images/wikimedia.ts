@@ -18,10 +18,12 @@ export interface Photo {
   via: string;
   /** The photo's own page: shows the full licence and author. */
   page: string;
+  /** Wikipedia's short description of the subject ("New Zealand comedian"); kept for "person" lookups. */
+  description?: string;
 }
 
 /** How strictly a looked-up name must match: see lookupBatch. */
-export type LookupMode = "subject" | "named" | "place";
+export type LookupMode = "subject" | "named" | "place" | "person";
 
 const API = "https://en.wikipedia.org/w/api.php";
 const BATCH = 50;
@@ -121,7 +123,8 @@ export function commonsPhoto(subject: string, kind: Photo["kind"], ii: any): Pho
 /**
  * Looks up a batch of names: article (following redirects, skipping disambiguation pages) → free lead image → licence.
  * "subject" names come from headline wording, so one-word names must be described as a named thing; "named" names are
- * exact article titles suggested for the story; "place" names must be described as a place.
+ * exact article titles suggested for the story; "place" names must be described as a place; "person" names (someone
+ * who died) must be a full name whose article has exactly that title, and keep the description for checking.
  */
 async function lookupBatch(names: string[], mode: LookupMode): Promise<Map<string, Photo | null>> {
   const found = new Map<string, Photo | null>(names.map((n) => [n, null]));
@@ -147,9 +150,10 @@ async function lookupBatch(names: string[], mode: LookupMode): Promise<Map<strin
     const desc = description.get(title) ?? "";
     if (mode === "place" ? !PLACE.test(desc) : !properTitle(title) || notToShow(title, desc, new Date().getFullYear())) continue;
     if (mode === "subject" && (!redirectOk(name, title) || (!name.includes(" ") && !NAMED_THING.test(desc)))) continue;
+    if (mode === "person" && (title.replace(/\s*\(.*\)$/, "") !== name || !name.includes(" ") || !desc)) continue;
     const file = fileOf.get(title);
     const photo = commonsPhoto(title, "named", file ? info.get(file.replace(/_/g, " ")) : undefined);
-    if (photo) found.set(name, photo);
+    if (photo) found.set(name, mode === "person" ? { ...photo, description: desc } : photo);
   }
   return found;
 }
