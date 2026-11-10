@@ -40,8 +40,17 @@ export function articleText(html: string): string {
   const page = html.replace(/<(script|style|noscript|svg|nav|aside|footer|header|form|figure)\b[\s\S]*?<\/\1>/gi, " ");
   const candidates = [...page.matchAll(/<(article|main)\b[\s\S]*?<\/\1>/gi)].map((m) => paragraphs(m[0]));
   const best = candidates.reduce<string[]>((a, b) => (b.join("").length > a.join("").length ? b : a), []);
-  const text = (best.length ? best : paragraphs(page)).join("\n");
-  return text.length <= ARTICLE_CHARS ? text : text.slice(0, text.lastIndexOf(" ", ARTICLE_CHARS));
+  const kept: string[] = [];
+  let length = 0;
+  for (const p of best.length ? best : paragraphs(page)) {
+    if (length + p.length > ARTICLE_CHARS) {
+      if (!kept.length) kept.push(p.slice(0, p.lastIndexOf(" ", ARTICLE_CHARS)));
+      break;
+    }
+    kept.push(p);
+    length += p.length + 1;
+  }
+  return kept.join("\n");
 }
 
 /** The article's text, or null when the source doesn't allow it, robots.txt disallows the page, or it can't be read. */

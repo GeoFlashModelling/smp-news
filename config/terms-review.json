@@ -1,5 +1,5 @@
 {
-  "reviewed_at": "2026-11-10T10:40:28.455Z",
+  "reviewed_at": "2026-11-10T11:16:46.906Z",
   "user_agent": "SMPNewsBot/0.1 (+https://thesmpnews.com)",
   "results": [
     {
@@ -80,6 +80,28 @@
         "Bytespider",
         "meta-externalagent"
       ],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "360info",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
+      "content_signal_ai_input": null,
+      "collection_banned": false,
+      "ai_use_banned": false,
+      "notices": []
+    },
+    {
+      "source": "global-voices",
+      "robots_status": 200,
+      "feeds_allowed": true,
+      "blocked_feeds": [],
+      "ai_agents_blocked": [],
       "content_signal_ai_input": null,
       "collection_banned": false,
       "ai_use_banned": false,
