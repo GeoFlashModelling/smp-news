@@ -10,6 +10,29 @@ import { findFiles, findPhotos, type Photo } from "./wikimedia.js";
 const COMMONS_SEARCHES_PER_EDITION = 300;
 const OPENVERSE_SEARCHES_PER_EDITION = 15;
 
+/** Every country's English name, plus short forms common in photo titles. Australia is home, so it never counts. */
+const COUNTRY = (() => {
+  const names = new Intl.DisplayNames(["en"], { type: "region" });
+  const found = new Set(["USA", "UK", "England", "Scotland", "Wales"]);
+  for (const a of "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
+    for (const b of "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
+      const name = names.of(a + b);
+      if (name && name !== a + b && !/[()]/.test(name)) found.add(name);
+    }
+  }
+  found.delete("Australia");
+  return new RegExp(`(?<![\\p{L}])(${[...found].map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?![\\p{L}])`, "gu");
+})();
+
+/**
+ * A found photo whose title names a country the story's reports never mention shows somewhere else: "Parliament of
+ * Victoria" finds the British Columbia Parliament Building in Victoria, Canada.
+ */
+export function shotElsewhere(caption: string, story: Story): boolean {
+  const text = story.items.map((i) => `${i.title} ${i.summary ?? ""}`).join(" ");
+  return [...caption.matchAll(COUNTRY)].some((m) => !text.includes(m[1]!));
+}
+
 export interface PhotoCounts {
   event: number;
   object: number;
@@ -60,10 +83,10 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
   const photos = new Map<string, Photo>();
   const counts: PhotoCounts = { event: 0, object: 0, broad: 0 };
   const budget: SearchBudget = { commons: COMMONS_SEARCHES_PER_EDITION, openverse: OPENVERSE_SEARCHES_PER_EDITION };
-  const firstSearch = async (queries: string[]) => {
+  const firstSearch = async (queries: string[], story: Story) => {
     for (const q of queries) {
       const photo = await searchPhoto(q, cache, budget);
-      if (photo) return photo;
+      if (photo && !shotElsewhere(photo.subject, story)) return photo;
     }
     return null;
   };
@@ -75,8 +98,8 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
     const place = (placesOf.get(story.id) ?? []).map((n) => places.get(n)).find((p) => p) ?? null;
     let photo = (story.section === "sport" ? (venue ?? subject) : (subject ?? venue)) ?? place;
     let tier: keyof PhotoCounts = "event";
-    if (!photo) [photo, tier] = [await firstSearch(idea?.searches ?? []), "object"];
-    if (!photo) [photo, tier] = [(idea?.theme ? await firstSearch([idea.theme]) : null) ?? topicFiles(story).map((f) => library.get(f)).find((p) => p) ?? null, "broad"];
+    if (!photo) [photo, tier] = [await firstSearch(idea?.searches ?? [], story), "object"];
+    if (!photo) [photo, tier] = [(idea?.theme ? await firstSearch([idea.theme], story) : null) ?? topicFiles(story).map((f) => library.get(f)).find((p) => p) ?? null, "broad"];
     if (photo) {
       photos.set(story.id, photo);
       counts[tier]++;
