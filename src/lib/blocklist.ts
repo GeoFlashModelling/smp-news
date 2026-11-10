@@ -17,14 +17,17 @@ export async function loadBlocklist(): Promise<Blocklist> {
 const SHOPPING =
   /\bsave (up to )?((\$|£|€|a\$)\d|\d+%)|\d+% off\b|(\$|£|€)\d[\d,.]* off\b|\b(lowest|best|record[- ]low) price|\bprice (drop|plunge)s?\b|\b(coupon|promo code|discount code|voucher code)s?\b|\bbest [\w\s'-]{0,40}\b(gifts|deals)\b|\b(black friday|cyber monday|prime day|boxing day)\b[^.]*\b(deals?|sales?)\b|\bdeals? of the (day|week)\b|\b(now|is|are) on sale\b/i;
 
-/** Shopping posts (discounts, gift guides, coupon codes) that feeds mix in with news. */
-export function isShopping(title: string): boolean {
-  return SHOPPING.test(title);
+const PUZZLE = /\b(crosswords?|sudoku|wordle)\b/i;
+const SPONSORED = /\/(sponsored|sponsored-content|partner-content|advertorial)\//i;
+
+/** Shopping posts (discounts, gift guides, coupon codes), puzzles and paid content that feeds mix in with news. */
+function isNotNews(item: Item): boolean {
+  return SHOPPING.test(item.title) || PUZZLE.test(item.title) || SPONSORED.test(item.url);
 }
 
-/** Items not matched by the takedown list, and not shopping posts. */
+/** Items not matched by the takedown list, and not shopping posts, puzzles or sponsored content. */
 export function applyBlocklist(items: Item[], list: Blocklist): Item[] {
   const urls = new Set(list.urls.map((u) => canonicalUrl(u) ?? u));
   const phrases = list.phrases.map((p) => p.toLowerCase().trim()).filter(Boolean);
-  return items.filter((i) => !urls.has(i.key) && !phrases.some((p) => i.title.toLowerCase().includes(p)) && !isShopping(i.title));
+  return items.filter((i) => !urls.has(i.key) && !phrases.some((p) => i.title.toLowerCase().includes(p)) && !isNotNews(i));
 }

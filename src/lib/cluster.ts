@@ -32,7 +32,9 @@ const STOPWORDS = new Set(
     "too under until up very was we were what when where which while who whom why will with would you your yours yourself " +
     "says said say new news latest live update updates watch video photos week year years day days today yesterday tomorrow " +
     "first last one two three four five people man woman men women report reports australia australian world amid after over " +
-    "could may might must get gets got make makes made take takes took back still big time times way ways like just"
+    "could may might must get gets got make makes made take takes took back still big time times way ways like just " +
+    // Dates: daily columns ("Market update for Tuesday 10th of November") share them without being the same story.
+    "monday tuesday wednesday thursday friday saturday sunday january february april june july august september october november december"
   ).split(" "),
 );
 
@@ -46,7 +48,7 @@ function stem(word: string): string {
 export function tokenize(text: string): string[] {
   return (text.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").match(/[a-z0-9][a-z0-9'’]*/g) ?? [])
     .map(stem)
-    .filter((w) => w.length >= 3 && !STOPWORDS.has(w) && !/^\d+$/.test(w));
+    .filter((w) => w.length >= 3 && !STOPWORDS.has(w) && !/^\d+(st|nd|rd|th)?$/.test(w));
 }
 
 function termFreq(tokens: string[], weight: number, into: Vec = new Map()): Vec {

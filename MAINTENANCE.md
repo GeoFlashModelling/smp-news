@@ -131,9 +131,9 @@ The edition log prints `No photo: <id> "<headline>" (idea …; places …)` for 
 In the reader's order (`frontPage` in `src/lib/stories.ts`, layout in `renderFront` in `src/site/render.ts`):
 
 1. **Facts strip**: "On this day" (changes at midnight Perth time; an Australian anniversary when Wikipedia has a peaceful one, never a grim one) and "Fun fact" (a Wikipedia "Did you know…" fact, a different one each hourly edition). Both from Wikipedia under CC BY-SA 4.0, credited on the page; `src/lib/facts.ts`. If Wikipedia can't be reached the box is simply left out.
-2. **Top stories (what's hot)**: 9 stories covered by 2+ owner groups, ranked by how many major Australian outlets (`agenda: true`) run them and how high they sit on ABC's Top Stories list (feeds flagged `top: true` must be in homepage order, not newest-first). 2 slots go to Local WA, up to 5 to Local WA + Australia + Politics; one science slot; world stories capped at 3, sport 2, entertainment 1, and at most 1 celebrity/reality-TV gossip story (`GOSSIP` words).
+2. **Top stories (what's hot)**: 9 stories covered by 2+ owner groups, ranked by how many major Australian outlets (`agenda: true`) run them and how high they sit on ABC's Top Stories list (feeds flagged `top: true` must be in homepage order, not newest-first). 2 slots go to Local WA, up to 5 to Local WA + Australia + Politics; one science slot; world stories capped at 3, sport 2, entertainment 1, New Zealand 1, and at most 1 celebrity/reality-TV gossip story (`GOSSIP` words).
 3. **Also in the headlines**: 3 single-outlet stories in the first 6 of a top-stories feed.
-4. **Local WA, Australia, World** blocks.
+4. **Local WA, Australia, New Zealand, World** blocks. A story goes to New Zealand when at least 30% of its reports name a New Zealand place or leader (`NZ_PLACES` in `stories.ts`) and they name New Zealand more often than Australia; New Zealand outlets' feeds are labelled `new-zealand`. NZ sources (Nov 2026): RNZ, 1News, Stuff, Newsroom, Otago Daily Times, NZ Herald (headline only).
 5. **Worth a look**: 6 less prominent stories taken in turn from Science, Feel Good, Tech, Business and Entertainment, one per outlet, no gossip, opinion, court/crime or violent stories.
 6. The remaining section blocks. Every section list keeps at most 2 gossip stories.
 
@@ -245,9 +245,9 @@ To **add a source**: copy an existing entry, change every field, then run `npm r
 
 `lean` may be `null` for `community` and `official` sources, or for sources that publish only in sport, science-tech, tech, entertainment or feel-good; those sources don't appear in the left / centre / right part of the bar. If a lean isn't from AllSides or Media Bias/Fact Check, say so in `notes` ("Lean is editorial judgement").
 
-Valid sections: `local-wa`, `australia`, `world`, `politics`, `business`, `sport`, `science-tech` (shown as "Science & Space"), `tech` (shown as "AI, Tech & Gadgets"), `entertainment`, `feel-good`. CI rejects any push where `sources.json` is invalid.
+Valid sections: `local-wa`, `australia`, `new-zealand`, `world`, `politics`, `business`, `sport`, `science-tech` (shown as "Science & Space"), `tech` (shown as "AI, Tech & Gadgets"), `entertainment`, `feel-good`. CI rejects any push where `sources.json` is invalid.
 
-Headlines that are plainly shopping posts (for example "save $80", "40% off", "lowest price", "promo code", gift guides, Black Friday deals) are dropped automatically; the patterns are in `src/lib/blocklist.ts`.
+Headlines that are plainly shopping posts (for example "save $80", "40% off", "lowest price", "promo code", gift guides, Black Friday deals), puzzles (crossword, sudoku, Wordle) and sponsored content (links under `/sponsored/`, `/sponsored-content/`, `/partner-content/` or `/advertorial/`) are dropped automatically; the patterns are in `src/lib/blocklist.ts`.
 
 ## Owner's calendar
 

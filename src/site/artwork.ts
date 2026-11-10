@@ -16,6 +16,8 @@ const SYMBOLS: Record<Section, string> = {
   // Sun setting over the Indian Ocean
   "local-wa": `<path d="M240 200a80 80 0 0 1 160 0z" fill="${GOLD}"/>
 ${[0, 1, 2].map((i) => `<path d="M${180 + i * 20} ${222 + i * 22} q35 -14 70 0 t70 0 t70 0 t70 0" stroke="${STEEL}" stroke-width="8" fill="none" stroke-linecap="round"/>`).join("")}`,
+  // Silver fern frond unfurling into a gold koru
+  "new-zealand": fern(),
   // Globe with a gold orbit, as in the S.M.P. browser icon
   world: `<circle cx="320" cy="180" r="100" fill="${STEEL}"/>
 <g stroke="#dcebf3" stroke-opacity=".5" stroke-width="3" fill="none"><ellipse cx="320" cy="180" rx="45" ry="100"/><path d="M220 180h200M235 130h170M235 230h170M320 80v200"/></g>
@@ -57,6 +59,25 @@ ${[0, 1, 2, 3, 4].map((i) => `<rect x="${236 + i * 38}" y="172" width="20" heigh
   }).join("")}</g>
 <circle cx="320" cy="180" r="64" fill="${GOLD}"/>`,
 };
+
+/** A curved stem with leaflets shrinking towards the tip, which curls into a koru. */
+function fern(): string {
+  const [x0, y0, cx, cy, x1, y1] = [232, 312, 262, 150, 404, 92];
+  const at = (t: number) => [(1 - t) ** 2 * x0 + 2 * (1 - t) * t * cx + t * t * x1, (1 - t) ** 2 * y0 + 2 * (1 - t) * t * cy + t * t * y1];
+  const leaves = Array.from({ length: 11 }, (_, i) => {
+    const t = (i + 1) / 13;
+    const [x, y] = at(t);
+    const [dx, dy] = [2 * (1 - t) * (cx - x0) + 2 * t * (x1 - cx), 2 * (1 - t) * (cy - y0) + 2 * t * (y1 - cy)];
+    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+    const len = 78 * (1 - t * 0.7);
+    return [-62, 62].map((side) => {
+      const a = ((angle + side) * Math.PI) / 180;
+      return `<ellipse cx="${(x! + (Math.cos(a) * len) / 2).toFixed(1)}" cy="${(y! + (Math.sin(a) * len) / 2).toFixed(1)}" rx="${(len / 2).toFixed(1)}" ry="${(len / 7 + 3).toFixed(1)}" transform="rotate(${(angle + side).toFixed(1)} ${(x! + (Math.cos(a) * len) / 2).toFixed(1)} ${(y! + (Math.sin(a) * len) / 2).toFixed(1)})" fill="${STEEL}"/>`;
+    }).join("");
+  }).join("");
+  return `${leaves}<path d="M${x0} ${y0} Q${cx} ${cy} ${x1} ${y1}" stroke="${STEEL}" stroke-width="9" fill="none" stroke-linecap="round"/>
+<path d="M${x1} ${y1} c10 -32 54 -38 60 -8 c4 22 -24 32 -36 16 c-7 -10 4 -21 13 -13" stroke="${GOLD}" stroke-width="9" fill="none" stroke-linecap="round"/>`;
+}
 
 function star(cx: number, cy: number, r: number, fill: string): string {
   const pts = Array.from({ length: 14 }, (_, i) => {

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "checked": "2026-11-07",
+  "checked": "2026-11-10",
   "sources": [
     {
       "id": "abc",
@@ -847,7 +847,7 @@
       "content_type": "news",
       "owner_group": "RNZ",
       "paywall": "free",
-      "region_of_rating": "AU",
+      "region_of_rating": "US",
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
@@ -855,12 +855,33 @@
         {
           "url": "https://www.rnz.co.nz/rss/national.xml",
           "sections": [
-            "world"
+            "new-zealand"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://www.rnz.co.nz/rss/political.xml",
+          "sections": [
+            "new-zealand"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://www.rnz.co.nz/rss/business.xml",
+          "sections": [
+            "new-zealand"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://www.rnz.co.nz/rss/te-manu-korihi.xml",
+          "sections": [
+            "new-zealand"
           ],
           "via": "direct"
         }
       ],
-      "notes": "New Zealand public broadcaster. Lean indicative (no formal rating)."
+      "notes": "New Zealand public broadcaster. MBFC: Least Biased, high factual reporting."
     },
     {
       "id": "nz-herald",
@@ -870,43 +891,112 @@
       "content_type": "news",
       "owner_group": "NZME",
       "paywall": "partial",
-      "region_of_rating": "AU",
+      "region_of_rating": "US",
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": false,
       "feeds": [
         {
-          "url": "https://www.nzherald.co.nz/arc/outboundfeeds/rss/curated/78/?outputType=xml",
+          "url": "https://www.nzherald.co.nz/arc/outboundfeeds/rss/section/nz/?outputType=xml",
           "sections": [
-            "world"
+            "new-zealand"
           ],
           "via": "direct"
         }
       ],
-      "notes": "Lean indicative (no formal rating)."
+      "notes": "MBFC: Least Biased (very slightly right), high factual reporting."
     },
     {
       "id": "stuff-nz",
       "name": "Stuff",
       "homepage": "https://www.stuff.co.nz",
-      "lean": "centre",
+      "lean": "centre-left",
       "content_type": "news",
       "owner_group": "Stuff",
       "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.stuff.co.nz/rss/national",
+          "sections": [
+            "new-zealand"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "MBFC: Left-Center, high factual reporting."
+    },
+    {
+      "id": "1news-nz",
+      "name": "1News",
+      "homepage": "https://www.1news.co.nz",
+      "lean": "centre-left",
+      "content_type": "news",
+      "owner_group": "TVNZ",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://www.1news.co.nz/arc/outboundfeeds/rss/category/new-zealand/?outputType=xml",
+          "sections": [
+            "new-zealand"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "TVNZ's news service. MBFC: Left-Center, high factual reporting."
+    },
+    {
+      "id": "newsroom-nz",
+      "name": "Newsroom",
+      "homepage": "https://newsroom.co.nz",
+      "lean": "centre-right",
+      "content_type": "news",
+      "owner_group": "Newsroom",
+      "paywall": "free",
+      "region_of_rating": "US",
+      "enabled": true,
+      "full_text_allowed": false,
+      "ai_input_allowed": true,
+      "feeds": [
+        {
+          "url": "https://newsroom.co.nz/feed/",
+          "sections": [
+            "new-zealand"
+          ],
+          "via": "direct"
+        }
+      ],
+      "notes": "MBFC: Right-Center, high factual reporting."
+    },
+    {
+      "id": "odt",
+      "name": "Otago Daily Times",
+      "homepage": "https://www.odt.co.nz",
+      "lean": "centre",
+      "content_type": "news",
+      "owner_group": "Allied Press",
+      "paywall": "partial",
       "region_of_rating": "AU",
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
       "feeds": [
         {
-          "url": "https://www.stuff.co.nz/rss",
+          "url": "https://www.odt.co.nz/sitemaps/odt/rss",
           "sections": [
-            "world"
+            "new-zealand"
           ],
           "via": "direct"
         }
       ],
-      "notes": "Lean indicative (no formal rating)."
+      "notes": "Dunedin daily, national and South Island news. Lean is editorial judgement (not rated by AllSides/MBFC)."
     },
     {
       "id": "cna",

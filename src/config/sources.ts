@@ -16,6 +16,7 @@ export const FEED_VIA = ["direct"] as const;
 export const SECTIONS = [
   "local-wa",
   "australia",
+  "new-zealand",
   "world",
   "politics",
   "business",

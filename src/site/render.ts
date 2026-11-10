@@ -136,7 +136,7 @@ function factsStrip(facts: Facts, quiz: Quiz | null): string {
 }
 
 /** Sections shown before "Worth a look": the day's news in the reader's order (local, national, world). */
-const NEWS_FIRST: readonly Section[] = ["local-wa", "australia", "world"];
+const NEWS_FIRST: readonly Section[] = ["local-wa", "australia", "new-zealand", "world"];
 
 export function renderFront(front: FrontPage, updated: Date, facts: Facts, weather: Forecast[] | null, quiz: Quiz | null): string {
   const root = "";
@@ -294,7 +294,7 @@ export function renderAbout(sources: Source[], updated: Date): string {
 <h2>The front page</h2>
 <ul>
 <li><strong>Top stories:</strong> the events leading on major Australian news sites right now and covered by the most independent outlets, with fresher news ranked higher. Two places go to local stories. The last top story, marked "And finally", is chosen to end on a lighter note.</li>
-<li><strong>Sections:</strong> local news first (Western Australia for now), then Australia and the world, then politics, business, science, tech, sport, entertainment and good news. Each shows stories with our written summary, then more headlines.</li>
+<li><strong>Sections:</strong> local news first (Western Australia for now), then Australia, New Zealand and the world, then politics, business, science, tech, sport, entertainment and good news. Each shows stories with our written summary, then more headlines.</li>
 <li><strong>Weather:</strong> seven-day forecasts for every capital city from <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> (CC BY 4.0). The front page shows your capital, guessed from your device's time zone; choose another with "Change". For official warnings, see the <a href="https://www.bom.gov.au/australia/warnings/" rel="noopener">Bureau of Meteorology</a>.</li>
 <li><strong>On this day and Did you know?:</strong> from Wikipedia's selected anniversaries and "Did you know" facts (CC BY-SA 4.0).</li>
 <li><strong>Daily quiz:</strong> ten general-knowledge questions a day from the <a href="https://opentdb.com/" rel="noopener">Open Trivia Database</a> (CC BY-SA 4.0).</li>
