@@ -3,7 +3,7 @@ import type { Story } from "../lib/stories.js";
 import { ImageCache } from "./cache.js";
 import { imageCandidates, placeCandidates } from "./entities.js";
 import { homeGround, venueMentioned } from "./grounds.js";
-import { photoIdeas, topicFiles, TOPICS } from "./ideas.js";
+import { isDeathStory, MEDICAL, medicalFile, photoIdeas, topicFiles, TOPICS } from "./ideas.js";
 import { searchPhoto, type SearchBudget } from "./search.js";
 import { findFiles, findPhotos, type Photo } from "./wikimedia.js";
 
@@ -51,17 +51,20 @@ export interface PhotoCounts {
  * 3. broad: a common thing that stands for the topic ("wild cat", "Wi-Fi router"), searched the same way, else a
  *    hand-picked photo for the topic (police, court, rugby…);
  * 4. otherwise the section artwork.
+ * Stories about someone's death skip all of these for a medical photo suited to the cause (ideas.ts `MEDICAL`).
  */
 export async function assignPhotos(shown: Story[], cacheFile: string, now: Date): Promise<{ photos: Map<string, Photo>; counts: PhotoCounts }> {
   // Multi-source stories first, then by rank: they get the AI requests and search budget before single headlines.
   const stories = [...shown.filter((s) => s.independent >= 2), ...shown.filter((s) => s.independent < 2)];
   const cache = await ImageCache.open(cacheFile, now);
   const legal = new Set(stories.filter((s) => isLegalRisk(s.items)).map((s) => s.id));
-  const ideas = await photoIdeas(stories, legal, cache);
+  const death = new Set(stories.filter(isDeathStory).map((s) => s.id));
+  const ideas = await photoIdeas(stories.filter((s) => !death.has(s.id)), legal, cache);
 
   const subjectsOf = new Map<string, string[]>();
   const placesOf = new Map<string, string[]>();
   for (const story of stories) {
+    if (death.has(story.id)) continue;
     if (!legal.has(story.id)) subjectsOf.set(story.id, imageCandidates(story.items, story.independent >= 2 ? 3 : 2, story.section !== "sport", story.headline.title));
     placesOf.set(story.id, placeCandidates(story.items, story.headline.title));
   }
@@ -70,6 +73,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
   const places = await findPhotos([...placesOf.values()].flat(), "place", cache);
   const venueOf = new Map<string, string>();
   for (const story of stories) {
+    if (death.has(story.id)) continue;
     const suggested = ideas.get(story.id)?.venue || null;
     const stated = suggested && venueMentioned(suggested, story) ? suggested : null;
     // A venue the reports name beats a club's home ground, which beats the model's guess. Outside sport a guessed
@@ -78,7 +82,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
     if (venue) venueOf.set(story.id, venue);
   }
   const venues = await findPhotos([...venueOf.values()], "place", cache);
-  const library = await findFiles(new Map(TOPICS.map((t) => [t.file, t.caption])), cache);
+  const library = await findFiles(new Map([...TOPICS, ...MEDICAL].map((t) => [t.file, t.caption])), cache);
 
   const photos = new Map<string, Photo>();
   const counts: PhotoCounts = { event: 0, object: 0, broad: 0 };
@@ -92,6 +96,14 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
   };
 
   const pick = async (story: Story): Promise<void> => {
+    if (death.has(story.id)) {
+      const photo = library.get(medicalFile(story));
+      if (photo) {
+        photos.set(story.id, photo);
+        counts.broad++;
+      }
+      return;
+    }
     const idea = ideas.get(story.id);
     const venue = venues.get(venueOf.get(story.id) ?? "") ?? null;
     const subject = (idea?.subject && !legal.has(story.id) ? named.get(idea.subject) : null) ?? (subjectsOf.get(story.id) ?? []).map((n) => subjects.get(n)).find((p) => p);

@@ -117,6 +117,29 @@ export const TOPICS: { match: RegExp; file: string; caption: string }[] = [
   { match: /\bretail(ers?)?\b|\bdepartment stores?\b|\bshoppers?\b|\bshopping\b|\bBlack Friday\b|\bCyber Monday\b|\bBoxing Day sales\b/i, file: "The Downs Shopping Centre, February 2026.jpg", caption: "a shopping centre" },
 ];
 
+/** Someone's death (owner, 10 Nov 2026): a searched photo of a person may be someone else, so a medical photo is shown instead. */
+const DEATH = /\b(dies|died|has died|death of|dead at \d+|passes away|passed away|obituary|tributes? (flow|paid|pour)|mourn(s|ed|ing)?)\b/i;
+
+/** Medical photos for death stories, by cause; the last one is the default. Checked by eye: no people. */
+export const MEDICAL: { match: RegExp; file: string; caption: string }[] = [
+  { match: /\binjur(y|ies|ed)\b|\bfall\b|\bfell\b|\bcrash(ed)?\b|\baccident\b|\bcollision\b|\bdrown(s|ed|ing)?\b|\bstruck\b/i, file: "2017 Mercedes-Benz Sprinter (W 906) 313 CDI MWB van, St John Ambulance (2017-12-09).jpg", caption: "a St John ambulance in Perth" },
+  { match: /\bcancer\b|\btumou?r\b|\bleuka?emia\b|\blymphoma\b|\bmelanoma\b/i, file: "Linear Accelerator - Elekta Compact model.jpg", caption: "a radiotherapy machine" },
+  { match: /\bheart\b|\bcardiac\b|\bstroke\b/i, file: "Vital signs monitor display.jpg", caption: "a hospital vital signs monitor" },
+  { match: /./, file: "Stethoscope-2.jpg", caption: "a stethoscope" },
+];
+
+/** Whether the story is about someone's death: its headline, or most of its reports' titles, say so. */
+export function isDeathStory(story: Story): boolean {
+  const titles = story.items.slice(0, 5).map((i) => i.title);
+  return DEATH.test(story.headline.title) || titles.filter((t) => DEATH.test(t)).length * 2 > titles.length;
+}
+
+/** The medical photo (file name) for a death story, by the cause its reports give. */
+export function medicalFile(story: Story): string {
+  const text = story.items.slice(0, 5).map((i) => `${i.title} ${i.summary}`).join(" ");
+  return MEDICAL.find((m) => m.match.test(text))!.file;
+}
+
 /** Library photos (file names) that suit a story, best match first, from its report titles. */
 export function topicFiles(story: Story): string[] {
   const text = story.items.slice(0, 5).map((i) => i.title).join(" ");
