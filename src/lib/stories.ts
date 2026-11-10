@@ -33,7 +33,7 @@ export interface Story {
   writeup?: StoryWriteup;
 }
 
-const SECTION_PRIORITY: readonly Section[] = ["local-wa", "australia", "politics", "world", "business", "tech", "science-tech", "sport", "entertainment", "feel-good"];
+const SECTION_PRIORITY: readonly Section[] = ["local-wa", "australia", "new-zealand", "politics", "world", "business", "tech", "science-tech", "sport", "entertainment", "feel-good"];
 /**
  * A story's weight halves every 8 hours from its first report. Measured from the latest report instead, big stories
  * that some outlet keeps re-posting stayed on top for two days.
@@ -73,6 +73,9 @@ const WA_PLACES =
   /\b(WA|W\.A\.|Western Australian?|Perth|Fremantle|Mandurah|Bunbury|Joondalup|Rockingham|Kalgoorlie|Geraldton|Broome|Karratha|Port Hedland|Pilbara|Kimberley|Goldfields|Esperance|Busselton|Margaret River|Armadale|Cockburn|Wanneroo)\b/;
 const AU_PLACES =
   /\b(Australia|Australians?|Aussies?|Sydney|Melbourne|Brisbane|Adelaide|Hobart|Darwin|Canberra|Gold Coast|NSW|Victorian?|Queensland(ers)?|Tasmanian?|Albanese|Parliament House)\b/;
+/** Unambiguous New Zealand places and names; Canterbury, Nelson and Hastings are left out because Australia and the UK have them too. */
+const NZ_PLACES =
+  /\b(New Zealand(ers?)?|NZ|Aotearoa|Kiwis|Auckland|Wellington|Christchurch|Dunedin|Tauranga|Rotorua|Queenstown|Invercargill|Palmerston North|Whang[aā]rei|New Plymouth|Napier|Gisborne|Waikato|Otago|Northland|Taranaki|Hawke's Bay|Bay of Plenty|Southland|Wairarapa|Coromandel|M[aā]ori|Waitangi|Luxon|Hipkins)\b/;
 
 /** Feeds labelled with many sections (an outlet's "all news" feed) say little about any one item. */
 const MAX_INFORMATIVE_SECTIONS = 2;
@@ -82,6 +85,8 @@ function pickSection(items: Item[]): Section {
   const share = (re: RegExp) => texts.filter((t) => re.test(t)).length / items.length;
   if (share(SPORT_WORDS) >= 0.4) return "sport";
   if (share(WA_PLACES) >= 0.3) return "local-wa";
+  // Trans-Tasman stories go to whichever country the reports name more often.
+  if (share(NZ_PLACES) >= 0.3 && share(NZ_PLACES) > share(AU_PLACES)) return "new-zealand";
 
   const informative = items.filter((i) => i.sections.length <= MAX_INFORMATIVE_SECTIONS);
   const counts = new Map<Section, number>();
@@ -285,7 +290,7 @@ export function shownStories(stories: Story[]): Story[] {
 export function frontPage(stories: Story[], now: Date, writable: (s: Story) => boolean = () => true, size = TOP_STORIES - 1): FrontPage {
   const multi = stories.filter((s) => s.independent >= 2).sort((a, b) => b.lead - a.lead);
   const top: Story[] = [];
-  const caps: Partial<Record<Section, number>> = { "feel-good": 1, entertainment: 1, sport: 2, "science-tech": 2, tech: 2, world: 3 };
+  const caps: Partial<Record<Section, number>> = { "feel-good": 1, entertainment: 1, sport: 2, "science-tech": 2, tech: 2, world: 3, "new-zealand": 1 };
   const fits = (s: Story) => {
     const cap = caps[s.section];
     if (isGossip(s) && top.filter(isGossip).length >= GOSSIP_TOP) return false;
