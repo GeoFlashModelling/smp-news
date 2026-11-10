@@ -12,7 +12,7 @@ import { fetchAllFeeds, type FeedSnapshot } from "./lib/fetch-feeds.js";
 import { normalise } from "./lib/normalise.js";
 import { loadQuiz } from "./lib/quiz.js";
 import { loadWeather } from "./lib/weather.js";
-import { buildStories, frontPage, sectionCards, shownStories } from "./lib/stories.js";
+import { buildStories, frontPage, sectionCards, shownStories, type Story } from "./lib/stories.js";
 import { generateSite } from "./site/generate.js";
 
 /**
@@ -53,7 +53,9 @@ async function main(): Promise<void> {
   }
 
   // After the summaries, so a sport photo can follow the headline readers see (the summary's, when there is one).
-  const { photos, counts } = await assignPhotos(shownStories(stories), resolve(process.env.IMAGE_CACHE ?? ".cache/images.json"), now);
+  const writable = (s: Story) => process.env.SUMMARIES !== "on" || summarisable(s) !== null;
+  const onFront = [...front.top, ...front.alsoLeading, ...front.interesting, ...[...front.bySection.values()].flatMap((list) => sectionCards(list, front.top, writable))];
+  const { photos, counts } = await assignPhotos(shownStories(stories), resolve(process.env.IMAGE_CACHE ?? ".cache/images.json"), now, onFront);
   for (const story of stories) story.photo = photos.get(story.id);
 
   const out = pathToFileURL(`${resolve(process.env.EDITION_OUT ?? "dist")}/`);

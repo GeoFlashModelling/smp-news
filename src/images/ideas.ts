@@ -93,8 +93,8 @@ export const TOPICS: { match: RegExp; file: string; caption: string }[] = [
   { match: /\belections?\b|\bvoters?\b|\bpolling\b|\bballots?\b|\bby-election\b/i, file: "Democracy Sausage.jpg", caption: "a democracy sausage at a polling place" },
   { match: /\bFederal Parliament\b|\bAlbanese\b|\bCanberra\b|\bSenate\b|\bfederal budget\b/i, file: "Parliament House at dusk, Canberra ACT.jpg", caption: "Parliament House, Canberra" },
   // Alternatives, so several political stories on one page don't share a photo.
-  { match: /\bSenate\b|\bsenators?\b/i, file: "Australian Senate - Parliament of Australia.jpg", caption: "the Senate chamber, Parliament House, Canberra" },
-  { match: /\bFederal Parliament\b|\bAlbanese\b|\bCanberra\b|\bfederal budget\b|\bQuestion Time\b|\bMPs?\b/i, file: "Australian House of Representatives - Parliament of Australia.jpg", caption: "the House of Representatives chamber, Canberra" },
+  { match: /\bFederal Parliament\b|\bAlbanese\b|\bCanberra\b|\bSenate\b|\bfederal budget\b/i, file: "Australian Senate - Parliament of Australia.jpg", caption: "the Senate chamber, Parliament House, Canberra" },
+  { match: /\bFederal Parliament\b|\bAlbanese\b|\bCanberra\b|\bfederal budget\b/i, file: "Australian House of Representatives - Parliament of Australia.jpg", caption: "the House of Representatives chamber, Canberra" },
   { match: /\bFederal Parliament\b|\bAlbanese\b|\bCanberra\b|\bSenate\b|\bfederal budget\b/i, file: "Canberra (AU), Parliament House -- 2019 -- 1745.jpg", caption: "Parliament House, Canberra" },
   { match: /\bFederal Parliament\b|\bAlbanese\b|\bCanberra\b|\bSenate\b|\bfederal budget\b/i, file: "Canberra (AU), Parliament House -- 2019 -- 1754.jpg", caption: "the flag above Parliament House, Canberra" },
   { match: /\bNASA\b|\bastronauts?\b|\brockets?\b|\bspace(craft|X)?\b/i, file: "SES-10 Launch - world's first reflight of an orbital class rocket (33361035200).jpg", caption: "a rocket launch" },

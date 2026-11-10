@@ -54,9 +54,12 @@ export interface PhotoCounts {
  * Stories about someone's death skip all of these: the person's own Wikipedia photo when it is surely them
  * (`confirmedPerson`), else a medical photo suited to the cause (ideas.ts `MEDICAL`).
  */
-export async function assignPhotos(shown: Story[], cacheFile: string, now: Date): Promise<{ photos: Map<string, Photo>; counts: PhotoCounts }> {
-  // Multi-source stories first, then by rank: they get the AI requests and search budget before single headlines.
-  const stories = [...shown.filter((s) => s.independent >= 2), ...shown.filter((s) => s.independent < 2)];
+export async function assignPhotos(shown: Story[], cacheFile: string, now: Date, onFront: Story[] = []): Promise<{ photos: Map<string, Photo>; counts: PhotoCounts }> {
+  // The front page's stories first, in reading order, so none of them repeats another's photo; then multi-source
+  // stories, then by rank: they get the AI requests and search budget before single headlines.
+  const front = new Set(onFront.map((s) => s.id));
+  const rest = shown.filter((s) => !front.has(s.id));
+  const stories = [...new Set([...onFront.filter((s) => shown.includes(s)), ...rest.filter((s) => s.independent >= 2), ...rest.filter((s) => s.independent < 2)])];
   const cache = await ImageCache.open(cacheFile, now);
   const legal = new Set(stories.filter((s) => isLegalRisk(s.items)).map((s) => s.id));
   const death = new Set(stories.filter(isDeathStory).map((s) => s.id));
@@ -90,7 +93,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
   const photos = new Map<string, Photo>();
   const counts: PhotoCounts = { event: 0, object: 0, broad: 0 };
   const budget: SearchBudget = { commons: COMMONS_SEARCHES_PER_EDITION, openverse: OPENVERSE_SEARCHES_PER_EDITION };
-  // Stories are picked in order of importance, so the more prominent story keeps a photo two stories could share.
+  // Stories are picked in order of prominence, so the more prominent story keeps a photo two stories could share.
   const used = new Set<string>();
   // The same file comes back with different tracking parameters ("?utm_source=en.wikipedia.org" or commons).
   const fileOf = (p: Photo) => p.src.split("?")[0]!;
