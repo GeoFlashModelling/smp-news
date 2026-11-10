@@ -19,6 +19,8 @@ export interface GeminiOptions {
   maxOutputTokens?: number;
   /** Give up after this long; callers with another model to try use less than the 2-minute default. */
   timeoutMs?: number;
+  /** How much the model thinks before answering; "low" unless a retry needs less. */
+  thinking?: "minimal" | "low";
 }
 
 /**
@@ -42,7 +44,7 @@ export async function geminiJson(model: string, system: string, user: string, sc
           temperature: 0,
           responseMimeType: "application/json",
           responseJsonSchema: schema,
-          thinkingConfig: { thinkingLevel: "low" },
+          thinkingConfig: { thinkingLevel: options.thinking ?? "low" },
           ...(options.maxOutputTokens ? { maxOutputTokens: options.maxOutputTokens } : {}),
         },
       }),
@@ -58,7 +60,8 @@ export async function geminiJson(model: string, system: string, user: string, sc
   if (busy(res.status)) throw new Error(`Gemini busy or rate-limited (${res.status})`);
   if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const body = (await res.json()) as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
+    candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
+    promptFeedback?: { blockReason?: string };
     usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number };
   };
   const raw = body.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
@@ -70,5 +73,6 @@ export async function geminiJson(model: string, system: string, user: string, sc
   }
   const usage = body.usageMetadata;
   // Thinking is billed as output.
-  return { json, raw, ms: Date.now() - started, promptTokens: usage?.promptTokenCount ?? 0, outputTokens: (usage?.candidatesTokenCount ?? 0) + (usage?.thoughtsTokenCount ?? 0) };
+  const finish = body.promptFeedback?.blockReason ?? body.candidates?.[0]?.finishReason;
+  return { json, raw, ms: Date.now() - started, promptTokens: usage?.promptTokenCount ?? 0, outputTokens: (usage?.candidatesTokenCount ?? 0) + (usage?.thoughtsTokenCount ?? 0), ...(finish ? { finish } : {}) };
 }

@@ -236,7 +236,8 @@ function isScienceSource(source: Source): boolean {
 const HOME_SECTIONS: readonly Section[] = ["australia", "local-wa", "politics"];
 const HOME_SLOTS = 5;
 const WA_SLOTS = 2;
-const TOP_STORIES = 9;
+/** The lead story plus a full 3-by-3 grid on desktop (owner, 10 Nov 2026). */
+const TOP_STORIES = 10;
 
 /** Each section on the front page: written stories, then links to more. */
 export const SECTION_WRITTEN = 6;
@@ -307,6 +308,11 @@ export function frontPage(stories: Story[], now: Date, writable: (s: Story) => b
   top.sort((a, b) => b.lead - a.lead);
   const finale = andFinally(stories, top, now.getTime(), writable);
   if (finale) top.push(finale);
+  else {
+    // No closing story: another top story keeps the grid full.
+    const next = multi.find(fits);
+    if (next) top.push(next);
+  }
   const bySection = new Map<Section, Story[]>(
     SECTIONS.map((sec) => {
       const inSection = stories.filter((s) => s.section === sec);

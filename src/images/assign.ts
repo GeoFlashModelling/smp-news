@@ -90,37 +90,58 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date)
   const photos = new Map<string, Photo>();
   const counts: PhotoCounts = { event: 0, object: 0, broad: 0 };
   const budget: SearchBudget = { commons: COMMONS_SEARCHES_PER_EDITION, openverse: OPENVERSE_SEARCHES_PER_EDITION };
-  const firstSearch = async (queries: string[], story: Story) => {
+  // Stories are picked in order of importance, so the more prominent story keeps a photo two stories could share.
+  const used = new Set<string>();
+  const firstSearch = async (queries: string[], story: Story, fresh: (p: Photo | null | undefined) => Photo | null) => {
     for (const q of queries) {
       const photo = await searchPhoto(q, cache, budget);
-      if (photo && !shotElsewhere(photo.subject, story)) return photo;
+      if (photo && !shotElsewhere(photo.subject, story) && fresh(photo)) return photo;
     }
     return null;
   };
 
   const pick = async (story: Story): Promise<void> => {
+    // The best photo no other story uses yet; failing that, the best one even if shared.
+    let fallback: [Photo, keyof PhotoCounts] | null = null;
+    let tier: keyof PhotoCounts = "event";
+    const fresh = (p: Photo | null | undefined): Photo | null => {
+      if (!p) return null;
+      fallback ??= [p, tier];
+      return used.has(p.src) ? null : p;
+    };
+    const first = (list: (Photo | null | undefined)[]) => list.map(fresh).find((p) => p) ?? null;
+    const choose = (photo: Photo | null) => {
+      const [chosen, chosenTier] = photo ? [photo, tier] : (fallback ?? [null, tier]);
+      if (!chosen) return false;
+      photos.set(story.id, chosen);
+      used.add(chosen.src);
+      counts[chosenTier]++;
+      return true;
+    };
     if (death.has(story.id)) {
       const person = people.get(deceasedOf.get(story.id) ?? "") ?? null;
       const own = person?.description && confirmedPerson(story, person.description, now) ? person : null;
-      const photo = own ?? library.get(medicalFile(story));
-      if (photo) {
-        photos.set(story.id, photo);
-        counts[own ? "event" : "broad"]++;
+      if (own) choose(own);
+      else {
+        tier = "broad";
+        choose(first([library.get(medicalFile(story)), library.get(MEDICAL.at(-1)!.file)]));
       }
       return;
     }
     const idea = ideas.get(story.id);
     const venue = venues.get(venueOf.get(story.id) ?? "") ?? null;
-    const subject = (idea?.subject && !legal.has(story.id) ? named.get(idea.subject) : null) ?? (subjectsOf.get(story.id) ?? []).map((n) => subjects.get(n)).find((p) => p);
-    const place = (placesOf.get(story.id) ?? []).map((n) => places.get(n)).find((p) => p) ?? null;
-    let photo = (story.section === "sport" ? (venue ?? subject) : (subject ?? venue)) ?? place;
-    let tier: keyof PhotoCounts = "event";
-    if (!photo) [photo, tier] = [await firstSearch(idea?.searches ?? [], story), "object"];
-    if (!photo) [photo, tier] = [(idea?.theme ? await firstSearch([idea.theme], story) : null) ?? topicFiles(story).map((f) => library.get(f)).find((p) => p) ?? null, "broad"];
-    if (photo) {
-      photos.set(story.id, photo);
-      counts[tier]++;
-    } else if (story.independent >= 2) {
+    const subjectList = [idea?.subject && !legal.has(story.id) ? named.get(idea.subject) : null, ...(subjectsOf.get(story.id) ?? []).map((n) => subjects.get(n))];
+    const placeList = (placesOf.get(story.id) ?? []).map((n) => places.get(n));
+    let photo = first([...(story.section === "sport" ? [venue, ...subjectList] : [...subjectList, venue]), ...placeList]);
+    if (!photo) {
+      tier = "object";
+      photo = await firstSearch(idea?.searches ?? [], story, fresh);
+    }
+    if (!photo) {
+      tier = "broad";
+      photo = (idea?.theme ? await firstSearch([idea.theme], story, fresh) : null) ?? first(topicFiles(story).map((f) => library.get(f)));
+    }
+    if (!choose(photo) && story.independent >= 2) {
       console.log(`No photo: ${story.id} "${story.headline.title}" (idea ${JSON.stringify(idea ?? null)}; places ${JSON.stringify(placesOf.get(story.id) ?? [])})`);
       // Forget the model's suggestions once, so the next edition asks again (headlines may have changed since).
       const retried = `idea-retried:${story.id}`;

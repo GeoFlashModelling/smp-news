@@ -6,6 +6,8 @@ export interface ModelReply {
   ms: number;
   promptTokens: number;
   outputTokens: number;
+  /** Why the model stopped, when it says ("STOP", "MAX_TOKENS", "SAFETY"…). */
+  finish?: string;
 }
 
 const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://127.0.0.1:11434";

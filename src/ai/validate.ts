@@ -273,7 +273,10 @@ export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: 
     }
   }
 
+  // A sensitive story is told briefly on purpose, so one checked sentence is enough.
+  const minSentences = single || mode === "brief" ? 1 : 2;
+  if (clean.summary.length < minSentences) result.errors.push(`summary has ${clean.summary.length} usable sentences; at least ${minSentences} needed`);
   const total = result.kept + result.dropped;
-  const failed = !headline || result.errors.some((e) => e.startsWith("headline") || e.startsWith("link")) || clean.summary.length < (single ? 1 : 2) || (total > 0 && result.dropped / total > MAX_DROPPED_SHARE);
+  const failed = !headline || result.errors.some((e) => e.startsWith("headline") || e.startsWith("link")) || clean.summary.length < minSentences || (total > 0 && result.dropped / total > MAX_DROPPED_SHARE);
   return { ...result, summary: failed ? null : clean };
 }

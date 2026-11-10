@@ -33,7 +33,9 @@ const UNRATED_GROUPS: readonly CoverageGroup[] = ["unrated", "official"];
 const LIST_GROUPS: readonly CoverageGroup[] = ["left", "centre", "right", "local", "unrated", "official"];
 const SIDE_WORDING = { left: "left-leaning", right: "right-leaning", centre: "centre" } as const;
 
+/** Good-news stories carry no politics, so they skip the lean bar (owner, 10 Nov 2026). */
 function coverageBar(story: Story, large = false): string {
+  if (story.section === "feel-good") return "";
   const rated = BAR_GROUPS.filter((g) => story.coverage[g] > 0);
   const groups = rated.length ? rated : UNRATED_GROUPS.filter((g) => story.coverage[g] > 0);
   if (groups.length === 0) return "";
@@ -43,7 +45,7 @@ function coverageBar(story: Story, large = false): string {
 }
 
 function oneSidedNote(story: Story): string {
-  return story.oneSided ? `<p class="onesided">Only covered by ${SIDE_WORDING[story.oneSided]} sources so far.</p>` : "";
+  return story.oneSided && story.section !== "feel-good" ? `<p class="onesided">Only covered by ${SIDE_WORDING[story.oneSided]} sources so far.</p>` : "";
 }
 
 /** Credit required by the photo's licence: author, licence, and a link to the file page with the full terms. */

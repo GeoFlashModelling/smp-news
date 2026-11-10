@@ -34,12 +34,16 @@ export interface StoryWriteup {
   format?: number;
   /** Full articles (from sources whose terms allow it) the paid model read as well as the descriptions. */
   articles?: number;
+  /** Version of the support checks a failed write-up failed; failures under older checks are tried afresh. */
+  checks?: number;
 }
 
 /** Bump when the court and crime rules tighten, so every careful write-up is rewritten under the new rules. */
 const LEGAL_RULES = 2;
 /** Summaries sized to the material, up to three paragraphs (8 Nov 2026). */
 const FORMAT = 2;
+/** Bump when the support checks are relaxed or fixed, so stories that failed the old ones are tried again (10 Nov 2026: brief stories need one sentence). */
+const CHECKS = 2;
 
 /** A write-up that may still be shown: careful ones must have passed the current court and crime rules, sensitive ones the brief rules. */
 function stillValid(w: StoryWriteup | undefined, mode: LegalMode): w is StoryWriteup {
@@ -146,7 +150,7 @@ export function summarisable(story: Story): SourceBlock[] | null {
 function needsWriting(prev: StoryWriteup | undefined, blocks: SourceBlock[], mode: LegalMode, now: Date): boolean {
   if (!prev) return true;
   const hoursSince = (now.getTime() - Date.parse(prev.written)) / 3_600_000;
-  if (!prev.summary) return (prev.failures ?? 1) < MAX_FAILURES && hoursSince >= REWRITE_GAP_HOURS;
+  if (!prev.summary) return (prev.checks ?? 1) < CHECKS || ((prev.failures ?? 1) < MAX_FAILURES && hoursSince >= REWRITE_GAP_HOURS);
   if ((prev.failures ?? 0) >= MAX_FAILURES) return false;
   // Written from one outlet and now covered by more: rewrite once as a comparison.
   if (prev.owners.length < MIN_SOURCES && blocks.length >= MIN_SOURCES) return true;
@@ -180,33 +184,36 @@ export async function summariseStories(stories: Story[], important: Set<string>,
   /** Models that were busy or rate-limited: skipped for a minute rather than waited for. */
   const cooling = new Map<string, number>();
 
-  const call = async (model: string, paid: boolean, prompt: string): Promise<ModelReply> => {
+  const call = async (model: string, paid: boolean, prompt: string, thinking: "minimal" | "low" = "low"): Promise<ModelReply> => {
     // Book the slot before waiting, so parallel workers don't both take it.
     const gap = paid ? PAID_GAP_MS : MIN_GAP_MS[model.includes("lite") ? "lite" : "flash"]!;
     const key = paid ? `paid:${model}` : model;
     const slot = Math.max(Date.now(), (lastCall.get(key) ?? 0) + gap);
     lastCall.set(key, slot);
     if (slot > Date.now()) await sleep(slot - Date.now());
-    return geminiJson(model, SYSTEM_PROMPT, prompt, undefined, { keyEnv: paid ? "GEMINI_PAID_API_KEY" : "GEMINI_API_KEY", retries: 0, maxOutputTokens: MAX_OUTPUT_TOKENS, timeoutMs: CALL_TIMEOUT_MS });
+    return geminiJson(model, SYSTEM_PROMPT, prompt, undefined, { keyEnv: paid ? "GEMINI_PAID_API_KEY" : "GEMINI_API_KEY", retries: 0, maxOutputTokens: MAX_OUTPUT_TOKENS, timeoutMs: CALL_TIMEOUT_MS, thinking });
   };
 
   /**
    * One model, up to two tries: the second is told which checks the first answer failed. `answered` is false when
    * the model never replied (busy, out of requests, over the spending limit), so the story is retried next hour.
    */
-  const attempt = async (model: string, paid: boolean, blocks: SourceBlock[], headlines: string[], mode: LegalMode): Promise<{ summary: StorySummary | null; answered: boolean }> => {
+  const attempt = async (model: string, paid: boolean, blocks: SourceBlock[], headlines: string[], mode: LegalMode): Promise<{ summary: StorySummary | null; answered: boolean; errors: string[] }> => {
     let prompt = userPrompt(blocks, mode);
     let answered = false;
+    let errors: string[] = [];
+    // A model that thought until it ran out of room gets the retry with minimal thinking.
+    let thinking: "minimal" | "low" = "low";
     for (let n = 0; n < 2; n++) {
       let reply: ModelReply;
       if (paid) {
         // Reserve the worst case before calling, so parallel calls can't overshoot the limits together.
         const worst = costAud(model, Math.ceil(prompt.length / 3) + 1500, MAX_OUTPUT_TOKENS);
-        if (state.spend.aud + worst > DAILY_PAID_LIMIT_AUD || counts.paidAud + worst > RUN_PAID_LIMIT_AUD) return { summary: null, answered };
+        if (state.spend.aud + worst > DAILY_PAID_LIMIT_AUD || counts.paidAud + worst > RUN_PAID_LIMIT_AUD) return { summary: null, answered, errors };
         state.spend.aud += worst;
         counts.paidAud += worst;
         try {
-          reply = await call(model, paid, prompt);
+          reply = await call(model, paid, prompt, thinking);
         } finally {
           state.spend.aud -= worst;
           counts.paidAud -= worst;
@@ -214,13 +221,15 @@ export async function summariseStories(stories: Story[], important: Set<string>,
         const aud = costAud(model, reply.promptTokens, reply.outputTokens);
         state.spend.aud += aud;
         counts.paidAud += aud;
-      } else reply = await call(model, paid, prompt);
+      } else reply = await call(model, paid, prompt, thinking);
       answered = true;
       const result = reply.json === null ? null : validateSummary(reply.json, blocks, headlines, mode);
-      if (result?.summary) return { summary: result.summary, answered };
-      prompt = `${userPrompt(blocks, mode)}\n\nYour previous answer failed these checks; fix them and return the full JSON again:\n- ${(result?.errors ?? ["reply was not valid JSON"]).slice(0, 8).join("\n- ")}`;
+      if (result?.summary) return { summary: result.summary, answered, errors: [] };
+      if (reply.finish === "MAX_TOKENS") thinking = "minimal";
+      errors = result?.errors ?? [`reply was not valid JSON (${reply.finish ?? "no finish reason"})`];
+      prompt = `${userPrompt(blocks, mode)}\n\nYour previous answer failed these checks; fix them and return the full JSON again:\n- ${errors.slice(0, 8).join("\n- ")}`;
     }
-    return { summary: null, answered };
+    return { summary: null, answered, errors };
   };
 
   const writeups = new Map<string, StoryWriteup>();
@@ -267,6 +276,10 @@ export async function summariseStories(stories: Story[], important: Set<string>,
     let paid = false;
     let articles = 0;
     let paidTried = false;
+    const why: string[] = [];
+    const note = (model: string, errors: string[]) => {
+      if (errors.length) why.push(`${model}: ${errors.slice(0, 3).join("; ")}`);
+    };
     // Sources whose terms allow it: the paid model writes from their full articles (read in memory, never stored).
     if (paidReady && state.spend.aud < DAILY_PAID_LIMIT_AUD && blocks.some((b) => b.item.source.full_text_allowed)) {
       const texts = new Map<string, string>();
@@ -281,6 +294,7 @@ export async function summariseStories(stories: Story[], important: Set<string>,
           const r = await attempt(paidModel, true, research, headlines, mode);
           summary = r.summary;
           answered ||= r.answered;
+          note(`${paidModel} (paid, articles)`, r.errors);
         } catch (err) {
           console.log(`Paid summary from articles failed for ${story.id}: ${err instanceof Error ? err.message : err}`);
         }
@@ -293,6 +307,7 @@ export async function summariseStories(stories: Story[], important: Set<string>,
         const r = await attempt(model, false, blocks, headlines, mode);
         summary = r.summary;
         answered ||= r.answered;
+        note(model, r.errors);
       } catch (err) {
         if (err instanceof GeminiDailyQuotaError) state.exhausted[model] = pacific;
         else {
@@ -310,12 +325,14 @@ export async function summariseStories(stories: Story[], important: Set<string>,
         const r = await attempt(paidModel, true, blocks, headlines, mode);
         summary = r.summary;
         answered ||= r.answered;
+        note(`${paidModel} (paid)`, r.errors);
       } catch (err) {
         console.log(`Paid summary failed for ${story.id}: ${err instanceof Error ? err.message : err}`);
       }
       if (summary) [used, paid] = [paidModel, true];
     }
     if (!summary && !answered) return later(story);
+    if (!summary) console.log(`Summary failed checks for ${story.id} "${story.headline.title}" (${mode}): ${why.join(" | ").slice(0, 600)}`);
     const prev = state.writeups[story.id];
     if (!summary && prev?.summary) {
       // A failed rewrite keeps the summary we have.
@@ -331,7 +348,7 @@ export async function summariseStories(stories: Story[], important: Set<string>,
       model: used,
       paid,
       written: now.toISOString(),
-      ...(summary ? {} : { failures: (prev?.failures ?? 0) + 1 }),
+      ...(summary ? {} : { failures: ((prev?.checks ?? 1) < CHECKS ? 0 : (prev?.failures ?? 0)) + 1, checks: CHECKS }),
       ...(mode === "careful" ? { legalRules: LEGAL_RULES } : mode === "brief" ? { brief: true } : {}),
       format: FORMAT,
       ...(articles ? { articles } : {}),
