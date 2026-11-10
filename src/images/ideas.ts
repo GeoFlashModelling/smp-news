@@ -186,9 +186,10 @@ const STAND_INS: { match: RegExp; files: string[] }[] = [
   },
 ];
 
-/** Library photos (file names) showing the same place as a photo (by what it shows), for when that one is taken. */
-export function standIns(subject: string): string[] {
-  return STAND_INS.find((s) => s.match.test(subject))?.files ?? [];
+/** Library photos (file names) showing the same place as a photo (by what it shows or its file), for when that one is taken. */
+export function standIns(subject: string, src: string): string[] {
+  const file = decodeURIComponent(src.split("?")[0]!).replace(/_/g, " ");
+  return STAND_INS.find((s) => s.match.test(subject) || s.files.some((f) => file.endsWith(f)))?.files ?? [];
 }
 
 /** Library photos (file names) that suit a story, best match first, from its report titles. */
