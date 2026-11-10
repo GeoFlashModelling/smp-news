@@ -13,7 +13,7 @@ const MIN_WIDTH = 800;
  * pictures whose titles describe an incident or show people at one are skipped; places, buildings and things remain.
  */
 const EVENT_PHOTO =
-  /\b(protests?|protesters?|demonstrations?|demonstrators?|manifestations?|manifestants?|rally|rallies|riots?|funerals?|vigils?|victims?|killed|dead|deaths?|corpses?|bod(y|ies)|murders?|massacre|shootings?|attacks?|(air)?strikes?|bomb(s|ed|ings?)?|missiles?|shelling|explosions?|destroyed|damaged?|ruins|rubble|debris|collapsed?|war|battle|injured|wounded|blood|arrests?|arrested|mugshot|crash(es|ed)?|wreck(age)?|accidents?|hostages?|executions?|terror(ism|ist)?|aftermath|cremation|storming|stormed|insurrection|mob|marathon|parade|sponsors?|ceremony|celebrations?|vs|versus)\b/i;
+  /\b(conferences?|(leaders'?|G\d+|climate|peace|NATO|APEC|ASEAN|Quad|trade) summits?|COP ?\d+|forums?|protests?|protesters?|demonstrations?|demonstrators?|manifestations?|manifestants?|rally|rallies|riots?|funerals?|vigils?|victims?|killed|dead|deaths?|corpses?|bod(y|ies)|murders?|massacre|shootings?|attacks?|(air)?strikes?|bomb(s|ed|ings?)?|missiles?|shelling|explosions?|destroyed|damaged?|ruins|rubble|debris|collapsed?|war|battle|injured|wounded|blood|arrests?|arrested|mugshot|crash(es|ed)?|wreck(age)?|accidents?|hostages?|executions?|terror(ism|ist)?|aftermath|cremation|storming|stormed|insurrection|mob|marathon|parade|sponsors?|ceremony|celebrations?|vs|versus)\b/i;
 
 /** Searches are for places and things; a picture of a particular person could be taken for someone in the story. */
 const PERSON_PHOTO =
@@ -44,7 +44,7 @@ function relevant(query: string, title: string): boolean {
 }
 
 /** A file or photo title as a caption: "File:Walhalla Victoria 20240722 112153.jpg" → "Walhalla Victoria". */
-export function captionFromTitle(title: string): string {
+export function captionFromTitle(title: string, max = 90): string {
   const text = title
     .replace(/^File:/, "")
     .replace(/\.(jpe?g|png|webp|tiff?|gif)$/i, "")
@@ -57,7 +57,7 @@ export function captionFromTitle(title: string): string {
     .replace(/\s{2,}/g, " ")
     .replace(/^[\s,.\-–]+|[\s,.\-–(]+$/g, "")
     .trim();
-  return text.length > 90 ? `${text.slice(0, 87)}…` : text;
+  return text.length > max ? `${text.slice(0, max - 3)}…` : text;
 }
 
 function usableTitle(query: string, title: string): boolean {
@@ -105,7 +105,7 @@ async function commonsSearch(query: string): Promise<Photo[]> {
   for (const p of pages) {
     if (!usableTitle(query, p.title) || (yearTaken(p.imageinfo?.[0]) ?? OLDEST_YEAR) < OLDEST_YEAR) continue;
     const photo = commonsPhoto(captionFromTitle(p.title), "search", p.imageinfo?.[0]);
-    if (photo) photos.push(photo);
+    if (photo) photos.push({ ...photo, title: captionFromTitle(p.title, 300) });
   }
   return best(photos);
 }
@@ -129,6 +129,7 @@ async function openverseSearch(query: string): Promise<Photo[]> {
     const scale = small ? 640 / r.width : 1;
     photos.push({
       subject: captionFromTitle(r.title),
+      title: captionFromTitle(r.title, 300),
       kind: "search",
       src: small ?? r.url,
       large: small ? r.url : undefined,

@@ -127,16 +127,25 @@ const DEATH = /\b(dies|died|has died|death of|dead at \d+|passes away|passed awa
 
 /** Medical photos for death stories, by cause; the last one is the default. Checked by eye: no people. */
 export const MEDICAL: { match: RegExp; file: string; caption: string }[] = [
-  { match: /\binjur(y|ies|ed)\b|\bfall\b|\bfell\b|\bcrash(ed)?\b|\baccident\b|\bcollision\b|\bdrown(s|ed|ing)?\b|\bstruck\b/i, file: "2017 Mercedes-Benz Sprinter (W 906) 313 CDI MWB van, St John Ambulance (2017-12-09).jpg", caption: "a St John ambulance in Perth" },
+  { match: /\binjur(y|ies|ed)\b|\bfall\b|\bfell\b|\bcrash(ed)?\b|\baccident\b|\bcollision\b|\bdrown(s|ed|ing)?\b|\bstruck\b/i, file: "2017 Mercedes-Benz Sprinter (W 906) 313 CDI MWB van, St John Ambulance (2017-12-09).jpg", caption: "a St John ambulance" },
   { match: /\bcancer\b|\btumou?r\b|\bleuka?emia\b|\blymphoma\b|\bmelanoma\b/i, file: "Linear Accelerator - Elekta Compact model.jpg", caption: "a radiotherapy machine" },
   { match: /\bheart\b|\bcardiac\b|\bstroke\b/i, file: "Vital signs monitor display.jpg", caption: "a hospital vital signs monitor" },
   { match: /./, file: "Stethoscope-2.jpg", caption: "a stethoscope" },
 ];
 
-/** Whether the story is about someone's death: its headline, or most of its reports' titles, say so. */
+/** "Man dead, another arrested", "Arrest after man's death", "One person killed in crash", "Woman found dead". */
+const SOMEONE_DIED =
+  /\b(man|woman|men|women|boy|girl|teen(ager)?s?|person|people|child(ren)?|baby|toddler|driver|rider|motorcyclist|cyclist|pedestrian|worker|swimmer|surfer|hiker|patient|resident|inmate)('s)?\b[^.;:]{0,30}\b(dead|dies|died|killed|death)\b|\bfound dead\b|\bfatal(ly)?\b|\bdeath of (a|an) \w+/i;
+/** Court stories keep their courthouse photo: an ambulance next to a trial would look like the scene. */
+const COURT_CASE = /\b(trial|court|accused|charged|sentenced|jury|guilty|pleads?|inquest|coroner)\b/i;
+
+const diedIn = (title: string) => DEATH.test(title) || SOMEONE_DIED.test(title);
+
+/** Whether the story is about someone's death: its headline, or most of its reports' titles, say so (and it isn't a court case). */
 export function isDeathStory(story: Story): boolean {
   const titles = story.items.slice(0, 5).map((i) => i.title);
-  return DEATH.test(story.headline.title) || titles.filter((t) => DEATH.test(t)).length * 2 > titles.length;
+  if (COURT_CASE.test(story.headline.title) || titles.filter((t) => COURT_CASE.test(t)).length * 2 > titles.length) return false;
+  return diedIn(story.headline.title) || titles.filter(diedIn).length * 2 > titles.length;
 }
 
 const NAME = String.raw`\p{Lu}[\p{L}'’.-]+(?:\s+(?:de|van|von|da|del|bin|al|le|la)?\s*\p{Lu}[\p{L}'’.-]+){1,3}`;

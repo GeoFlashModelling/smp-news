@@ -11,6 +11,8 @@ const COMMONS_SEARCHES_PER_EDITION = 300;
 const OPENVERSE_SEARCHES_PER_EDITION = 15;
 /** Searching stops after this long; stories still without a search answer get one in the next edition. */
 const SEARCH_MINUTES = 6;
+/** A sample of refused photos in the log, to check the place rules aren't refusing good ones. */
+const REFUSALS_LOGGED = 25;
 
 /** Every country's English name, plus short forms common in photo titles. Australia is home, so it never counts. */
 const COUNTRY = (() => {
@@ -54,6 +56,27 @@ function mentions(text: string, country: string): boolean {
 const BUILT =
   /\b(building|house|court(house)?s?|parliament|capitol|hall|offices?|tower|headquarters|street|road|avenue|lane|square|skyline|city|cbd|downtown|town|suburb|station|bridge|harbou?r|port|wharf|beach|stadium|arena|ground|oval|hospital|school|university|college|campus|church|cathedral|museum|library|airport|terminal|mall|shopping cent(re|er)|plaza|palace|embassy|bank|exchange|treasury|ministry|department|hotel|casino|prison|police station|base|barracks)\b/i;
 
+/**
+ * Australian states and territories, by name and main towns. Canberra is left out: federal stories name many states
+ * and Parliament House suits them all.
+ */
+const STATES: RegExp[] = [
+  /\b(Western Australian?|WA|Perth|Fremantle|Mandurah|Bunbury|Kalgoorlie|Geraldton|Albany|Broome|Karratha|Port Hedland|Pilbara|Kimberley|Rottnest)\b/,
+  /\b(South Australian?|SA|Adelaide|Mount Gambier|Whyalla|Port Augusta|Barossa)\b/,
+  /\b(Northern Territory|NT|Darwin|Alice Springs|Katherine|Uluru)\b/,
+  /\b(Queensland(er)?s?|Qld|QLD|Brisbane|Gold Coast|Sunshine Coast|Cairns|Townsville|Toowoomba|Mackay|Rockhampton)\b/,
+  /\b(New South Wales|NSW|Sydney|Newcastle|Wollongong|Bondi|Parramatta|Byron Bay)\b/,
+  /\b(Victorian?s?|Vic|Melbourne|Geelong|Ballarat|Bendigo)\b/,
+  /\b(Tasmanian?s?|Tas|Hobart|Launceston|Beaconsfield)\b/,
+];
+
+/** A photo from one state on a story about others: a Darwin courthouse on a South Australian trial. */
+function otherState(caption: string, text: string): boolean {
+  const shown = STATES.filter((s) => s.test(caption));
+  const named = STATES.filter((s) => s.test(text));
+  return shown.length > 0 && named.length > 0 && !shown.some((s) => named.includes(s));
+}
+
 /** Roughly where a camera position is: the Australian mainland and Tasmania, New Zealand, or anywhere else. */
 function regionOf(lat: number, lon: number): "Australia" | "New Zealand" | "abroad" {
   if (lat >= -44.5 && lat <= -9 && lon >= 112 && lon <= 154.5) return "Australia";
@@ -73,7 +96,8 @@ function aboutAbroad(story: Story, text: string): boolean {
  * 1. where the camera was, when the file records it: abroad is only for stories about abroad; New Zealand only for
  *    stories that mention it, and Australia, for New Zealand stories, only when they mention Australia;
  * 2. the caption: a country (or US state) the story's reports never mention. "Parliament of Victoria" finds the
- *    British Columbia Parliament Building in Victoria, Canada.
+ *    British Columbia Parliament Building in Victoria, Canada. Likewise an Australian state the story doesn't name
+ *    when it names others (`otherState`).
  */
 export function shotElsewhere(photo: Photo, story: Story, place = BUILT.test(photo.subject)): boolean {
   const text = storyText(story);
@@ -84,12 +108,13 @@ export function shotElsewhere(photo: Photo, story: Story, place = BUILT.test(pho
     if (region === "New Zealand" && story.section !== "new-zealand" && !mentions(text, "New Zealand")) return true;
     if (region === "Australia" && story.section === "new-zealand" && !mentions(text, "Australia")) return true;
   }
-  const countries = [...photo.subject.matchAll(COUNTRY)].map((m) => m[1]!);
-  if (US_STATE.test(photo.subject)) countries.push("United States");
+  const caption = photo.title ?? photo.subject;
+  const countries = [...caption.matchAll(COUNTRY)].map((m) => m[1]!);
+  if (US_STATE.test(caption)) countries.push("United States");
   // Captions name cities more often than countries: "Royal Perth Hospital" belongs on a New Zealand story only when it mentions Australia.
-  if (story.section === "new-zealand" && mentions(photo.subject, "Australia")) countries.push("Australia");
-  if (story.section !== "new-zealand" && mentions(photo.subject, "New Zealand")) countries.push("New Zealand");
-  return countries.some((c) => !mentions(text, c));
+  if (story.section === "new-zealand" && mentions(caption, "Australia")) countries.push("Australia");
+  if (story.section !== "new-zealand" && mentions(caption, "New Zealand")) countries.push("New Zealand");
+  return countries.some((c) => !mentions(text, c)) || otherState(caption, text);
 }
 
 export interface PhotoCounts {
@@ -186,7 +211,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     const first = (list: (Photo | null | undefined)[]) => list.map(fresh).find((p) => p) ?? null;
     const refuse = (p: Photo, asPlace?: boolean) => {
       const wrong = shotElsewhere(p, story, asPlace);
-      if (wrong) counts.elsewhere++;
+      if (wrong && counts.elsewhere++ < REFUSALS_LOGGED) console.log(`Photo refused as elsewhere: "${p.subject}" (${p.lat?.toFixed(1) ?? "-"}, ${p.lon?.toFixed(1) ?? "-"}) for ${story.section} story "${story.headline.title}"`);
       return wrong;
     };
     const here = (p: Photo | null | undefined) => (p && !refuse(p) ? p : null);

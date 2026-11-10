@@ -20,6 +20,8 @@ export interface Photo {
   page: string;
   /** Wikipedia's short description of the subject ("New Zealand comedian"); kept for "person" lookups. */
   description?: string;
+  /** A found photo's whole title, when the caption had to be shortened: the place check reads all of it. */
+  title?: string;
   /** Where the camera was, when the file records it: tells a Canberra building from one in Savannah, Georgia. */
   lat?: number;
   lon?: number;
@@ -186,7 +188,11 @@ export async function findFiles(files: Map<string, string>, cache: ImageCache): 
       console.log(`Library photo check failed: ${err instanceof Error ? err.message : err}`);
     }
   }
-  return new Map([...files.keys()].map((f) => [f, cache.get<Photo | null>(key(f)) ?? null]));
+  // Today's caption, so a reworded caption shows at once rather than when the cached answer expires.
+  return new Map([...files.keys()].map((f) => {
+    const photo = cache.get<Photo | null>(key(f)) ?? null;
+    return [f, photo && { ...photo, subject: files.get(f)! }];
+  }));
 }
 
 /**
