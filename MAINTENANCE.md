@@ -115,7 +115,7 @@ Only when every option is taken does it share one. The edition log's `shared N` 
 **Right place (owner, 11 Nov 2026: a US federal building appeared on an Australian story):** `shotElsewhere` in `src/images/assign.ts` refuses a photo of a place when:
 - its camera position (from the file's GPS data on Commons) is abroad and the story isn't about abroad (World section, or names another country, the US or the UK);
 - it was taken in New Zealand and the story doesn't mention New Zealand, or in Australia for a New Zealand story that doesn't mention Australia;
-- its title names a country or US state the story never mentions, or an Australian state the story doesn't name while naming others (a Darwin court on an Adelaide trial). Canberra is exempt.
+- its title names a country, US state or major foreign city (`CITY_COUNTRY`; add cities as they turn up) the story never mentions, or an Australian state the story doesn't name while naming others (a Darwin court on an Adelaide trial). Canberra is exempt.
 
 Things and animals (a koala, rugby goalposts) can come from anywhere; the camera-position test only applies to photos of buildings and places (`BUILT`). The log prints a sample of refusals (`Photo refused as elsewhere: …`) and counts them (`refused as elsewhere N`). Photos of other conferences and summits are refused like other events (`EVENT_PHOTO`).
 

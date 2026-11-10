@@ -52,6 +52,20 @@ function mentions(text: string, country: string): boolean {
   return (ALSO_NAMED[country] ?? new RegExp(`(?<![\\p{L}])${country.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}])`, "u")).test(text);
 }
 
+/** Captions often name only the city: "Nuclear Energy Summit, Brussels Expo". */
+const CITY_COUNTRY: Record<string, string> = {
+  London: "United Kingdom", Manchester: "United Kingdom", Edinburgh: "United Kingdom", Glasgow: "United Kingdom", Bristol: "United Kingdom",
+  Paris: "France", Berlin: "Germany", Munich: "Germany", Brussels: "Belgium", Rome: "Italy", Milan: "Italy", Madrid: "Spain",
+  Barcelona: "Spain", Lisbon: "Portugal", Amsterdam: "Netherlands", Geneva: "Switzerland", Zurich: "Switzerland", Vienna: "Austria",
+  Moscow: "Russia", Kyiv: "Ukraine", Istanbul: "Turkey", Ankara: "Turkey", Antalya: "Turkey", Yerevan: "Armenia", Jerusalem: "Israel",
+  "Tel Aviv": "Israel", Dubai: "United Arab Emirates", Ottawa: "Canada", Toronto: "Canada", Vancouver: "Canada", Montreal: "Canada",
+  "New York": "United States", "Los Angeles": "United States", Chicago: "United States", "San Francisco": "United States",
+  "Washington, D.C.": "United States", Tokyo: "Japan", Osaka: "Japan", Beijing: "China", Shanghai: "China", Seoul: "South Korea",
+  Delhi: "India", Mumbai: "India", Jakarta: "Indonesia", Bali: "Indonesia", Bangkok: "Thailand", Manila: "Philippines",
+  "Kuala Lumpur": "Malaysia", "Port Moresby": "Papua New Guinea", Suva: "Fiji",
+};
+const CITY = new RegExp(`\\b(${Object.keys(CITY_COUNTRY).map((c) => c.replace(/[.]/g, "\\.")).join("|")})(?![\\p{L}])`, "gu");
+
 /** A caption showing a building or a place rather than a thing. */
 const BUILT =
   /\b(building|house|court(house)?s?|parliament|capitol|hall|offices?|tower|headquarters|street|road|avenue|lane|square|skyline|city|cbd|downtown|town|suburb|station|bridge|harbou?r|port|wharf|beach|stadium|arena|ground|oval|hospital|school|university|college|campus|church|cathedral|museum|library|airport|terminal|mall|shopping cent(re|er)|plaza|palace|embassy|bank|exchange|treasury|ministry|department|hotel|casino|prison|police station|base|barracks)\b/i;
@@ -111,7 +125,9 @@ export function shotElsewhere(photo: Photo, story: Story, place = BUILT.test(pho
   // "New South Wales" isn't Wales.
   const caption = (photo.title ?? photo.subject).replace(/New South Wales/gi, "NSW");
   const home = story.section === "new-zealand" ? "New Zealand" : "Australia";
-  const countries = [...caption.matchAll(COUNTRY)].map((m) => m[1]!).filter((c) => c !== home);
+  const cities = [...caption.matchAll(CITY)].map((m) => m[1]!).filter((city) => !mentions(text, city));
+  const countries = [...[...caption.matchAll(COUNTRY)].map((m) => m[1]!), ...cities.map((city) => CITY_COUNTRY[city]!)]
+    .filter((c) => c !== home);
   if (US_STATE.test(caption)) countries.push("United States");
   // Captions name cities more often than countries: "Royal Perth Hospital" belongs on a New Zealand story only when it mentions Australia.
   if (story.section === "new-zealand" && mentions(caption, "Australia")) countries.push("Australia");
