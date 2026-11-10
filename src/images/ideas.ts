@@ -21,6 +21,11 @@ const BATCH = 15;
  */
 const FREE_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
 const REQUESTS_PER_MODEL = 12;
+/**
+ * When the free share runs out (by early morning on busy days), the paid key takes over for a few requests a run:
+ * about A$0.005 each, so at most a couple of cents an hour.
+ */
+const PAID_REQUESTS = 4;
 const REQUEST_GAP_MS = 4_500;
 const MAX_SEARCHES = 3;
 
@@ -69,10 +74,15 @@ export const TOPICS: { match: RegExp; file: string; caption: string }[] = [
   { match: /\bstorms?\b|\bcold front\b|\bthunderstorms?\b|\bwild weather\b/i, file: "Storm clouds rolling over the Australian Capital Territory.jpg", caption: "storm clouds over the ACT" },
   { match: /\bheatwave\b|\bheat wave\b|\bscorcher\b/i, file: "Cottesloe Beach from the south, March 2022.jpg", caption: "Cottesloe Beach, Perth" },
   { match: /\bdrought\b/i, file: "Drought, Hughenden, Queensland, Australia 2014-08-09 11-19.jpg", caption: "drought near Hughenden, Queensland" },
-  { match: /\bcourt\b|\btrial\b|\bsentenced?\b|\bguilty\b|\bjury\b|\bcharged\b|\bmagistrates?\b/i, file: "Legal Gavel (27571702173).jpg", caption: "a judge's gavel" },
-  { match: /\bpolice\b|\bdetectives?\b|\bstabbed\b|\bstabbing\b|\bmissing\b|\bcrash\b/i, file: "NSW Police car 2006 NYE.jpg", caption: "a police car at night" },
+  { match: /\bcourt\b|\btrial\b|\bsentenced?\b|\bguilty\b|\bjury\b|\bcharged\b|\bmagistrates?\b|\baccused\b|\babus(e|ed|ing)\b/i, file: "Legal Gavel (27571702173).jpg", caption: "a judge's gavel" },
+  { match: /\bpolice\b|\bdetectives?\b|\bstabbed\b|\bstabbing\b|\bmissing\b|\bcrash\b|\bdrink[- ]driv(ing|er)\b/i, file: "NSW Police car 2006 NYE.jpg", caption: "a police car at night" },
   { match: /\bReserve Bank\b|\bRBA\b|\binterest rates?\b|\binflation\b|\brate (cut|rise|hike)s?\b/i, file: "RBA Building August 2025.jpg", caption: "the Reserve Bank of Australia, Sydney" },
-  { match: /\bASX\b|\bsharemarket\b|\bshare market\b|\bstocks?\b/i, file: "Australian Securities Exchange entrance.jpg", caption: "the Australian Securities Exchange" },
+  { match: /\bASX\b|\bsharemarket\b|\bshare market\b|\bstocks?\b|\bshares\b|\binvestors\b/i, file: "Australian Securities Exchange entrance.jpg", caption: "the Australian Securities Exchange" },
+  { match: /\boil (price|prices|slips|falls|rises|jumps)\b|\bcrude\b|\bBrent\b|\bOPEC\b|\boil(field)?s?\b.*\bbarrel/i, file: "Pumpjacks Inglewood Oil Field seen from Baldwin Hills Scenic Overlook.jpg", caption: "oil pumpjacks in Los Angeles" },
+  { match: /\bmedicines?\b|\bdrugs? (watchdog|regulator|maker)\b|\bpharmac(y|ies|ists?|eutical)\b|\bTGA\b|\bFDA\b|\bweight-loss (drug|jab)s?\b|\bOzempic\b|\bprescriptions?\b/i, file: "Prescription antibiotic pills used to treat a broad range of bacterial infections - 44.jpg", caption: "prescription pills" },
+  { match: /\bEVs?\b|\belectric (cars?|vehicles?)\b|\bBYD\b|\bTesla\b|\bcarmakers?\b|\bcar makers?\b|\btop speed\b/i, file: "Electric car charging points - geograph.org.uk - 7322507.jpg", caption: "electric car charging points" },
+  { match: /\bWhite House\b|\bTrump\b|\bUS president\b/i, file: "The White House June 2024.jpg", caption: "the White House, Washington" },
+  { match: /\bmidterms?\b|\bCongress\b|\bUS Senate\b|\bRepublicans?\b|\bDemocrats?\b|\bCapitol\b/i, file: "United States Capitol west front edit2 (cropped).jpg", caption: "the United States Capitol, Washington" },
   { match: /\bhousing\b|\brents?\b|\brenters\b|\bhouse prices?\b|\bmortgages?\b|\bhome loans?\b/i, file: "Walking around the suburb of Kelso, Townsville, Australia 05.jpg", caption: "a suburban street in Kelso, Townsville" },
   { match: /\bhospitals?\b|\bnurses?\b|\bdoctors?\b|\bpatients?\b|\bemergency department\b|\bramping\b/i, file: "Royal Perth Hospital, 2023.jpg", caption: "Royal Perth Hospital" },
   { match: /\bschools?\b|\bteachers?\b|\bprincipals?\b/i, file: "Fairfield Public School classrooms.jpg", caption: "school classrooms in Fairfield, NSW" },
@@ -87,7 +97,7 @@ export const TOPICS: { match: RegExp; file: string; caption: string }[] = [
   { match: /\bairlines?\b|\bflights?\b|\bairports?\b|\bQantas\b|\bVirgin Australia\b/i, file: "Perth Airport Qantas terminal, July 2022, 01.jpg", caption: "Perth Airport" },
   { match: /\btrains?\b|\brailway\b|\bmetro\b|\bpublic transport\b/i, file: "Transperth B-series train at Thornlie Station, September 2026 (cropped).jpg", caption: "a Transperth train at Thornlie" },
   { match: /\broad toll\b|\bhighway\b|\bfreeway\b|\btraffic\b|\bcongestion\b/i, file: "Perth skyline and Kwinana Freeway 2009.jpg", caption: "the Kwinana Freeway, Perth" },
-  { match: /\bAFLW?\b|\bBrownlow\b/i, file: "AFL Grand Final 2010 on the Melbourne Cricket Ground.jpg", caption: "an AFL match at the MCG" },
+  { match: /\bAFLW?\b|\bBrownlow\b|\bCarlton\b|\bCollingwood\b|\bEssendon\b|\bHawthorn\b|\bGeelong Cats\b|\bDockers\b|\bWest Coast Eagles\b|\bSt Kilda\b|\bWestern Bulldogs\b|\bMelbourne Demons\b|\bSydney Swans\b|\bBrisbane Lions\b|\bAdelaide Crows\b|\bPort Adelaide\b|\bGWS Giants\b|\bGold Coast Suns\b|\bRichmond Tigers\b|\bNorth Melbourne\b/i, file: "AFL Grand Final 2010 on the Melbourne Cricket Ground.jpg", caption: "an AFL match at the MCG" },
   { match: /\bNRLW?\b|\brugby league\b|\bState of Origin\b/i, file: "2013 Rugby League World Cup, Scotland vs. Italy in Workington.jpg", caption: "a rugby league match" },
   { match: /\brugby\b|\bWallabies\b|\bSpringboks\b|\bAll Blacks\b|\bWallaroos\b/i, file: "Rugby Lineout.jpg", caption: "a rugby union lineout" },
   { match: /\bcricket\b|\bAshes\b|\bTest match\b|\bBig Bash\b/i, file: "Ashes 2010-11 3rd Test at the WACA day2.jpg", caption: "a Test match at the WACA, Perth" },
@@ -104,7 +114,7 @@ export const TOPICS: { match: RegExp; file: string; caption: string }[] = [
   { match: /\bsharks?\b/i, file: "White shark.jpg", caption: "a great white shark" },
   { match: /\bkoalas?\b/i, file: "Koala climbing tree.jpg", caption: "a koala" },
   { match: /\bdogs?\b|\bpupp(y|ies)\b/i, file: "Portrait of a labrador retriever.jpg", caption: "a labrador" },
-  { match: /\bretail(ers?)?\b|\bdepartment stores?\b|\bshoppers?\b|\bshopping\b/i, file: "The Downs Shopping Centre, February 2026.jpg", caption: "a shopping centre" },
+  { match: /\bretail(ers?)?\b|\bdepartment stores?\b|\bshoppers?\b|\bshopping\b|\bBlack Friday\b|\bCyber Monday\b|\bBoxing Day sales\b/i, file: "The Downs Shopping Centre, February 2026.jpg", caption: "a shopping centre" },
 ];
 
 /** Library photos (file names) that suit a story, best match first, from its report titles. */
@@ -127,14 +137,16 @@ export async function photoIdeas(stories: Story[], legal: Set<string>, cache: Im
   // Ideas from before venues were asked for are asked again (new stories first); until then the old idea is used.
   const fresh = stories.filter((s) => !cache.has(key(s.id)));
   const todo = [...fresh, ...stories.filter((s) => cache.has(key(s.id)) && cache.get<PhotoIdea>(key(s.id))?.venue === undefined)];
-  const models = process.env.PHOTO_AI_MODEL ? [process.env.PHOTO_AI_MODEL] : FREE_MODELS;
+  const models = (process.env.PHOTO_AI_MODEL ? [process.env.PHOTO_AI_MODEL] : FREE_MODELS).map((name) => ({ name, paid: false }));
+  if (process.env.GEMINI_PAID_API_KEY) models.push({ name: process.env.SUMMARY_PAID_MODEL || "gemini-3.1-flash-lite", paid: true });
   if (todo.length && process.env.GEMINI_API_KEY && process.env.PHOTO_AI !== "off") {
     let m = 0;
     let used = 0;
     for (let i = 0; i < todo.length && m < models.length; ) {
-      if (used === REQUESTS_PER_MODEL) [m, used] = [m + 1, 0];
-      const model = models[m];
-      if (!model) break;
+      if (used === (models[m]?.paid ? PAID_REQUESTS : REQUESTS_PER_MODEL)) [m, used] = [m + 1, 0];
+      const current = models[m];
+      if (!current) break;
+      const model = current.name;
       if (i) await sleep(REQUEST_GAP_MS);
       used++;
       const batch = todo.slice(i, i + BATCH);
@@ -148,7 +160,8 @@ export async function photoIdeas(stories: Story[], legal: Set<string>, cache: Im
         }),
       );
       try {
-        const reply = await geminiJson(model, SYSTEM, lines.join("\n"), SCHEMA);
+        const reply = await geminiJson(model, SYSTEM, lines.join("\n"), SCHEMA, current.paid ? { keyEnv: "GEMINI_PAID_API_KEY" } : {});
+        if (current.paid) console.log(`Photo ideas for ${batch.length} stories from ${model} on the paid key`);
         const answers = ((reply.json as { stories?: unknown[] } | null)?.stories ?? []) as Record<string, unknown>[];
         for (const a of answers) {
           const story = batch[Number(tidy(a.id, 3)) - 1];
@@ -162,7 +175,7 @@ export async function photoIdeas(stories: Story[], legal: Set<string>, cache: Im
         }
         i += BATCH;
       } catch (err) {
-        console.log(`Photo ideas from ${model} failed (${batch.length} stories; trying the next model): ${err instanceof Error ? err.message : err}`);
+        console.log(`Photo ideas from ${model}${current.paid ? " (paid)" : ""} failed (${batch.length} stories; trying the next model): ${err instanceof Error ? err.message : err}`);
         [m, used] = [m + 1, 0];
       }
     }
