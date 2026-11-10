@@ -207,6 +207,14 @@ export function isGossip(story: Story): boolean {
   return hits / story.items.length >= GOSSIP_SHARE;
 }
 
+/** Product round-ups ("6 Best Touchscreen Gloves (2026)", "The best robot vacuums to buy"): fine in a section list, not as news. */
+const BUYERS_GUIDE =
+  /^\d+ best\b|^the \d+ best\b|^(the )?best [\w\s'’-]{1,50}\b(to buy|you can buy|right now|for (every|most) \w+)\b|\b(buying guide|gift guide|we tested|tested and rated)\b|\(20\d\d\)\s*$/i;
+
+export function isBuyersGuide(story: Story): boolean {
+  return BUYERS_GUIDE.test(story.headline.title);
+}
+
 /** Keeps at most `max` gossip stories in a list, in order. */
 function limitGossip(list: Story[], max: number): Story[] {
   let n = 0;
@@ -295,7 +303,7 @@ export function frontPage(stories: Story[], now: Date, writable: (s: Story) => b
   const fits = (s: Story) => {
     const cap = caps[s.section];
     if (isGossip(s) && top.filter(isGossip).length >= GOSSIP_TOP) return false;
-    return !top.includes(s) && (cap === undefined || top.filter((t) => t.section === s.section).length < cap);
+    return !top.includes(s) && !isBuyersGuide(s) && (cap === undefined || top.filter((t) => t.section === s.section).length < cap);
   };
   for (const s of multi.filter((s) => s.section === "local-wa" && fits(s)).slice(0, WA_SLOTS)) top.push(s);
   for (const s of multi.filter((s) => HOME_SECTIONS.includes(s.section) && fits(s)).slice(0, HOME_SLOTS - top.length)) top.push(s);
@@ -343,6 +351,7 @@ function andFinally(stories: Story[], top: Story[], at: number, writable: (s: St
     at - s.first.getTime() <= FINALE_MAX_AGE_HOURS * 3_600_000 &&
     s.headline.source.content_type !== "opinion" &&
     !isGossip(s) &&
+    !isBuyersGuide(s) &&
     !isLegalRisk(s.items) &&
     !HARD_NEWS.test(s.headline.title) &&
     writable(s);
@@ -364,7 +373,7 @@ const UPLIFTING = /\b(rescued?|saved?|reunit\w*|heart-?warming|kindness|voluntee
 function worthALook(stories: Story[], taken: Set<Story>, at: number): Story[] {
   const pools = INTERESTING_SECTIONS.map((sec) =>
     stories
-      .filter((s) => s.section === sec && !taken.has(s) && !isGossip(s) && s.headline.source.content_type !== "opinion" && !isLegalRisk(s.items) && !HARD_NEWS.test(s.headline.title))
+      .filter((s) => s.section === sec && !taken.has(s) && !isGossip(s) && !isBuyersGuide(s) && s.headline.source.content_type !== "opinion" && !isLegalRisk(s.items) && !HARD_NEWS.test(s.headline.title))
       .filter((s) => at - s.first.getTime() <= INTERESTING_MAX_AGE_HOURS * 3_600_000)
       .sort((a, b) => b.score - a.score),
   );
