@@ -48,6 +48,10 @@ function mentions(text: string, country: string): boolean {
   return (ALSO_NAMED[country] ?? new RegExp(`(?<![\\p{L}])${country.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}])`, "u")).test(text);
 }
 
+/** A caption showing a building or a place rather than a thing. */
+const BUILT =
+  /\b(building|house|court(house)?s?|parliament|capitol|hall|offices?|tower|headquarters|street|road|avenue|lane|square|skyline|city|cbd|downtown|town|suburb|station|bridge|harbou?r|port|wharf|beach|stadium|arena|ground|oval|hospital|school|university|college|campus|church|cathedral|museum|library|airport|terminal|mall|shopping cent(re|er)|plaza|palace|embassy|bank|exchange|treasury|ministry|department|hotel|casino|prison|police station|base|barracks)\b/i;
+
 /** Roughly where a camera position is: the Australian mainland and Tasmania, New Zealand, or anywhere else. */
 function regionOf(lat: number, lon: number): "Australia" | "New Zealand" | "abroad" {
   if (lat >= -44.5 && lat <= -9 && lon >= 112 && lon <= 154.5) return "Australia";
@@ -69,9 +73,10 @@ function aboutAbroad(story: Story, text: string): boolean {
  * 2. the caption: a country (or US state) the story's reports never mention. "Parliament of Victoria" finds the
  *    British Columbia Parliament Building in Victoria, Canada.
  */
-export function shotElsewhere(photo: Photo, story: Story): boolean {
+export function shotElsewhere(photo: Photo, story: Story, place = BUILT.test(photo.subject)): boolean {
   const text = storyText(story);
-  if (photo.lat !== undefined && photo.lon !== undefined) {
+  // Things and animals look the same anywhere (rugby goalposts, a koala, oil pumpjacks); only places can be the wrong one.
+  if (place && photo.lat !== undefined && photo.lon !== undefined) {
     const region = regionOf(photo.lat, photo.lon);
     if (region === "abroad" && !aboutAbroad(story, text)) return true;
     if (region === "New Zealand" && story.section !== "new-zealand" && !mentions(text, "New Zealand")) return true;
@@ -91,6 +96,8 @@ export interface PhotoCounts {
   broad: number;
   /** Stories that had to show a photo another story already shows (counted in their tier too). */
   shared: number;
+  /** Photos refused for showing somewhere the story isn't about. */
+  elsewhere: number;
 }
 
 /** A photo's subject as a search for other photos of the same thing: "Parliament House, Canberra" → "Parliament House Canberra". */
@@ -154,7 +161,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
   const library = await findFiles(new Map([...TOPICS, ...MEDICAL].map((t) => [t.file, t.caption])), cache);
 
   const photos = new Map<string, Photo>();
-  const counts: PhotoCounts = { event: 0, object: 0, broad: 0, shared: 0 };
+  const counts: PhotoCounts = { event: 0, object: 0, broad: 0, shared: 0, elsewhere: 0 };
   const budget: SearchBudget = { commons: COMMONS_SEARCHES_PER_EDITION, openverse: OPENVERSE_SEARCHES_PER_EDITION };
   // Stories are picked in order of prominence, so the more prominent story keeps a photo two stories could share.
   const used = new Set<string>();
@@ -175,10 +182,16 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       return null;
     };
     const first = (list: (Photo | null | undefined)[]) => list.map(fresh).find((p) => p) ?? null;
-    const here = (p: Photo | null | undefined) => (p && !shotElsewhere(p, story) ? p : null);
+    const refuse = (p: Photo, asPlace?: boolean) => {
+      const wrong = shotElsewhere(p, story, asPlace);
+      if (wrong) counts.elsewhere++;
+      return wrong;
+    };
+    const here = (p: Photo | null | undefined) => (p && !refuse(p) ? p : null);
+    const place = (p: Photo | null | undefined) => (p && !refuse(p, true) ? p : null);
     const firstSearch = async (queries: string[]) => {
       for (const q of queries) {
-        for (const photo of await searchPhotos(q, cache, budget)) if (!shotElsewhere(photo, story) && fresh(photo)) return photo;
+        for (const photo of await searchPhotos(q, cache, budget)) if (!refuse(photo) && fresh(photo)) return photo;
       }
       return null;
     };
@@ -215,9 +228,9 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       return;
     }
     const idea = ideas.get(story.id);
-    const venue = here(venues.get(venueOf.get(story.id) ?? ""));
+    const venue = place(venues.get(venueOf.get(story.id) ?? ""));
     const subjectList = [idea?.subject && !legal.has(story.id) ? named.get(idea.subject) : null, ...(subjectsOf.get(story.id) ?? []).map((n) => subjects.get(n))];
-    const placeList = (placesOf.get(story.id) ?? []).map((n) => here(places.get(n)));
+    const placeList = (placesOf.get(story.id) ?? []).map((n) => place(places.get(n)));
     let photo = first([...(story.section === "sport" ? [venue, ...subjectList] : [...subjectList, venue]), ...placeList]);
     if (!photo) photo = await alternative(["event"], 2);
     if (!photo) {
