@@ -64,18 +64,22 @@ const PLACE =
   /\b(city|capital|town|suburb|village|locality|state of|territory|province|region|island|county|shire|municipality|district|neighbourhood|borough|precinct|square|street|park|harbour|bay|beach|river|lake|mountain|landmark|building|barracks|bridge|stadium|ground|oval|arena|venue|racecourse|racetrack|circuit|velodrome|showground|museum|cathedral|church|temple|palace|castle|monument|airport|port)\b/i;
 
 /**
- * People a story can mention but should never show. Figures from history, whose Wikipedia description ends in a period
- * over long ago ("Dictator of Germany from 1933 to 1945", "British statesman and writer (1874–1965)"): a story naming
- * them is about someone who invoked them. And the notorious, whose portrait would offend next to any story.
+ * The notorious, whose portrait would offend next to any story: Wikipedia describes them so ("Dictator of Germany from
+ * 1933 to 1945", "Australian mass murderer"), or they are named here because their descriptions don't say it.
  */
-const NOTORIOUS = /\b(dictator|mass murderer|mass shooter|spree killer|serial killer|terrorists?|war criminal|Nazi|al-Qaeda|Islamic State)\b/i;
-const HISTORY_YEARS = 30;
+const NOTORIOUS = /\b(dictator|mass murderer|mass shooter|spree killer|serial killer|terrorists?|war criminal|genocide|Nazi|al-Qaeda|Islamic State)\b/i;
+const NOTORIOUS_PEOPLE = new Set([
+  "Joseph Stalin", "Mao Zedong", "Benito Mussolini", "Heinrich Himmler", "Joseph Goebbels", "Hermann Göring", "Reinhard Heydrich",
+  "Adolf Eichmann", "Josef Mengele", "Idi Amin", "Saddam Hussein", "Slobodan Milošević", "Ratko Mladić", "Radovan Karadžić", "Augusto Pinochet",
+]);
+/** After this long the pain has worn off: a bushranger or Jack the Ripper can be pictured like any historical figure. */
+const WORN_OFF_YEARS = 100;
 
-export function notToShow(description: string, year: number): boolean {
-  if (NOTORIOUS.test(description)) return true;
-  if (/\bsince\b/i.test(description) || !/\d{3,4}\s*(–|-|to)\s*\d{3,4}/.test(description)) return false;
-  const latest = Math.max(...(description.match(/\b\d{3,4}\b/g) ?? []).map(Number));
-  return latest < year - HISTORY_YEARS;
+/** Everyone else may be shown, living or historical. */
+export function notToShow(title: string, description: string, year: number): boolean {
+  if (!NOTORIOUS.test(description) && !NOTORIOUS_PEOPLE.has(title)) return false;
+  const years = (description.match(/\b\d{3,4}\b/g) ?? []).map(Number);
+  return /\bsince\b/i.test(description) || !years.length || Math.max(...years) > year - WORN_OFF_YEARS;
 }
 
 async function api(params: Record<string, string>): Promise<any> {
@@ -141,7 +145,7 @@ async function lookupBatch(names: string[], mode: LookupMode): Promise<Map<strin
   for (const p of files.query?.pages ?? []) info.set(p.title.replace(/_/g, " "), p.imageinfo?.[0]);
   for (const [name, title] of target) {
     const desc = description.get(title) ?? "";
-    if (mode === "place" ? !PLACE.test(desc) : !properTitle(title) || notToShow(desc, new Date().getFullYear())) continue;
+    if (mode === "place" ? !PLACE.test(desc) : !properTitle(title) || notToShow(title, desc, new Date().getFullYear())) continue;
     if (mode === "subject" && (!redirectOk(name, title) || (!name.includes(" ") && !NAMED_THING.test(desc)))) continue;
     const file = fileOf.get(title);
     const photo = commonsPhoto(title, "named", file ? info.get(file.replace(/_/g, " ")) : undefined);
@@ -177,8 +181,8 @@ export async function findFiles(files: Map<string, string>, cache: ImageCache): 
  * edition: the story just falls through to the next kind of picture.
  */
 export async function findPhotos(names: string[], mode: LookupMode, cache: ImageCache): Promise<Map<string, Photo | null>> {
-  // "wiki2": answers from before notToShow are looked up again rather than kept for the rest of the week.
-  const key = (n: string) => `wiki2:${mode}:${n}`;
+  // "wiki3": answers from older notToShow rules are looked up again rather than kept for the rest of the week.
+  const key = (n: string) => `wiki3:${mode}:${n}`;
   const unique = [...new Set(names)];
   const todo = unique.filter((n) => !cache.has(key(n)));
   for (let i = 0; i < todo.length; i += BATCH) {
