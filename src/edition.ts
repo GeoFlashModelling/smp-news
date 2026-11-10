@@ -49,7 +49,7 @@ async function main(): Promise<void> {
     const { writeups, counts: c } = await summariseStories(shownStories(stories), important, resolve(process.env.SUMMARY_STATE ?? ".cache/summaries.json"), now);
     for (const story of stories) story.writeup = writeups.get(story.id);
     const multiWritten = multi.filter((s) => writeups.has(s.id)).length;
-    summaryNote = `summaries for ${multiWritten}/${multi.length} multi-source + ${writeups.size - multiWritten} single-outlet (new ${c.written}: free ${c.free}, paid ${c.paid}; kept ${c.kept}; failed checks ${c.failed}; waiting ${c.waiting}; paid A$${c.paidAud.toFixed(3)} this run, A$${c.dayAud.toFixed(2)} today)`;
+    summaryNote = `summaries for ${multiWritten}/${multi.length} multi-source + ${writeups.size - multiWritten} single-outlet (new ${c.written}: free ${c.free}, paid ${c.paid}, from full articles ${c.fromArticles}; kept ${c.kept}; failed checks ${c.failed}; waiting ${c.waiting}; paid A$${c.paidAud.toFixed(3)} this run, A$${c.dayAud.toFixed(2)} today)`;
   }
 
   // After the summaries, so a sport photo can follow the headline readers see (the summary's, when there is one).

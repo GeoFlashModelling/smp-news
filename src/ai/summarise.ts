@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+import { fetchArticle } from "../lib/article.js";
 import type { Story } from "../lib/stories.js";
 import { geminiJson, GeminiDailyQuotaError } from "./gemini.js";
 import { legalMode, type LegalMode } from "./legal-risk.js";
@@ -31,6 +32,8 @@ export interface StoryWriteup {
   brief?: boolean;
   /** Write-up format; 1 (or missing) is the old 2-to-4-sentence summary. */
   format?: number;
+  /** Full articles (from sources whose terms allow it) the paid model read as well as the descriptions. */
+  articles?: number;
 }
 
 /** Bump when the court and crime rules tighten, so every careful write-up is rewritten under the new rules. */
@@ -93,6 +96,8 @@ const RUN_SECONDS = 600;
 /** A summary normally comes back in 5 to 15 seconds; a call hanging longer is usually an overloaded model, so move on. */
 const CALL_TIMEOUT_MS = 45_000;
 const MAX_STORIES_PER_RUN = 150;
+/** Full articles read per story, at most; only the paid model sees them (the free tier gets descriptions only). */
+const MAX_ARTICLES = 3;
 /** Stories written at the same time; each works through the models on its own, within the shared per-minute gaps. */
 const WORKERS = 4;
 
@@ -102,6 +107,8 @@ export interface SummaryCounts {
   failed: number;
   free: number;
   paid: number;
+  /** New write-ups that used full articles. */
+  fromArticles: number;
   paidAud: number;
   dayAud: number;
   waiting: number;
@@ -166,7 +173,7 @@ export async function summariseStories(stories: Story[], important: Set<string>,
   // `||`, not `??`: the workflow passes an unset repository variable as "", which once silently disabled the paid key.
   const paidModel = process.env.SUMMARY_PAID_MODEL || DEFAULT_PAID_MODEL;
   const paidReady = Boolean(process.env.GEMINI_PAID_API_KEY) && paidModel in PAID_PRICES;
-  const counts: SummaryCounts = { written: 0, kept: 0, failed: 0, free: 0, paid: 0, paidAud: 0, dayAud: 0, waiting: 0 };
+  const counts: SummaryCounts = { written: 0, kept: 0, failed: 0, free: 0, paid: 0, fromArticles: 0, paidAud: 0, dayAud: 0, waiting: 0 };
   const lastCall = new Map<string, number>();
   const deadline = Date.now() + RUN_SECONDS * 1000;
 
@@ -258,7 +265,29 @@ export async function summariseStories(stories: Story[], important: Set<string>,
     let answered = false;
     let used = "";
     let paid = false;
-    for (const model of ladder) {
+    let articles = 0;
+    let paidTried = false;
+    // Sources whose terms allow it: the paid model writes from their full articles (read in memory, never stored).
+    if (paidReady && state.spend.aud < DAILY_PAID_LIMIT_AUD && blocks.some((b) => b.item.source.full_text_allowed)) {
+      const texts = new Map<string, string>();
+      for (const b of blocks.filter((b) => b.item.source.full_text_allowed).slice(0, MAX_ARTICLES)) {
+        const text = await fetchArticle(b.item);
+        if (text && text.length > b.text.length) texts.set(b.id, text);
+      }
+      if (texts.size) {
+        const research = blocks.map((b) => ({ ...b, text: texts.get(b.id) ?? b.text }));
+        paidTried = true;
+        try {
+          const r = await attempt(paidModel, true, research, headlines, mode);
+          summary = r.summary;
+          answered ||= r.answered;
+        } catch (err) {
+          console.log(`Paid summary from articles failed for ${story.id}: ${err instanceof Error ? err.message : err}`);
+        }
+        if (summary) [used, paid, articles] = [paidModel, true, texts.size];
+      }
+    }
+    for (const model of summary ? [] : ladder) {
       if (state.exhausted[model] || (cooling.get(model) ?? 0) > Date.now()) continue;
       try {
         const r = await attempt(model, false, blocks, headlines, mode);
@@ -276,7 +305,7 @@ export async function summariseStories(stories: Story[], important: Set<string>,
         break;
       }
     }
-    if (!summary && paidReady) {
+    if (!summary && paidReady && !paidTried) {
       try {
         const r = await attempt(paidModel, true, blocks, headlines, mode);
         summary = r.summary;
@@ -305,12 +334,14 @@ export async function summariseStories(stories: Story[], important: Set<string>,
       ...(summary ? {} : { failures: (prev?.failures ?? 0) + 1 }),
       ...(mode === "careful" ? { legalRules: LEGAL_RULES } : mode === "brief" ? { brief: true } : {}),
       format: FORMAT,
+      ...(articles ? { articles } : {}),
     };
     state.writeups[story.id] = writeup;
     if (summary) {
       writeups.set(story.id, writeup);
       counts.written++;
       counts[paid ? "paid" : "free"]++;
+      if (articles) counts.fromArticles++;
     } else counts.failed++;
   };
 
