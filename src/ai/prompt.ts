@@ -83,14 +83,15 @@ const BRIEF_RULES = `This story involves a sexual offence, a young person, suici
 - Never mention family or personal relationships between the people involved (daughter, stepfather, partner, teacher and so on), their schools, workplaces, suburbs or streets, or the ages of victims.
 - For suicide or self-harm, never describe the method or the place.`;
 
-/** At most three paragraphs of three sentences; fewer when the reports give less to work from. */
-const SENTENCE_CHARS = 170;
+/** Aim for three paragraphs (six to nine sentences) when the reports hold enough facts; fewer when they don't. */
+const SENTENCE_CHARS = 100;
 const MAX_SENTENCES = 9;
+const MIN_SENTENCES = 4;
 const BRIEF_SENTENCES = 3;
 
 export function summarySentences(blocks: SourceBlock[], mode: LegalMode = "normal"): number {
   const material = blocks.reduce((n, b) => n + b.item.title.length + b.text.length, 0);
-  const n = Math.max(blocks.length === 1 ? 2 : 3, Math.min(MAX_SENTENCES, Math.round(material / SENTENCE_CHARS)));
+  const n = Math.max(blocks.length === 1 ? 2 : MIN_SENTENCES, Math.min(MAX_SENTENCES, Math.round(material / SENTENCE_CHARS)));
   return mode === "brief" ? Math.min(n, BRIEF_SENTENCES) : n;
 }
 
