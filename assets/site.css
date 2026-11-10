@@ -128,8 +128,12 @@ main { padding-top: 20px; padding-bottom: 40px; }
 .dek { margin: -4px 0 10px; font-size: 15px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .meta { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
 
+/* Phones open with the panels, then the lead story; wider screens open with the lead story. */
+.front-top { display: flex; flex-direction: column; gap: 18px; margin-bottom: 8px; }
+@media (min-width: 720px) { .front-top > .lead { order: -1; } }
+
 /* The lead story: one wide picture with the headline over it. Stacked on phones. */
-.lead { padding: 0; margin: 0 0 18px; border-radius: 16px; }
+.lead { padding: 0; border-radius: 16px; }
 .lead .pic { margin: 0; }
 .lead-text { padding: 16px 18px 18px; }
 .lead h2 { font-size: 28px; margin: 6px 0 10px; }
@@ -158,12 +162,14 @@ main { padding-top: 20px; padding-bottom: 40px; }
 .seg-centre { background: var(--centre); }
 .seg-right { background: var(--right); }
 .seg-local { background: var(--local); }
+.seg-unrated { background: repeating-linear-gradient(135deg, var(--centre) 0 3px, var(--line) 3px 6px); }
+.seg-official { background: var(--link); }
 .counts { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
 .cov-lg .counts { font-size: 15px; color: var(--text); }
 .onesided { margin: 6px 0 0; font-size: 13px; font-weight: 600; color: var(--gold); }
 
 /* Front-page panels: On this day, Did you know?, Daily quiz. */
-.facts { display: grid; grid-template-columns: 1fr; gap: 14px; margin: 0 0 8px; }
+.facts { display: grid; grid-template-columns: 1fr; gap: 14px; }
 @media (min-width: 720px) { .facts { grid-template-columns: 1fr 1fr; } }
 @media (min-width: 720px) and (max-width: 999px) { .fact-quiz:nth-child(3) { grid-column: 1 / -1; } }
 @media (min-width: 1000px) { .facts:has(.fact-quiz) { grid-template-columns: 1fr 1fr 1fr; } }
@@ -206,7 +212,7 @@ main { padding-top: 20px; padding-bottom: 40px; }
 .hero-img.portrait { object-fit: contain; }
 .hero figcaption { margin-top: 6px; font-size: 13px; color: var(--muted); }
 .hero figcaption a { color: var(--muted); }
-.story-stats { font-size: 15px; color: var(--muted); }
+.story-stats { margin: 24px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
 .callout { background: var(--note-bg); border: 1px solid var(--note-line); color: #eee3c8; padding: 12px 14px; border-radius: 8px; font-size: 15px; margin: 14px 0; }
 .callout a { color: var(--gold); }
 .group h2 { font-size: 20px; display: flex; align-items: center; gap: 8px; }

@@ -16,7 +16,7 @@ const GROUP_LABELS: Record<CoverageGroup, string> = {
   centre: "Centre",
   right: "Right",
   local: "Local / unrated",
-  unrated: "Not rated",
+  unrated: "Not politically rated",
   official: "Official statement",
 };
 const GROUP_HEADINGS: Record<CoverageGroup, string> = {
@@ -28,16 +28,17 @@ const GROUP_HEADINGS: Record<CoverageGroup, string> = {
   official: "Official statements",
 };
 const BAR_GROUPS: readonly CoverageGroup[] = ["left", "centre", "right", "local"];
+/** Shown in the bar only when no rated outlet has covered the story, so every card still shows where its coverage comes from. */
+const UNRATED_GROUPS: readonly CoverageGroup[] = ["unrated", "official"];
 const LIST_GROUPS: readonly CoverageGroup[] = ["left", "centre", "right", "local", "unrated", "official"];
 const SIDE_WORDING = { left: "left-leaning", right: "right-leaning", centre: "centre" } as const;
 
 function coverageBar(story: Story, large = false): string {
-  const total = BAR_GROUPS.reduce((n, g) => n + story.coverage[g], 0);
-  const counts = BAR_GROUPS.filter((g) => story.coverage[g] > 0).map((g) => `${GROUP_LABELS[g]} ${story.coverage[g]}`);
-  if (total === 0) return "";
-  const segments = BAR_GROUPS.filter((g) => story.coverage[g] > 0)
-    .map((g) => `<span class="seg seg-${g}" style="flex:${story.coverage[g]}"></span>`)
-    .join("");
+  const rated = BAR_GROUPS.filter((g) => story.coverage[g] > 0);
+  const groups = rated.length ? rated : UNRATED_GROUPS.filter((g) => story.coverage[g] > 0);
+  if (groups.length === 0) return "";
+  const counts = groups.map((g) => `${GROUP_LABELS[g]} ${story.coverage[g]}`);
+  const segments = groups.map((g) => `<span class="seg seg-${g}" style="flex:${story.coverage[g]}"></span>`).join("");
   return `<div class="cov${large ? " cov-lg" : ""}"><div class="bar" role="img" aria-label="Coverage: ${esc(counts.join(", "))}">${segments}</div><p class="counts">${esc(counts.join(" · "))}</p></div>`;
 }
 
@@ -157,8 +158,10 @@ export function renderFront(front: FrontPage, updated: Date, facts: Facts, weath
   const rest = NAV_ORDER.filter((sec) => !NEWS_FIRST.includes(sec)).map(sectionBlock).join("");
   const body = `<h1 class="visually-hidden">${SITE_NAME}</h1>
 ${weatherStrip(weather, root)}
-${lead ? storyCard(lead, root, true, lead === front.finale ? "And finally" : undefined, true) : ""}
+<div class="front-top">
 ${factsStrip(facts, quiz)}
+${lead ? storyCard(lead, root, true, lead === front.finale ? "And finally" : undefined, true) : ""}
+</div>
 ${top ? `<section aria-labelledby="h-top"><h2 id="h-top">Top stories</h2><div class="grid">${top}</div></section>` : ""}
 ${front.alsoLeading.length ? `<section class="sec" aria-labelledby="h-leading"><h2 id="h-leading">Also in the headlines</h2><p class="note">Leading on major Australian news sites; only one outlet has reported it so far.</p>${headlineList(front.alsoLeading, front.alsoLeading.length, root)}</section>` : ""}
 ${news}
@@ -208,9 +211,9 @@ function claimText(claim: Claim, writeup: StoryWriteup): string {
 /** Someone has been charged, accused or brought before a court: the presumption-of-innocence note applies. */
 const ACCUSATION = /\b(charged|charges|accused|alleged(ly)?|allegations?|arrested|court|trial|bail|remand(ed)?|custody|pleaded|suspects?)\b/i;
 
-/** Summary sentences in paragraphs of two to three, in the order written (what happened, details, what next). */
+/** Summary sentences in up to three paragraphs of two or three, in the order written (what happened, details, what next). */
 function paragraphs(claims: Claim[]): Claim[][] {
-  const count = Math.ceil(claims.length / 3);
+  const count = Math.min(3, Math.max(1, Math.floor(claims.length / 2)));
   return Array.from({ length: count }, (_, p) => claims.slice(Math.round((p * claims.length) / count), Math.round(((p + 1) * claims.length) / count)));
 }
 
@@ -265,10 +268,10 @@ export function renderStory(story: Story, updated: Date): string {
       : ""
   }</figure>
 ${coverageBar(story, true)}${oneSidedNote(story)}
-<p class="story-stats">${plural(story.items.length, "report")} from ${plural(sources, "outlet")} and ${plural(story.independent, "independent owner")}. First reported ${timeTag(story.first)}; latest ${timeTag(story.last)}.</p>
 ${writeupBlock(story, root)}
 ${story.writeup?.summary ? `<h2>All coverage</h2>` : ""}
 ${groups}
+<p class="story-stats">${plural(story.items.length, "report")} from ${plural(sources, "outlet")} and ${plural(story.independent, "independent owner")}. First reported ${timeTag(story.first)}; latest ${timeTag(story.last)}.</p>
 </article>`;
   return page({ title: `${storyTitle(story)} | ${SITE_NAME}`, description: `How ${plural(sources, "outlet")} covered this story.`, root, active: story.section, body, updated });
 }
