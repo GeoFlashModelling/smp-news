@@ -16,7 +16,7 @@ const GROUP_LABELS: Record<CoverageGroup, string> = {
   centre: "Centre",
   right: "Right",
   local: "Local / unrated",
-  unrated: "Not rated",
+  unrated: "Not politically rated",
   official: "Official statement",
 };
 const GROUP_HEADINGS: Record<CoverageGroup, string> = {
@@ -28,16 +28,17 @@ const GROUP_HEADINGS: Record<CoverageGroup, string> = {
   official: "Official statements",
 };
 const BAR_GROUPS: readonly CoverageGroup[] = ["left", "centre", "right", "local"];
+/** Shown in the bar only when no rated outlet has covered the story, so every card still shows where its coverage comes from. */
+const UNRATED_GROUPS: readonly CoverageGroup[] = ["unrated", "official"];
 const LIST_GROUPS: readonly CoverageGroup[] = ["left", "centre", "right", "local", "unrated", "official"];
 const SIDE_WORDING = { left: "left-leaning", right: "right-leaning", centre: "centre" } as const;
 
 function coverageBar(story: Story, large = false): string {
-  const total = BAR_GROUPS.reduce((n, g) => n + story.coverage[g], 0);
-  const counts = BAR_GROUPS.filter((g) => story.coverage[g] > 0).map((g) => `${GROUP_LABELS[g]} ${story.coverage[g]}`);
-  if (total === 0) return "";
-  const segments = BAR_GROUPS.filter((g) => story.coverage[g] > 0)
-    .map((g) => `<span class="seg seg-${g}" style="flex:${story.coverage[g]}"></span>`)
-    .join("");
+  const rated = BAR_GROUPS.filter((g) => story.coverage[g] > 0);
+  const groups = rated.length ? rated : UNRATED_GROUPS.filter((g) => story.coverage[g] > 0);
+  if (groups.length === 0) return "";
+  const counts = groups.map((g) => `${GROUP_LABELS[g]} ${story.coverage[g]}`);
+  const segments = groups.map((g) => `<span class="seg seg-${g}" style="flex:${story.coverage[g]}"></span>`).join("");
   return `<div class="cov${large ? " cov-lg" : ""}"><div class="bar" role="img" aria-label="Coverage: ${esc(counts.join(", "))}">${segments}</div><p class="counts">${esc(counts.join(" · "))}</p></div>`;
 }
 
@@ -59,12 +60,16 @@ function isTall(story: Story): boolean {
   return Boolean(story.photo && story.photo.width / story.photo.height < TALL_RATIO);
 }
 
+/** Display widths for a picture loaded first: the story page's photo, or the front page's lead story. */
+const STORY_SIZES = "(min-width: 800px) 760px, 100vw";
+const LEAD_SIZES = "(min-width: 1120px) 1088px, 100vw";
+
 /** The story's picture: a free-licensed photo, or the section artwork (decorative, so no alt text). */
-function picture(story: Story, root: string, cls: string, eager = false): string {
-  const loading = eager ? `fetchpriority="high"` : `loading="lazy"`;
+function picture(story: Story, root: string, cls: string, eagerSizes?: string): string {
+  const loading = eagerSizes ? `fetchpriority="high"` : `loading="lazy"`;
   const p = story.photo;
   if (!p) return `<img class="${cls}" src="${root}assets/sections/${story.section}.svg" alt="" width="640" height="360" ${loading} decoding="async">`;
-  const large = eager && p.large ? ` srcset="${esc(p.src)} 500w, ${esc(p.large)} 960w" sizes="(min-width: 800px) 760px, 100vw"` : "";
+  const large = eagerSizes && p.large ? ` srcset="${esc(p.src)} 500w, ${esc(p.large)} 960w" sizes="${eagerSizes}"` : "";
   return `<img class="${cls}${isTall(story) ? " portrait" : ""}" src="${esc(p.src)}"${large} alt="${esc(p.subject)}" width="${p.width}" height="${p.height}" ${loading} decoding="async">`;
 }
 
@@ -73,17 +78,20 @@ function storyTitle(story: Story): string {
   return story.writeup?.summary?.headline ?? story.headline.title;
 }
 
-function storyCard(story: Story, root: string, showSection = true, label?: string): string {
+/** A story card; the front page's lead story is the same card, wide, with its headline over the picture. */
+function storyCard(story: Story, root: string, showSection = true, label?: string, lead = false): string {
   const sources = new Set(story.items.map((i) => i.source.id)).size;
-  const lead = story.writeup?.summary?.summary[0]?.text;
+  const dek = story.writeup?.summary?.summary[0]?.text;
   const kicker = [label, showSection ? SECTION_LABELS[story.section] : undefined].filter(Boolean).join(" · ");
-  return `<article class="card">
-  <div class="pic${isTall(story) ? " tall" : ""}">${isTall(story) ? `<img class="pic-bg" src="${esc(story.photo!.src)}" alt="" aria-hidden="true" loading="lazy" decoding="async">` : ""}${picture(story, root, "pic-img")}${story.photo ? `<p class="pic-credit">${photoCredit(story.photo)}</p>` : ""}</div>
-  ${kicker ? `<p class="kicker">${esc(kicker)}</p>` : ""}
-  <h3><a href="${root}story/${story.id}/">${esc(storyTitle(story))}</a></h3>
-  ${lead ? `<p class="dek">${esc(lead)}</p>` : ""}
+  const heading = lead ? "h2" : "h3";
+  const text = `${kicker ? `<p class="kicker">${esc(kicker)}</p>` : ""}
+  <${heading}><a href="${root}story/${story.id}/">${esc(storyTitle(story))}</a></${heading}>
+  ${dek ? `<p class="dek">${esc(dek)}</p>` : ""}
   ${coverageBar(story)}${oneSidedNote(story)}
-  <p class="meta">${story.independent < 2 ? `Only ${esc(story.headline.source.name)} so far` : `${plural(sources, "source")} · ${plural(story.independent, "independent owner")}`} · updated ${timeTag(story.last)}</p>
+  <p class="meta">${story.independent < 2 ? `Only ${esc(story.headline.source.name)} so far` : `${plural(sources, "source")} · ${plural(story.independent, "independent owner")}`} · updated ${timeTag(story.last)}</p>`;
+  return `<article class="card${lead ? " lead" : ""}">
+  <div class="pic${isTall(story) ? " tall" : ""}">${isTall(story) ? `<img class="pic-bg" src="${esc(story.photo!.src)}" alt="" aria-hidden="true" loading="lazy" decoding="async">` : ""}${picture(story, root, "pic-img", lead ? LEAD_SIZES : undefined)}${story.photo ? `<p class="pic-credit">${photoCredit(story.photo)}</p>` : ""}</div>
+  ${lead ? `<div class="lead-text">${text}</div>` : text}
 </article>`;
 }
 
@@ -132,7 +140,8 @@ const NEWS_FIRST: readonly Section[] = ["local-wa", "australia", "new-zealand", 
 
 export function renderFront(front: FrontPage, updated: Date, facts: Facts, weather: Forecast[] | null, quiz: Quiz | null): string {
   const root = "";
-  const top = front.top.map((s) => storyCard(s, root, true, s === front.finale ? "And finally" : undefined)).join("");
+  const [lead, ...others] = front.top;
+  const top = others.map((s) => storyCard(s, root, true, s === front.finale ? "And finally" : undefined)).join("");
   const sectionBlock = (sec: Section) => {
     const all = front.bySection.get(sec) ?? [];
     const cards = sectionCards(all, front.top, isCard);
@@ -149,8 +158,11 @@ export function renderFront(front: FrontPage, updated: Date, facts: Facts, weath
   const rest = NAV_ORDER.filter((sec) => !NEWS_FIRST.includes(sec)).map(sectionBlock).join("");
   const body = `<h1 class="visually-hidden">${SITE_NAME}</h1>
 ${weatherStrip(weather, root)}
+<div class="front-top">
 ${factsStrip(facts, quiz)}
-<section aria-labelledby="h-top"><h2 id="h-top">Top stories</h2><div class="grid">${top}</div></section>
+${lead ? storyCard(lead, root, true, lead === front.finale ? "And finally" : undefined, true) : ""}
+</div>
+${top ? `<section aria-labelledby="h-top"><h2 id="h-top">Top stories</h2><div class="grid">${top}</div></section>` : ""}
 ${front.alsoLeading.length ? `<section class="sec" aria-labelledby="h-leading"><h2 id="h-leading">Also in the headlines</h2><p class="note">Leading on major Australian news sites; only one outlet has reported it so far.</p>${headlineList(front.alsoLeading, front.alsoLeading.length, root)}</section>` : ""}
 ${news}
 ${front.interesting.length ? `<section class="sec" aria-labelledby="h-worth"><h2 id="h-worth">Worth a look</h2><p class="note">Less prominent stories from science, good news, tech, business and entertainment.</p>${mixedList(front.interesting, root)}</section>` : ""}
@@ -199,9 +211,9 @@ function claimText(claim: Claim, writeup: StoryWriteup): string {
 /** Someone has been charged, accused or brought before a court: the presumption-of-innocence note applies. */
 const ACCUSATION = /\b(charged|charges|accused|alleged(ly)?|allegations?|arrested|court|trial|bail|remand(ed)?|custody|pleaded|suspects?)\b/i;
 
-/** Summary sentences in paragraphs of two to three, in the order written (what happened, details, what next). */
+/** Summary sentences in up to three paragraphs of two or three, in the order written (what happened, details, what next). */
 function paragraphs(claims: Claim[]): Claim[][] {
-  const count = Math.ceil(claims.length / 3);
+  const count = Math.min(3, Math.max(1, Math.floor(claims.length / 2)));
   return Array.from({ length: count }, (_, p) => claims.slice(Math.round((p * claims.length) / count), Math.round(((p + 1) * claims.length) / count)));
 }
 
@@ -250,16 +262,16 @@ export function renderStory(story: Story, updated: Date): string {
 <p class="kicker"><a href="${root}${story.section}/">${esc(SECTION_LABELS[story.section])}</a></p>
 <h1>${esc(storyTitle(story))}</h1>
 <p class="credit">${story.writeup?.summary ? `Summary of ${plural(Object.keys(story.writeup.sources).length, "report")}${story.independent < 2 ? `: only ${esc(story.headline.source.name)} has reported this so far` : ""}` : `Headline from ${esc(story.headline.source.name)}`}</p>
-<figure class="hero">${picture(story, root, "hero-img", true)}${
+<figure class="hero">${picture(story, root, "hero-img", STORY_SIZES)}${
     story.photo
       ? `<figcaption>${story.photo.kind === "named" ? `File photo of ${esc(story.photo.subject)}` : `File photo: ${esc(story.photo.subject)}`}, not taken at this event. ${photoCredit(story.photo)}.</figcaption>`
       : ""
   }</figure>
 ${coverageBar(story, true)}${oneSidedNote(story)}
-<p class="facts">${plural(story.items.length, "report")} from ${plural(sources, "outlet")} and ${plural(story.independent, "independent owner")}. First reported ${timeTag(story.first)}; latest ${timeTag(story.last)}.</p>
 ${writeupBlock(story, root)}
 ${story.writeup?.summary ? `<h2>All coverage</h2>` : ""}
 ${groups}
+<p class="story-stats">${plural(story.items.length, "report")} from ${plural(sources, "outlet")} and ${plural(story.independent, "independent owner")}. First reported ${timeTag(story.first)}; latest ${timeTag(story.last)}.</p>
 </article>`;
   return page({ title: `${storyTitle(story)} | ${SITE_NAME}`, description: `How ${plural(sources, "outlet")} covered this story.`, root, active: story.section, body, updated });
 }

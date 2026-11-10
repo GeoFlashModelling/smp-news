@@ -49,7 +49,7 @@ export async function generateSite(dir: URL, stories: Story[], front: FrontPage,
   await write("CNAME", `${SITE_HOST}\n`);
   await write(
     "manifest.webmanifest",
-    JSON.stringify({ name: SITE_NAME, short_name: "SMP News", start_url: "/", display: "standalone", background_color: "#ffffff", theme_color: "#162939", icons: [{ src: "/assets/favicon.svg", sizes: "any", type: "image/svg+xml" }] }, null, 2),
+    JSON.stringify({ name: SITE_NAME, short_name: "SMP News", start_url: "/", display: "standalone", background_color: "#0b1620", theme_color: "#162939", icons: [{ src: "/assets/favicon.svg", sizes: "any", type: "image/svg+xml" }] }, null, 2),
   );
   await write(
     "edition.json",
