@@ -92,6 +92,11 @@ export const TOPICS: { match: RegExp; file: string; caption: string }[] = [
   { match: /\bpetrol\b|\bfuel prices?\b|\bdiesel\b/i, file: "Shell Service Station, Upper Swan, WA.jpg", caption: "a service station in Upper Swan, WA" },
   { match: /\belections?\b|\bvoters?\b|\bpolling\b|\bballots?\b|\bby-election\b/i, file: "Democracy Sausage.jpg", caption: "a democracy sausage at a polling place" },
   { match: /\bFederal Parliament\b|\bAlbanese\b|\bCanberra\b|\bSenate\b|\bfederal budget\b/i, file: "Parliament House at dusk, Canberra ACT.jpg", caption: "Parliament House, Canberra" },
+  // Alternatives, so several political stories on one page don't share a photo.
+  { match: /\bSenate\b|\bsenators?\b/i, file: "Australian Senate - Parliament of Australia.jpg", caption: "the Senate chamber, Parliament House, Canberra" },
+  { match: /\bFederal Parliament\b|\bAlbanese\b|\bCanberra\b|\bfederal budget\b|\bQuestion Time\b|\bMPs?\b/i, file: "Australian House of Representatives - Parliament of Australia.jpg", caption: "the House of Representatives chamber, Canberra" },
+  { match: /\bFederal Parliament\b|\bAlbanese\b|\bCanberra\b|\bSenate\b|\bfederal budget\b/i, file: "Canberra (AU), Parliament House -- 2019 -- 1745.jpg", caption: "Parliament House, Canberra" },
+  { match: /\bFederal Parliament\b|\bAlbanese\b|\bCanberra\b|\bSenate\b|\bfederal budget\b/i, file: "Canberra (AU), Parliament House -- 2019 -- 1754.jpg", caption: "the flag above Parliament House, Canberra" },
   { match: /\bNASA\b|\bastronauts?\b|\brockets?\b|\bspace(craft|X)?\b/i, file: "SES-10 Launch - world's first reflight of an orbital class rocket (33361035200).jpg", caption: "a rocket launch" },
   { match: /\bAI\b|\bartificial intelligence\b|\bdata cent(re|er)s?\b|\bchatbots?\b/i, file: "BalticServers data center.jpg", caption: "a data centre" },
   { match: /\bairlines?\b|\bflights?\b|\bairports?\b|\bQantas\b|\bVirgin Australia\b/i, file: "Perth Airport Qantas terminal, July 2022, 01.jpg", caption: "Perth Airport" },
@@ -170,7 +175,7 @@ export function medicalFile(story: Story): string {
 /** Library photos (file names) that suit a story, best match first, from its report titles. */
 export function topicFiles(story: Story): string[] {
   const text = story.items.slice(0, 5).map((i) => i.title).join(" ");
-  return TOPICS.filter((t) => t.match.test(text)).map((t) => t.file).slice(0, 2);
+  return TOPICS.filter((t) => t.match.test(text)).map((t) => t.file).slice(0, 5);
 }
 
 function tidy(text: unknown, max: number): string {
