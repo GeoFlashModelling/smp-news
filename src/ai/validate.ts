@@ -1,4 +1,5 @@
 import type { LegalMode } from "./legal-risk.js";
+import { namedByOutlets } from "./named.js";
 import { summarySentences, type SourceBlock } from "./prompt.js";
 import { CLAIM_LISTS, type Claim, type ClaimList, type StorySummary } from "./schema.js";
 
@@ -254,6 +255,7 @@ export function validateSummary(raw: unknown, blocks: SourceBlock[], headlines: 
   const allText = [...blocks.map((b) => `${b.item.title} ${b.text} ${b.item.source.name}`), ...headlines].join(" ");
   const allWords = new Set(words(allText));
   const people = careful ? peopleInvolved(blocks) : new Set<string>();
+  for (const surname of namedByOutlets(blocks, mode).keys()) people.delete(surname);
 
   const headline = typeof draft.headline === "string" ? stripLabels(draft.headline) : "";
   if (!headline) result.errors.push("headline missing");

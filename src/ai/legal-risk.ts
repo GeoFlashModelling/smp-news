@@ -10,7 +10,7 @@ import type { Item } from "../lib/normalise.js";
 const CRIME =
   /\b(court|courts|trial|tribunal|judge|jury|charged|charges|accused|alleged(ly)?|allegations?|guilty|convicted|sentenced|jailed|prison|bail|remand|murder(ed|er)?|manslaughter|stabb(ed|ing)|shooting|shot dead|homicide|assault(ed)?|inquest|coroner|arrest(ed)?|police|detectives?|custody|defamation|defamed|sued|lawsuit)\b/i;
 const SENSITIVE =
-  /\b(rape[ds]?|sexual(ly)? (assault\w*|abuse\w*|offen\w+|touch\w*)|sex (abuse|offen\w+|crimes?)|indecent\w*|child abuse|abuse (images|material)|child exploitation|paedophil\w*|pedophil\w*|grooming|incest|suicide|self-harm|suppression orders?|suppressed|cannot be (legally )?named|can't be (legally )?named|children's court|youth (detention|justice)|juveniles?|young offenders?)\b/i;
+  /\b(rape[ds]?|sexual(ly)? (assault\w*|abuse\w*|offen\w+|touch\w*|misconduct|harass\w*)|sex (abuse|offen\w+|crimes?)|indecent\w*|child abuse|abuse (images|material)|child exploitation|paedophil\w*|pedophil\w*|grooming|incest|suicide|self-harm|suppression orders?|suppressed|cannot be (legally )?named|can't be (legally )?named|children's court|youth (detention|justice)|juveniles?|young offenders?)\b/i;
 /** A child or teenager in a crime story: they may not be identified. */
 const YOUTH = /\b(teen(ager)?s?|schoolboy|schoolgirl|minors?|([1-9]|1[0-7])-year-old)\b/i;
 /** Stories about suicide or self-harm show support line details (Mindframe guidelines). */

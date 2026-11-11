@@ -1,6 +1,7 @@
 import { toBarLean } from "../config/sources.js";
 import type { Item } from "../lib/normalise.js";
 import type { LegalMode } from "./legal-risk.js";
+import { namedByOutlets } from "./named.js";
 
 /** One report given to the model, labelled S1, S2, ... */
 export interface SourceBlock {
@@ -22,7 +23,7 @@ Rules:
 - Every claim cites one to four sources. In each citation, "source" is the source's label exactly as given (S1, S2, ...), never the outlet name, and "quote" is 5 to 20 words copied exactly from that source's TITLE or TEXT.
 - Leave out profanity and slogans; describe them instead (for example: "protesters carried anti-AI banners").
 - Attribute allegations, accusations and disputed claims to the outlet or person making them (for example: "..., ABC News reported").
-- headline: a plain, factual headline of at most 12 words, in sentence case (capital letters only for the first word and for names). No questions, no clickbait, no quotes from people.
+- headline: a plain, factual headline of at most 12 words, in sentence case (capital letters only for the first word and for names). No questions, no clickbait, no quotes from people. When the reports' titles or text name the main person, organisation or place, name them in the headline rather than describing them ("Neil Gaiman faces new allegations", not "Allegations made against a British author"), unless a rule below forbids naming.
 - summary: the story told in your own words, one sentence per claim, in this order: what happened; then the details the reports give (who, where, when, numbers, how it unfolded); then reactions, consequences or what happens next. A reader should understand the event without opening the sources, so include every distinct fact the reports give (each report usually adds something: a figure, a place, a quote's substance, a reaction, a next step). The request says how many sentences at most; use that many when the reports hold that many distinct facts, fewer when they don't. Never repeat a fact or pad to reach the number.
 - agreed: facts reported by at least two different outlets; cite each outlet that reports it.
 - differences: how coverage differs in emphasis or framing. Name the outlet in the text.
@@ -96,7 +97,11 @@ export function summarySentences(blocks: SourceBlock[], mode: LegalMode = "norma
 }
 
 export function userPrompt(blocks: SourceBlock[], mode: LegalMode = "normal"): string {
-  const rules = mode === "brief" ? `${CAREFUL_RULES}\n${BRIEF_RULES}\n\n` : mode === "careful" ? `${CAREFUL_RULES}\n\n` : "";
+  const named = [...namedByOutlets(blocks, mode).values()];
+  const exception = named.length
+    ? `\n- Exception: several outlets name ${named.join(", ")} themselves, so name ${named.length === 1 ? "them" : "these people"} (including in the headline) wherever the story is about them, still with every allegation attributed. Never name anyone else.`
+    : "";
+  const rules = mode === "brief" ? `${CAREFUL_RULES}\n${BRIEF_RULES}${exception}\n\n` : mode === "careful" ? `${CAREFUL_RULES}${exception}\n\n` : "";
   return `${rules}${eventPrompt(blocks, summarySentences(blocks, mode))}`;
 }
 

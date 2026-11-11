@@ -6,6 +6,7 @@ import { geminiJson, GeminiDailyQuotaError } from "./gemini.js";
 import { legalMode, type LegalMode } from "./legal-risk.js";
 import type { ModelReply } from "./ollama.js";
 import { selectSources, summarySentences, SYSTEM_PROMPT, userPrompt, type SourceBlock } from "./prompt.js";
+import { namedByOutlets } from "./named.js";
 import type { StorySummary } from "./schema.js";
 import { validateSummary } from "./validate.js";
 
@@ -36,6 +37,8 @@ export interface StoryWriteup {
   articles?: number;
   /** Version of the support checks a failed write-up failed; failures under older checks are tried afresh. */
   checks?: number;
+  /** Written knowing which people the outlets name themselves (named.ts). */
+  naming?: number;
 }
 
 /** Bump when the court and crime rules tighten, so every careful write-up is rewritten under the new rules. */
@@ -44,6 +47,8 @@ const LEGAL_RULES = 2;
 const FORMAT = 2;
 /** Bump when the support checks are relaxed or fixed, so stories that failed the old ones are tried again (10 Nov 2026: brief stories need one sentence; headline openers, country aliases, one dropped sentence in three; Title Case headlines not read as names). */
 const CHECKS = 4;
+/** Court and crime stories may name people the outlets name (11 Nov 2026); older write-ups that could are rewritten once. */
+const NAMING = 1;
 
 /** A write-up that may still be shown: careful ones must have passed the current court and crime rules, sensitive ones the brief rules. */
 function stillValid(w: StoryWriteup | undefined, mode: LegalMode): w is StoryWriteup {
@@ -157,6 +162,10 @@ function needsWriting(prev: StoryWriteup | undefined, blocks: SourceBlock[], mod
   if (prev.owners.length < MIN_SOURCES && blocks.length >= MIN_SOURCES) return true;
   // Written in the old short format when the reports support a fuller account: rewrite once, longer.
   if ((prev.format ?? 1) < FORMAT && prev.summary.summary.length < summarySentences(blocks, mode) - 1) return true;
+  if ((prev.naming ?? 0) < NAMING) {
+    const named = [...namedByOutlets(blocks, mode).keys()];
+    if (named.length && !named.some((s) => prev.summary!.headline.toLowerCase().includes(s))) return true;
+  }
   const used = new Set(prev.owners);
   const fresh = new Set(blocks.map((b) => b.item.source.owner_group).filter((o) => !used.has(o)));
   return fresh.size >= REWRITE_NEW_OWNERS && now.getTime() - Date.parse(prev.written) >= REWRITE_GAP_HOURS * 3_600_000;
@@ -352,6 +361,7 @@ export async function summariseStories(stories: Story[], important: Set<string>,
       ...(summary ? {} : { failures: ((prev?.checks ?? 1) < CHECKS ? 0 : (prev?.failures ?? 0)) + 1, checks: CHECKS }),
       ...(mode === "careful" ? { legalRules: LEGAL_RULES } : mode === "brief" ? { brief: true } : {}),
       format: FORMAT,
+      naming: NAMING,
       ...(articles ? { articles } : {}),
     };
     state.writeups[story.id] = writeup;
