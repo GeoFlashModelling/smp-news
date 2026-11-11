@@ -11,6 +11,8 @@ const COMMONS_SEARCHES_PER_EDITION = 300;
 const OPENVERSE_SEARCHES_PER_EDITION = 15;
 /** Searching stops after this long; stories still without a search answer get one in the next edition. */
 const SEARCH_MINUTES = 6;
+/** Originals narrower than this look blurry even in a card. */
+const MIN_SHARP_WIDTH = 400;
 /** A sample of refused photos in the log, to check the place rules aren't refusing good ones. */
 const REFUSALS_LOGGED = 25;
 
@@ -173,6 +175,8 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
   // The front page's stories first, in reading order, so none of them repeats another's photo; then multi-source
   // stories, then by rank: they get the AI requests and search budget before single headlines.
   const front = new Set(onFront.map((s) => s.id));
+  // The front page's first story is its large lead.
+  const leadId = onFront[0]?.id;
   const rest = shown.filter((s) => !front.has(s.id));
   const stories = [...new Set([...onFront.filter((s) => shown.includes(s)), ...rest.filter((s) => s.independent >= 2), ...rest.filter((s) => s.independent < 2)])];
   const cache = await ImageCache.open(cacheFile, now);
@@ -216,17 +220,36 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
   const pick = async (story: Story): Promise<void> => {
     // The best photo no other story uses yet; failing that, the best one even if shared.
     let fallback: [Photo, keyof PhotoCounts] | null = null;
+    // A small original looks blurry in a card: only shown when nothing else is found.
+    let blurry: [Photo, keyof PhotoCounts] | null = null;
     let tier: keyof PhotoCounts = "event";
     // Good photos another story already shows, with their tier: other photos of the same thing are looked for.
     const taken: [Photo, keyof PhotoCounts][] = [];
     const fresh = (p: Photo | null | undefined): Photo | null => {
       if (!p) return null;
+      if (p.width < MIN_SHARP_WIDTH) {
+        blurry ??= [p, tier];
+        return null;
+      }
       fallback ??= [p, tier];
       if (!used.has(fileOf(p))) return p;
       taken.push([p, tier]);
       return null;
     };
     const first = (list: (Photo | null | undefined)[]) => list.map(fresh).find((p) => p) ?? null;
+    // Landscape photos fill the card; the lead story is shown large, so it needs the large version too.
+    const fits = (p: Photo) => p.width >= p.height && (story.id !== leadId || p.large !== undefined);
+    // A landscape photo of the same person, organisation or place ("BHP" → a BHP mine, not the logo-like portrait).
+    const wider = async (p: Photo): Promise<Photo | null> => {
+      const name = sameThing(p.subject);
+      const words = name.toLowerCase().split(/\s+/).filter((w) => w.length >= 2);
+      if (!words.length || words.length > 5) return null;
+      for (const found of await searchPhotos(name, cache, budget)) {
+        const title = (found.title ?? found.subject).toLowerCase();
+        if (fits(found) && words.every((w) => title.includes(w)) && !refuse(found) && fresh(found)) return found;
+      }
+      return null;
+    };
     const refuse = (p: Photo, asPlace?: boolean) => {
       const wrong = shotElsewhere(p, story, asPlace);
       if (wrong && counts.elsewhere++ < REFUSALS_LOGGED) console.log(`Photo refused as elsewhere: "${p.subject}" (${p.lat?.toFixed(1) ?? "-"}, ${p.lon?.toFixed(1) ?? "-"}) for ${story.section} story "${story.headline.title}"`);
@@ -254,7 +277,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       return null;
     };
     const choose = (photo: Photo | null) => {
-      const [chosen, chosenTier] = photo ? [photo, tier] : (fallback ?? [null, tier]);
+      const [chosen, chosenTier] = photo ? [photo, tier] : ((fallback as [Photo, keyof PhotoCounts] | null) ?? (blurry as [Photo, keyof PhotoCounts] | null) ?? [null, tier]);
       if (!chosen) return false;
       photos.set(story.id, chosen);
       used.add(fileOf(chosen));
@@ -276,7 +299,13 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     const venue = place(venues.get(venueOf.get(story.id) ?? ""));
     const subjectList = [idea?.subject && !legal.has(story.id) ? named.get(idea.subject) : null, ...(subjectsOf.get(story.id) ?? []).map((n) => subjects.get(n))];
     const placeList = (placesOf.get(story.id) ?? []).map((n) => place(places.get(n)));
-    let photo = first([...(story.section === "sport" ? [venue, ...subjectList] : [...subjectList, venue]), ...placeList]);
+    const eventList = [...(story.section === "sport" ? [venue, ...subjectList] : [...subjectList, venue]), ...placeList];
+    let photo = first(eventList);
+    if (photo && !fits(photo)) {
+      // Portrait or too small for the lead: the same subject in landscape; for a place, another place the reports name.
+      const ofPlace = !subjectList.includes(photo);
+      photo = (await wider(photo)) ?? (ofPlace ? eventList.slice(eventList.indexOf(photo) + 1).find((p): p is Photo => Boolean(p && fits(p) && fresh(p))) : undefined) ?? photo;
+    }
     if (!photo) photo = await alternative(["event"], 2);
     if (!photo) {
       tier = "object";
