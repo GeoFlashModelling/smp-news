@@ -17,9 +17,11 @@ export interface ClusterOptions {
   threshold: number;
   /** Maximum hours between an item and the cluster's newest item. */
   windowHours: number;
+  /** Keep headlines naming different states or regions apart (`REGIONS`). */
+  separateRegions?: boolean;
 }
 
-export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = { threshold: 0.32, windowHours: 36 };
+export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = { threshold: 0.32, windowHours: 36, separateRegions: true };
 
 type Vec = Map<string, number>;
 
@@ -49,6 +51,35 @@ export function tokenize(text: string): string[] {
   return (text.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").match(/[a-z0-9][a-z0-9'’]*/g) ?? [])
     .map(stem)
     .filter((w) => w.length >= 3 && !STOPWORDS.has(w) && !/^\d+(st|nd|rd|th)?$/.test(w));
+}
+
+/**
+ * States and regions named in headlines. The same kind of event in two places ("Thunderstorms forecast for Otago" and
+ * "thunderstorms over Brisbane") shares its words but isn't one story. Case-sensitive, and ambiguous names (Victoria,
+ * Canterbury, Hamilton, Nelson, Hastings, Newcastle) are left out. Canberra is left out: federal stories name it anywhere.
+ */
+const REGIONS: [string, RegExp][] = [
+  ["WA", /\b(WA|Western Australian?|Perth|Fremantle|Mandurah|Bunbury|Kalgoorlie|Geraldton|Broome|Karratha|Pilbara|Kimberley)\b/],
+  ["NSW", /\b(NSW|New South Wales|Sydney|Wollongong|Blue Mountains)\b/],
+  ["VIC", /\b(Victorian|Melbourne|Geelong|Ballarat|Bendigo)\b/],
+  ["QLD", /\b(Queensland(ers?)?|QLD|Qld|Brisbane|Gold Coast|Sunshine Coast|Cairns|Townsville|Toowoomba)\b/],
+  ["SA", /\b(South Australian?|Adelaide)\b/],
+  ["TAS", /\b(Tasmanian?|Hobart|Launceston)\b/],
+  ["NT", /\b(Northern Territory|Darwin|Alice Springs)\b/],
+  ["Auckland", /\bAuckland\b/],
+  ["Wellington", /\bWellington\b/],
+  ["Christchurch", /\bChristchurch\b/],
+  ["Otago", /\b(Otago|Dunedin|Queenstown)\b/],
+  ["Southland", /\b(Southland|Invercargill)\b/],
+  ["Bay of Plenty", /\b(Bay of Plenty|Tauranga|Rotorua)\b/],
+  ["Northland", /\b(Northland|Whang[aā]rei)\b/],
+  ["Taranaki", /\b(Taranaki|New Plymouth)\b/],
+  ["Hawke's Bay", /\b(Hawke's Bay|Napier)\b/],
+  ["Waikato", /\bWaikato\b/],
+];
+
+export function regionsIn(title: string): Set<string> {
+  return new Set(REGIONS.filter(([, re]) => re.test(title)).map(([name]) => name));
 }
 
 function termFreq(tokens: string[], weight: number, into: Vec = new Map()): Vec {
@@ -92,6 +123,7 @@ function normalised(sum: Vec): Vec {
 }
 
 interface Working extends Cluster {
+  regions: Set<string>;
   titleSum: Vec;
   fullSum: Vec;
   titleCentroid: Vec;
@@ -119,11 +151,13 @@ export function clusterItems(items: Item[], options: ClusterOptions = DEFAULT_CL
   for (const n of order) {
     const item = items[n]!;
     const headlineOnly = !item.source.ai_input_allowed || item.summary.length === 0;
+    const regions = regionsIn(item.title);
     let best: Working | null = null;
     let bestSim = options.threshold;
     for (const c of clusters) {
       if (item.published.getTime() - c.last.getTime() > windowMs) continue;
       if (c.items.some((m) => m.source.id === item.source.id && m.title === item.title)) continue;
+      if (options.separateRegions && regions.size && c.regions.size && ![...regions].some((r) => c.regions.has(r))) continue;
       const sim = headlineOnly
         ? cosine(titleVecs[n]!, c.titleCentroid)
         : Math.max(cosine(fullVecs[n]!, c.fullCentroid), cosine(titleVecs[n]!, c.titleCentroid));
@@ -134,6 +168,7 @@ export function clusterItems(items: Item[], options: ClusterOptions = DEFAULT_CL
     }
     if (best) {
       best.items.push(item);
+      for (const r of regions) best.regions.add(r);
       if (item.published > best.last) best.last = item.published;
       addInto(best.titleSum, titleVecs[n]!);
       addInto(best.fullSum, fullVecs[n]!);
@@ -143,6 +178,7 @@ export function clusterItems(items: Item[], options: ClusterOptions = DEFAULT_CL
       const titleSum: Vec = new Map(titleVecs[n]!);
       const fullSum: Vec = new Map(fullVecs[n]!);
       clusters.push({
+        regions,
         items: [item],
         first: item.published,
         last: item.published,

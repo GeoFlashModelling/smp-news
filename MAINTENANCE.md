@@ -171,6 +171,8 @@ npm run cluster-report -- .cache/snapshots/<file>.json.gz 0.32
 
 Lists every story covered by two or more owners, with the headlines grouped into it. The second number is the similarity threshold (higher = stricter grouping); the live value is `DEFAULT_CLUSTER_OPTIONS` in `src/lib/cluster.ts`.
 
+**Different places stay apart (11 Nov 2026):** a headline that names an Australian state or a New Zealand region (by name or main towns) doesn't join a story whose headlines only name other ones, so "Thunderstorms forecast for Otago" and "thunderstorms over Brisbane" are two stories (`REGIONS` in `src/lib/cluster.ts`). Headlines that name no place, or one of the same places, group as before. On two saved snapshots this split none of the existing multi-outlet stories. Ambiguous names (Victoria, Canterbury, Hamilton, Nelson, Newcastle) and Canberra are left out on purpose.
+
 ### Weather and daily quiz
 
 - **Weather** (`src/lib/weather.ts`, page `/weather/`, strip at the top of the front page): 7-day forecasts for the 8 capitals from [Open-Meteo](https://open-meteo.com/), one request per edition, free for non-commercial sites (no ads, no subscriptions), data CC BY 4.0 with the credit shown. The Bureau of Meteorology's website forecasts can't be republished or scraped (personal use only, bom.gov.au/other/copyright.shtml), and Open-Meteo no longer serves the Bureau's ACCESS model, so this is Open-Meteo's best blend. If the site ever carries ads or subscriptions, Open-Meteo needs a paid plan. The strip shows the reader's capital from their browser time zone or their choice (kept in their browser only); without scripts, Perth. If Open-Meteo is down, the strip is left out and the page says so.
