@@ -219,7 +219,7 @@ async function editionEmail(all: EditionRecord[], now: Date): Promise<void> {
         `Finished ${perth(fresh.at)} AWST in ${minutes(fresh.ms)} (feeds ${minutes(fresh.stageMs.feeds)}, summaries ${minutes(fresh.stageMs.summaries)}, photos ${minutes(fresh.stageMs.photos)}, pages ${minutes(fresh.stageMs.site)})`,
         `${fresh.feeds.ok}/${fresh.feeds.total} feeds OK${fresh.feeds.failed.length ? ` (failing: ${fresh.feeds.failed.join(", ")})` : ""}`,
         `${fresh.items} reports grouped into ${fresh.stories} stories; ${fresh.multi} covered by several outlets`,
-        ...(s ? [`Summaries: ${s.multiWritten}/${fresh.multi} multi-source stories written, plus ${s.single} single-outlet; ${s.written} new this update (${s.free} free, ${s.paid} paid${s.fromArticles ? `, ${s.fromArticles} from full articles` : ""}), ${s.failed} failed their checks`] : []),
+        ...(s ? [`Summaries: ${s.multiWritten}/${fresh.multi} multi-source stories written, plus ${s.single} single-outlet; ${s.written} new this update (${s.free} free, ${s.paid} paid${s.fromArticles ? `, ${s.fromArticles} from full articles` : ""}), ${s.failed} failed their checks${s.waiting ? `; ${s.waiting} waiting for the free allowance (longest ${s.oldestWaitHours?.toFixed(1) ?? "?"} h)` : ""}`] : []),
         `Photos: ${fresh.photos.multiWithPhoto}/${fresh.multi} multi-source stories; ${fresh.photos.event} of the subject or place, ${fresh.photos.object} of a key object, ${fresh.photos.broad} topic pictures; ${fresh.photos.shared} shared`,
         `Paid AI this update: ${aud(paidAud(fresh))}`,
       ]),

@@ -147,6 +147,13 @@ export interface PhotoCounts {
   elsewhere: number;
 }
 
+/** The photo a story was given, kept while it still passes the checks. */
+interface Remembered {
+  photo: Photo;
+  tier: keyof PhotoCounts;
+  death: boolean;
+}
+
 /** A photo's subject as a search for other photos of the same thing: "Parliament House, Canberra" → "Parliament House Canberra". */
 function sameThing(subject: string): string {
   return subject.replace(/\s*\(.*?\)/g, "").replace(/^(the|a|an) /i, "").replace(/[^\p{L}\p{N}'’ -]+/gu, " ").replace(/\s+/g, " ").trim();
@@ -183,6 +190,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
   const legal = new Set(stories.filter((s) => isLegalRisk(s.items)).map((s) => s.id));
   const death = new Set(stories.filter(isDeathStory).map((s) => s.id));
   const ideas = await photoIdeas(stories.filter((s) => !death.has(s.id)), legal, cache);
+  await cache.save();
 
   const subjectsOf = new Map<string, string[]>();
   const placesOf = new Map<string, string[]>();
@@ -284,6 +292,8 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       used.add(fileOf(chosen));
       counts[chosenTier]++;
       if (!photo) counts.shared++;
+      // A good photo of its own is kept from now on; a shared, blurry or topic picture is looked at again next hour.
+      if (photo && chosenTier !== "broad") cache.set(`chosen:${story.id}`, { photo: chosen, tier: chosenTier, death: death.has(story.id) } satisfies Remembered);
       return true;
     };
     if (death.has(story.id)) {
@@ -335,7 +345,22 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       }
     }
   };
-  for (const story of stories) await pick(story);
+  // A story keeps the photo it had (owner, 11 Nov 2026: pictures were changing on existing stories). Remembered photos
+  // are claimed before anything is chosen, so a story rising up the page can't take another's photo, unless the photo
+  // now fails a check, the story became (or stopped being) about a death, or it is the lead and needs a larger photo.
+  const settled = new Set<string>();
+  for (const story of stories) {
+    const memory = cache.get<Remembered>(`chosen:${story.id}`);
+    const p = memory?.photo;
+    if (!p || memory.death !== death.has(story.id) || used.has(fileOf(p)) || notAPhotoFile(p.src) || p.width < MIN_SHARP_WIDTH) continue;
+    if ((story.id === leadId && p.large === undefined) || shotElsewhere(p, story)) continue;
+    photos.set(story.id, p);
+    used.add(fileOf(p));
+    counts[memory.tier]++;
+    cache.set(`chosen:${story.id}`, memory);
+    settled.add(story.id);
+  }
+  for (const story of stories) if (!settled.has(story.id)) await pick(story);
 
   await cache.save();
   return { photos, counts };

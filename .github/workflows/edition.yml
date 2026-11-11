@@ -33,18 +33,24 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      # Photo lookups and searches from earlier editions (a week's answers), so each run only searches for new stories.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      # Restored here and saved at the end even when the edition fails or is stopped, so paid work is never lost:
+      # photo lookups, searches and each story's photo (images.json); summaries written, today's paid spend, free models
+      # used up and stories waiting to be written (summaries.json); story IDs and the reports in each (stories.json).
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/images.json
           key: images-${{ github.run_id }}
           restore-keys: images-
-      # Summaries already written, today's paid spend and which free models are used up for the day.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/summaries.json
           key: summaries-${{ github.run_id }}
           restore-keys: summaries-
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/stories.json
+          key: stories-${{ github.run_id }}
+          restore-keys: stories-
       # Today's quiz and the questions used before, so the quiz stays the same all day and doesn't repeat.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -65,15 +71,35 @@ jobs:
           restore-keys: history-
       - id: edition
         run: npm run edition
+        # Inside the job's 30 minutes, so the steps that save the state files still get to run.
+        timeout-minutes: 24
         env:
           # Free key: photo search words, and summaries when SUMMARIES is "on".
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          # Paid key: last resort for front-page summaries, capped at about A$3.20 a day in src/ai/summarise.ts.
+          # Paid key: last resort for front-page stories with no summary, capped at about A$3.20 a day in src/ai/summarise.ts.
           GEMINI_PAID_API_KEY: ${{ secrets.GEMINI_PAID_API_KEY }}
           SUMMARIES: ${{ vars.SUMMARIES }}
           SUMMARY_PAID_MODEL: ${{ vars.SUMMARY_PAID_MODEL }}
           PHOTO_AI: ${{ vars.PHOTO_AI }}
           PHOTO_AI_MODEL: ${{ vars.PHOTO_AI_MODEL }}
+      - name: Save photos state
+        if: always() && hashFiles('.cache/images.json') != ''
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/images.json
+          key: images-${{ github.run_id }}
+      - name: Save summaries state
+        if: always() && hashFiles('.cache/summaries.json') != ''
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/summaries.json
+          key: summaries-${{ github.run_id }}
+      - name: Save story IDs
+        if: always() && hashFiles('.cache/stories.json') != ''
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/stories.json
+          key: stories-${{ github.run_id }}
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist

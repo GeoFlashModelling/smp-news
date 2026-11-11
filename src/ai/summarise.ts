@@ -1,6 +1,6 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { readFile } from "node:fs/promises";
 import { fetchArticle } from "../lib/article.js";
+import { saveState } from "../lib/state-file.js";
 import type { Story } from "../lib/stories.js";
 import { geminiJson, GeminiDailyQuotaError } from "./gemini.js";
 import { legalMode, type LegalMode } from "./legal-risk.js";
@@ -39,6 +39,8 @@ export interface StoryWriteup {
   checks?: number;
   /** Written knowing which people the outlets name themselves (named.ts). */
   naming?: number;
+  /** Last edition the story was shown in; kept KEEP_DAYS after that, so a long-running story isn't written again. */
+  seen?: string;
 }
 
 /** Bump when the court and crime rules tighten, so every careful write-up is rewritten under the new rules. */
@@ -65,6 +67,8 @@ interface State {
   spend: { day: string; aud: number };
   /** Free models whose daily allowance ran out, and the Pacific-time day it ran out (Google resets at midnight there). */
   exhausted: Record<string, string>;
+  /** Stories waiting to be written or rewritten (story id → when they started waiting), until a free model has room. */
+  pending?: Record<string, string>;
 }
 
 const STATE_VERSION = 1;
@@ -122,6 +126,8 @@ export interface SummaryCounts {
   paidAud: number;
   dayAud: number;
   waiting: number;
+  /** How long the longest-waiting story has waited, in hours. */
+  oldestWaitHours: number;
 }
 
 const dayIn = (timeZone: string, d: Date) => d.toLocaleDateString("en-CA", { timeZone });
@@ -135,7 +141,8 @@ async function loadState(file: string, now: Date): Promise<State> {
   } catch {
     // first run or unreadable file: start empty
   }
-  for (const [id, w] of Object.entries(state.writeups)) if (now.getTime() - Date.parse(w.written) > KEEP_DAYS * 86_400_000) delete state.writeups[id];
+  for (const [id, w] of Object.entries(state.writeups)) if (now.getTime() - Date.parse(w.seen ?? w.written) > KEEP_DAYS * 86_400_000) delete state.writeups[id];
+  state.pending ??= {};
   const today = dayIn("Australia/Perth", now);
   if (state.spend.day !== today) state.spend = { day: today, aud: 0 };
   const pacific = dayIn("America/Los_Angeles", now);
@@ -178,8 +185,9 @@ function costAud(model: string, promptTokens: number, outputTokens: number): num
 
 /**
  * Writes AI summaries for the edition's stories (step 2.1). Free models first, best one with requests left today;
- * every answer must pass the support check (validate.ts) or the next model tries. The paid key is the last resort
- * (front-page stories are queued first), within a daily limit enforced here. Stories nobody could summarise show headlines only.
+ * every answer must pass the support check (validate.ts) or the next model tries. The paid key is the last resort, for
+ * front-page stories with no summary only, within a daily limit enforced here. Other stories wait (`pending`) until a
+ * free model has room; until then they keep their summary, or show headlines only.
  */
 export async function summariseStories(stories: Story[], important: Set<string>, stateFile: string, now: Date): Promise<{ writeups: Map<string, StoryWriteup>; counts: SummaryCounts }> {
   const state = await loadState(stateFile, now);
@@ -187,7 +195,13 @@ export async function summariseStories(stories: Story[], important: Set<string>,
   // `||`, not `??`: the workflow passes an unset repository variable as "", which once silently disabled the paid key.
   const paidModel = process.env.SUMMARY_PAID_MODEL || DEFAULT_PAID_MODEL;
   const paidReady = Boolean(process.env.GEMINI_PAID_API_KEY) && paidModel in PAID_PRICES;
-  const counts: SummaryCounts = { written: 0, kept: 0, failed: 0, free: 0, paid: 0, fromArticles: 0, paidAud: 0, dayAud: 0, waiting: 0 };
+  const counts: SummaryCounts = { written: 0, kept: 0, failed: 0, free: 0, paid: 0, fromArticles: 0, paidAud: 0, dayAud: 0, waiting: 0, oldestWaitHours: 0 };
+  const pending = state.pending!;
+  // Saved after every story as well as at the end, so a run that is stopped part-way keeps what it wrote and paid for.
+  const save = async () => {
+    counts.dayAud = state.spend.aud;
+    await saveState(stateFile, state);
+  };
   const lastCall = new Map<string, number>();
   const deadline = Date.now() + RUN_SECONDS * 1000;
 
@@ -254,15 +268,23 @@ export async function summariseStories(stories: Story[], important: Set<string>,
     const mode = legalMode(story.items);
     if (prev?.summary && !stillValid(prev, mode)) delete state.writeups[story.id];
     const current = state.writeups[story.id];
+    if (current) current.seen = now.toISOString();
     if (needsWriting(current, blocks, mode, now)) queue.push({ story, blocks });
-    else if (current?.summary) {
-      writeups.set(story.id, current);
-      counts.kept++;
+    else {
+      delete pending[story.id];
+      if (current?.summary) {
+        writeups.set(story.id, current);
+        counts.kept++;
+      }
     }
   }
+  // Waiting stories no longer shown have dropped out of the edition.
+  const shown = new Set(stories.map((s) => s.id));
+  for (const id of Object.keys(pending)) if (!shown.has(id)) delete pending[id];
 
   const later = (story: Story) => {
     counts.waiting++;
+    pending[story.id] ??= now.toISOString();
     const prev = state.writeups[story.id];
     if (prev?.summary) writeups.set(story.id, prev);
   };
@@ -291,8 +313,9 @@ export async function summariseStories(stories: Story[], important: Set<string>,
     const note = (model: string, errors: string[]) => {
       if (errors.length) why.push(`${model}: ${errors.slice(0, 3).join("; ")}`);
     };
-    // Paid writing is for stories with no summary yet; a rewrite waits for the free allowance (it resets at 4 or 5 pm Perth).
-    const mayPay = paidReady && !state.writeups[story.id]?.summary;
+    // Paid writing is only for front-page stories with no summary yet (owner, 11 Nov 2026); everything else, including
+    // rewrites, waits for the free allowance, which resets at 4 or 5 pm Perth.
+    const mayPay = paidReady && important.has(story.id) && !state.writeups[story.id]?.summary;
     // Sources whose terms allow it: the paid model writes from their full articles (read in memory, never stored).
     if (mayPay && state.spend.aud < DAILY_PAID_LIMIT_AUD && blocks.some((b) => b.item.source.full_text_allowed)) {
       const texts = new Map<string, string>();
@@ -345,6 +368,7 @@ export async function summariseStories(stories: Story[], important: Set<string>,
       if (summary) [used, paid] = [paidModel, true];
     }
     if (!summary && !answered) return later(story);
+    delete pending[story.id];
     if (!summary) console.log(`Summary failed checks for ${story.id} "${story.headline.title}" (${mode}): ${why.join(" | ").slice(0, 600)}`);
     const prev = state.writeups[story.id];
     if (!summary && prev?.summary) {
@@ -382,15 +406,20 @@ export async function summariseStories(stories: Story[], important: Set<string>,
   const worker = async (n: number) => {
     while (next < queue.length) {
       const job = queue[next++]!;
-      if (!freeLeft() && state.writeups[job.story.id]?.summary) later(job.story);
+      if (!freeLeft() && (state.writeups[job.story.id]?.summary || !important.has(job.story.id))) later(job.story);
       else if (++taken > MAX_STORIES_PER_RUN || Date.now() > deadline) later(job.story);
-      else await write(job, n);
+      else {
+        await write(job, n);
+        saving = saving.then(save);
+      }
     }
   };
+  let saving = Promise.resolve();
   await Promise.all(Array.from({ length: WORKERS }, (_, n) => worker(n)));
+  await saving;
 
-  counts.dayAud = state.spend.aud;
-  await mkdir(dirname(stateFile), { recursive: true });
-  await writeFile(stateFile, JSON.stringify(state));
+  const waits = Object.values(pending).map((since) => (now.getTime() - Date.parse(since)) / 3_600_000);
+  counts.oldestWaitHours = waits.length ? Math.max(...waits) : 0;
+  await save();
   return { writeups, counts };
 }

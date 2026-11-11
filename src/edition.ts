@@ -9,6 +9,7 @@ import { applyBlocklist, loadBlocklist } from "./lib/blocklist.js";
 import { assignPhotos } from "./images/assign.js";
 import { clusterItems } from "./lib/cluster.js";
 import { loadFacts } from "./lib/facts.js";
+import { keepStoryIds } from "./lib/identity.js";
 import { recordEdition, type EditionRecord } from "./lib/history.js";
 import { fetchAllFeeds, type FeedSnapshot } from "./lib/fetch-feeds.js";
 import { normalise } from "./lib/normalise.js";
@@ -42,6 +43,7 @@ async function main(): Promise<void> {
   const failed = feeds.filter((f) => !f.ok);
   const items = applyBlocklist(normalise(feeds, sources, now), await loadBlocklist());
   const stories = buildStories(clusterItems(items), now);
+  await keepStoryIds(stories, resolve(process.env.STORY_IDS ?? ".cache/stories.json"), now);
   const multi = stories.filter((s) => s.independent >= 2);
   let summaryNote = "summaries off";
   let summaries: EditionRecord["summaries"];
@@ -53,8 +55,8 @@ async function main(): Promise<void> {
     const { writeups, counts: c } = await summariseStories(shownStories(stories), important, resolve(process.env.SUMMARY_STATE ?? ".cache/summaries.json"), now);
     for (const story of stories) story.writeup = writeups.get(story.id);
     const multiWritten = multi.filter((s) => writeups.has(s.id)).length;
-    summaryNote = `summaries for ${multiWritten}/${multi.length} multi-source + ${writeups.size - multiWritten} single-outlet (new ${c.written}: free ${c.free}, paid ${c.paid}, from full articles ${c.fromArticles}; kept ${c.kept}; failed checks ${c.failed}; waiting ${c.waiting}; paid A$${c.paidAud.toFixed(3)} this run, A$${c.dayAud.toFixed(2)} today)`;
-    summaries = { multiWritten, single: writeups.size - multiWritten, written: c.written, free: c.free, paid: c.paid, fromArticles: c.fromArticles, failed: c.failed, paidAud: c.paidAud, dayAud: c.dayAud };
+    summaryNote = `summaries for ${multiWritten}/${multi.length} multi-source + ${writeups.size - multiWritten} single-outlet (new ${c.written}: free ${c.free}, paid ${c.paid}, from full articles ${c.fromArticles}; kept ${c.kept}; failed checks ${c.failed}; waiting ${c.waiting}${c.waiting ? `, longest ${c.oldestWaitHours.toFixed(1)} h` : ""}; paid A$${c.paidAud.toFixed(3)} this run, A$${c.dayAud.toFixed(2)} today)`;
+    summaries = { multiWritten, single: writeups.size - multiWritten, written: c.written, free: c.free, paid: c.paid, fromArticles: c.fromArticles, failed: c.failed, paidAud: c.paidAud, dayAud: c.dayAud, waiting: c.waiting, oldestWaitHours: c.oldestWaitHours };
   }
   const summarisedAt = Date.now();
 

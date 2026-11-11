@@ -1,5 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { readFile } from "node:fs/promises";
+import { saveState } from "../lib/state-file.js";
 
 const CACHE_DAYS = 7;
 /** Bump when the matching rules change, so cached answers from older rules are discarded. */
@@ -49,7 +49,6 @@ export class ImageCache {
   }
 
   async save(): Promise<void> {
-    await mkdir(dirname(this.file), { recursive: true });
-    await writeFile(this.file, JSON.stringify({ version: RULES_VERSION, entries: this.entries }));
+    await saveState(this.file, { version: RULES_VERSION, entries: this.entries });
   }
 }
