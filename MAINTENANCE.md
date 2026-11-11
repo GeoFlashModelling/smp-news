@@ -1,4 +1,4 @@
-﻿# S.M.P. News: Maintenance Guide
+# S.M.P. News: Maintenance Guide
 
 How to keep the site running and fix common problems without an AI agent. Every build step adds to this guide.
 
