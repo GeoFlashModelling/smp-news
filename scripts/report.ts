@@ -1,11 +1,15 @@
 /**
- * Nightly report (owner, 11 Nov 2026): how the site did over the last 24 hours, emailed to the owner by the scheduler
- * Worker. Run by .github/workflows/report.yml. Reads the editions' own numbers (.cache/history.json), GitHub's record of
- * the Edition runs, and the live front page. Sends counts only: no story text and nothing secret.
+ * Emails to the owner, sent through the scheduler Worker (owner, 11 Nov 2026):
+ * - REPORT_KIND=edition: after each hourly update (edition.yml), how that run went and how today's AI costs stand;
+ * - otherwise the nightly report (report.yml): the last 24 hours, the live site, and the same cost tracking.
+ * The aim on costs is to stay on Google's free allowance; the paid key is a capped backstop.
+ * Reads the editions' own numbers (.cache/history.json), GitHub's record of the Edition runs, and the live front page.
+ * Sends counts only: no story text and nothing secret.
  *
- * REPORT_DRY_RUN=1 prints the report instead of sending it.
+ * REPORT_DRY_RUN=1 prints the email instead of sending it.
  */
 import { readFile } from "node:fs/promises";
+import { AUD_PER_USD, DAILY_PAID_LIMIT_AUD, PAID_PRICES } from "../src/ai/summarise.js";
 import type { EditionRecord } from "../src/lib/history.js";
 
 const SITE = "https://thesmpnews.com/";
@@ -14,7 +18,10 @@ const DAY_MS = 86_400_000;
 /** The scheduler runs an edition every daytime hour (6 am to 11 pm Sydney) plus one overnight: 19 a day. */
 const EXPECTED_RUNS = 19;
 const RUN_LIMIT_MIN = 30;
-const PAID_CAP_AUD = 3.2;
+/** Google's free requests a day per model, as published for the free tier. */
+const FREE_PER_DAY = (model: string) => (model.includes("flash-lite") ? 500 : model.includes("flash") ? 20 : 0);
+/** For paid requests on a model missing from the price table: the dearest Flash-Lite price, to err high. */
+const FALLBACK_PRICE: [number, number] = [0.3, 2.5];
 
 interface Run {
   status: string;
@@ -27,13 +34,15 @@ interface Run {
 
 const perth = (d: Date | string) =>
   new Date(d).toLocaleString("en-AU", { timeZone: "Australia/Perth", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+const perthTime = (d: Date | string) => new Date(d).toLocaleTimeString("en-AU", { timeZone: "Australia/Perth", hour: "numeric", minute: "2-digit" });
+const dayIn = (timeZone: string, d: Date | string) => new Date(d).toLocaleDateString("en-CA", { timeZone });
 const minutes = (ms: number) => `${(ms / 60_000).toFixed(1)} min`;
 const pct = (n: number, d: number) => (d ? `${Math.round((100 * n) / d)}%` : "n/a");
+const aud = (n: number) => `A$${n.toFixed(2)}`;
 
-async function history(now: Date): Promise<EditionRecord[]> {
+async function history(): Promise<EditionRecord[]> {
   try {
-    const list = JSON.parse(await readFile(process.env.HISTORY ?? ".cache/history.json", "utf8")) as EditionRecord[];
-    return list.filter((r) => now.getTime() - Date.parse(r.at) <= DAY_MS);
+    return JSON.parse(await readFile(process.env.HISTORY ?? ".cache/history.json", "utf8")) as EditionRecord[];
   } catch {
     return [];
   }
@@ -91,10 +100,140 @@ function sum<T>(list: T[], f: (t: T) => number): number {
   return list.reduce((n, t) => n + f(t), 0);
 }
 
-async function main(): Promise<void> {
-  const now = new Date();
-  const [records, runList, front] = await Promise.all([history(now), runs(now), frontPage()]);
+/** What an edition paid Google: every paid request priced from its tokens; older records only know the summaries' spend. */
+function paidAud(r: EditionRecord): number {
+  if (!r.ai) return r.summaries?.paidAud ?? 0;
+  return sum(Object.entries(r.ai), ([model, u]) => {
+    const [input, output] = PAID_PRICES[model] ?? FALLBACK_PRICE;
+    const [inTokens, outTokens] = u.paidTokens ?? [0, 0];
+    return ((inTokens * input + outTokens * output) / 1_000_000) * AUD_PER_USD;
+  });
+}
+
+const paidRequests = (r: EditionRecord) => sum(Object.values(r.ai ?? {}), (u) => u.paid);
+
+/** How the day's AI use stands against the free allowance and the paid cap. */
+function costs(all: EditionRecord[], now: Date): { lines: string[]; attention: string[]; headline: string } {
   const attention: string[] = [];
+  const today = all.filter((r) => dayIn("Australia/Perth", r.at) === dayIn("Australia/Perth", now));
+  const month = all.filter((r) => dayIn("Australia/Perth", r.at).slice(0, 7) === dayIn("Australia/Perth", now).slice(0, 7));
+  // Google's free allowance resets at midnight Pacific time (3 or 4 pm in Perth).
+  const sinceReset = all.filter((r) => dayIn("America/Los_Angeles", r.at) === dayIn("America/Los_Angeles", now));
+  const todayAud = sum(today, paidAud);
+  const monthAud = sum(month, paidAud);
+  const firstDay = month[0] ? dayIn("Australia/Perth", month[0].at) : null;
+  const daysSoFar = firstDay ? Math.max(1, Math.round((Date.parse(dayIn("Australia/Perth", now)) - Date.parse(firstDay)) / DAY_MS) + 1) : 1;
+  const [year, mon] = dayIn("Australia/Perth", now).split("-").map(Number) as [number, number];
+  const daysInMonth = new Date(year, mon, 0).getDate();
+
+  const models = new Map<string, { free: number; paid: number; usedUpAt?: string }>();
+  for (const r of sinceReset)
+    for (const [model, u] of Object.entries(r.ai ?? {})) {
+      const m = models.get(model) ?? { free: 0, paid: 0 };
+      m.free += u.free;
+      m.paid += u.paid;
+      if (u.freeUsedUp && !m.usedUpAt) m.usedUpAt = perthTime(r.at);
+      models.set(model, m);
+    }
+  const firstPaid = today.find((r) => paidRequests(r) > 0 || (r.summaries?.paid ?? 0) > 0);
+  const summariesFree = sum(today, (r) => r.summaries?.free ?? 0);
+  const summariesPaid = sum(today, (r) => r.summaries?.paid ?? 0);
+
+  const headline = todayAud > 0 ? `${aud(todayAud)} paid today` : "free only today";
+  const lines = [
+    todayAud > 0
+      ? `Paid AI today: ${aud(todayAud)} of the ${aud(DAILY_PAID_LIMIT_AUD)} daily cap (${pct(todayAud, DAILY_PAID_LIMIT_AUD)}); the free allowance first ran short at ${firstPaid ? perthTime(firstPaid.at) : "?"} AWST`
+      : "Paid AI today: A$0.00. Everything so far has run on Google's free allowance.",
+    `Month to date: ${aud(monthAud)}${firstDay ? ` over ${daysSoFar} day${daysSoFar === 1 ? "" : "s"} recorded` : ""}; at this rate about ${aud((monthAud / daysSoFar) * daysInMonth)} for the month (Google's own cap: A$100)`,
+    `Summaries written today: ${summariesFree} free, ${summariesPaid} paid (${pct(summariesFree, summariesFree + summariesPaid)} free)`,
+  ];
+  if (models.size) {
+    lines.push(`Free requests since Google's daily reset (${perthTime(nextReset(now, -1))} AWST):`);
+    for (const [model, m] of [...models].sort((a, b) => b[1].free - a[1].free)) {
+      const limit = FREE_PER_DAY(model);
+      lines.push(`${model}: ${m.free}${limit ? ` of ${limit}` : ""} free${m.paid ? `, ${m.paid} paid` : ""}${m.usedUpAt ? ` (free share used up at ${m.usedUpAt})` : ""}`);
+    }
+  } else lines.push("Free requests per model: recorded from the 11 Nov 2026 editions onwards.");
+  if (todayAud > 0.8 * DAILY_PAID_LIMIT_AUD) attention.push(`Paid AI spend reached ${aud(todayAud)} of the ${aud(DAILY_PAID_LIMIT_AUD)} daily cap.`);
+  return { lines, attention, headline };
+}
+
+/** Midnight Pacific time nearest to `now`: the last one (direction -1) or the next. */
+function nextReset(now: Date, direction: 1 | -1): Date {
+  const t = new Date(now);
+  for (let i = 0; i < 25 * 60; i++) {
+    const hm = t.toLocaleTimeString("en-GB", { timeZone: "America/Los_Angeles", hour: "2-digit", minute: "2-digit", hour12: false });
+    if (hm === "00:00") return t;
+    t.setTime(t.getTime() + direction * 60_000);
+  }
+  return t;
+}
+
+async function send(subject: string, text: string): Promise<void> {
+  if (process.env.REPORT_DRY_RUN) {
+    console.log(`${subject}\n\n${text}`);
+    return;
+  }
+  const res = await fetch(process.env.REPORT_URL!, {
+    method: "POST",
+    headers: { authorization: `Bearer ${process.env.REPORT_TOKEN}`, "content-type": "application/json" },
+    body: JSON.stringify({ subject, text }),
+  });
+  if (!res.ok) throw new Error(`Sending the report failed: ${res.status} ${await res.text()}`);
+  console.log(`Sent: ${subject}`);
+}
+
+const section = (heading: string, rows: string[]) => [heading, ...rows.map((r) => `  - ${r}`), ""];
+
+/** After each hourly update: how this run went, and today's costs. */
+async function editionEmail(all: EditionRecord[], now: Date): Promise<void> {
+  const outcome = process.env.EDITION_OUTCOME ?? "success";
+  const runUrl = process.env.RUN_URL ?? `https://github.com/${REPO}/actions/workflows/edition.yml`;
+  const last = all.at(-1);
+  // This run's record, if it got far enough to write one (the email step follows the build within the 30-minute limit).
+  const fresh = last && now.getTime() - Date.parse(last.at) <= (RUN_LIMIT_MIN + 5) * 60_000 ? last : undefined;
+  const cost = costs(all, now);
+  const attention = [...cost.attention];
+  if (outcome !== "success") attention.push(`This update ${outcome === "cancelled" ? "was cancelled" : "failed"}; the previous edition stays on the site. Log: ${runUrl}`);
+  if (fresh) {
+    if (fresh.multi > 0 && fresh.photos.multiWithPhoto < fresh.multi) attention.push(`${fresh.multi - fresh.photos.multiWithPhoto} multi-source stories have no photo.`);
+    if (fresh.feeds.failed.length > 5) attention.push(`${fresh.feeds.failed.length} feeds failed.`);
+    if (fresh.ms > 20 * 60_000) attention.push(`The update took ${minutes(fresh.ms)}; GitHub stops a run at ${RUN_LIMIT_MIN} min.`);
+  }
+
+  const lines: string[] = [];
+  if (fresh) {
+    const s = fresh.summaries;
+    lines.push(
+      ...section("This update", [
+        `Finished ${perth(fresh.at)} AWST in ${minutes(fresh.ms)} (feeds ${minutes(fresh.stageMs.feeds)}, summaries ${minutes(fresh.stageMs.summaries)}, photos ${minutes(fresh.stageMs.photos)}, pages ${minutes(fresh.stageMs.site)})`,
+        `${fresh.feeds.ok}/${fresh.feeds.total} feeds OK${fresh.feeds.failed.length ? ` (failing: ${fresh.feeds.failed.join(", ")})` : ""}`,
+        `${fresh.items} reports grouped into ${fresh.stories} stories; ${fresh.multi} covered by several outlets`,
+        ...(s ? [`Summaries: ${s.multiWritten}/${fresh.multi} multi-source stories written, plus ${s.single} single-outlet; ${s.written} new this update (${s.free} free, ${s.paid} paid${s.fromArticles ? `, ${s.fromArticles} from full articles` : ""}), ${s.failed} failed their checks`] : []),
+        `Photos: ${fresh.photos.multiWithPhoto}/${fresh.multi} multi-source stories; ${fresh.photos.event} of the subject or place, ${fresh.photos.object} of a key object, ${fresh.photos.broad} topic pictures; ${fresh.photos.shared} shared`,
+        `Paid AI this update: ${aud(paidAud(fresh))}`,
+      ]),
+    );
+  } else lines.push(...section("This update", [`No numbers were recorded (${outcome}). Log: ${runUrl}`]));
+  lines.push(...section("AI costs (aim: stay on the free allowance)", cost.lines));
+
+  const when = perthTime(fresh?.at ?? now);
+  const verdict = outcome !== "success" ? "FAILED" : attention.length ? `${attention.length} to look at` : "OK";
+  const subject = `S.M.P. News update ${when}: ${verdict}${fresh ? `, ${fresh.multi} stories` : ""}, ${cost.headline}`;
+  const text = [
+    ...(attention.length ? ["Needs attention", ...attention.map((a) => `  ! ${a}`), ""] : []),
+    ...lines,
+    `Site: ${SITE}  This run: ${runUrl}`,
+  ].join("\n");
+  await send(subject, text);
+}
+
+/** Every evening: the last 24 hours. */
+async function nightlyEmail(all: EditionRecord[], now: Date): Promise<void> {
+  const records = all.filter((r) => now.getTime() - Date.parse(r.at) <= DAY_MS);
+  const [runList, front] = await Promise.all([runs(now), frontPage()]);
+  const cost = costs(all, now);
+  const attention: string[] = [...cost.attention];
 
   // Editions
   const finished = runList.filter((r) => r.status === "completed");
@@ -119,40 +258,40 @@ async function main(): Promise<void> {
   const failedEverywhere = last ? last.feeds.failed.filter((f) => records.every((r) => r.feeds.failed.some((g) => g.split(" ")[0] === f.split(" ")[0]))) : [];
   if (records.length >= 3 && failedEverywhere.length) attention.push(`Feeds failing in every edition today: ${failedEverywhere.join(", ")}.`);
   const withSummaries = records.filter((r) => r.summaries);
-  const dayAud = Math.max(0, ...withSummaries.map((r) => r.summaries!.dayAud));
-  const paidAud = sum(withSummaries, (r) => r.summaries!.paidAud);
-  if (dayAud > 0.8 * PAID_CAP_AUD) attention.push(`Paid AI spend reached A$${dayAud.toFixed(2)} of the A$${PAID_CAP_AUD.toFixed(2)} daily cap.`);
   const failedChecks = sum(withSummaries, (r) => r.summaries!.failed);
   const written = sum(withSummaries, (r) => r.summaries!.written);
   if (written >= 10 && failedChecks > written / 4) attention.push(`${failedChecks} summaries failed their checks against ${written} written: look at the "Summary failed checks" lines in the logs.`);
 
   const lines: string[] = [];
-  const add = (heading: string, rows: string[]) => lines.push(heading, ...rows.map((r) => `  - ${r}`), "");
-  add("Editions (last 24 hours)", [
-    `${finished.length - failedRuns.length} succeeded, ${failedRuns.length} failed, ${runList.length - finished.length} still running (${scheduled.length} from the scheduler, about ${EXPECTED_RUNS} expected)`,
-    durations.length ? `Typical run ${minutes(durations.sort((a, b) => a - b)[Math.floor(durations.length / 2)]!)}, slowest ${minutes(longest)} (limit ${RUN_LIMIT_MIN} min)` : "No finished runs",
-    ...(last ? [`Slowest stages last run: feeds ${minutes(last.stageMs.feeds)}, summaries ${minutes(last.stageMs.summaries)}, photos ${minutes(last.stageMs.photos)}, site ${minutes(last.stageMs.site)}`] : []),
-  ]);
-  add("Live site", [
-    `Front page: HTTP ${front.status}; edition from ${front.editionAt ? perth(front.editionAt) : "unknown"} AWST`,
-    `${front.cards} story cards, ${front.photos} different photos, ${front.artwork} with section artwork, ${front.sharedPhotos.length} photos repeated`,
-    `Top stories with a written summary: ${front.topChecked - front.topWithoutSummary} of ${front.topChecked}`,
-  ]);
-  if (last) {
-    add("Latest edition", [
-      `${last.feeds.ok}/${last.feeds.total} feeds OK${last.feeds.failed.length ? ` (failing: ${last.feeds.failed.join(", ")})` : ""}`,
-      `${last.items} reports grouped into ${last.stories} stories, ${last.multi} covered by several outlets`,
-      `Photos for ${last.photos.total} stories: ${last.photos.event} of the subject or place (${pct(last.photos.event, last.photos.total)}), ${last.photos.object} of a key object (${pct(last.photos.object, last.photos.total)}), ${last.photos.broad} topic pictures (${pct(last.photos.broad, last.photos.total)}); ${last.photos.shared} had to share; ${last.photos.elsewhere} refused as the wrong country`,
-      ...(last.summaries ? [`Summaries: ${last.summaries.multiWritten}/${last.multi} multi-source stories written, plus ${last.summaries.single} single-outlet`] : []),
-    ]);
-  }
-  add("AI summaries (last 24 hours)", withSummaries.length
-    ? [`${written} new (${sum(withSummaries, (r) => r.summaries!.free)} free, ${sum(withSummaries, (r) => r.summaries!.paid)} paid, ${sum(withSummaries, (r) => r.summaries!.fromArticles)} from full articles); ${failedChecks} failed their checks`, `Paid spend: A$${paidAud.toFixed(2)} (today so far A$${dayAud.toFixed(2)} of the A$${PAID_CAP_AUD.toFixed(2)} cap)`]
-    : ["No edition numbers recorded yet (the history starts with the 11 Nov 2026 editions)."]);
-  add("Not measured", ["Visitor numbers: the site has no analytics or tracking by design."]);
+  lines.push(
+    ...section("Editions (last 24 hours)", [
+      `${finished.length - failedRuns.length} succeeded, ${failedRuns.length} failed, ${runList.length - finished.length} still running (${scheduled.length} from the scheduler, about ${EXPECTED_RUNS} expected)`,
+      durations.length ? `Typical run ${minutes(durations.sort((a, b) => a - b)[Math.floor(durations.length / 2)]!)}, slowest ${minutes(longest)} (limit ${RUN_LIMIT_MIN} min)` : "No finished runs",
+      ...(last ? [`Stages last run: feeds ${minutes(last.stageMs.feeds)}, summaries ${minutes(last.stageMs.summaries)}, photos ${minutes(last.stageMs.photos)}, site ${minutes(last.stageMs.site)}`] : []),
+    ]),
+    ...section("Live site", [
+      `Front page: HTTP ${front.status}; edition from ${front.editionAt ? perth(front.editionAt) : "unknown"} AWST`,
+      `${front.cards} story cards, ${front.photos} different photos, ${front.artwork} with section artwork, ${front.sharedPhotos.length} photos repeated`,
+      `Top stories with a written summary: ${front.topChecked - front.topWithoutSummary} of ${front.topChecked}`,
+    ]),
+  );
+  if (last)
+    lines.push(
+      ...section("Latest edition", [
+        `${last.feeds.ok}/${last.feeds.total} feeds OK${last.feeds.failed.length ? ` (failing: ${last.feeds.failed.join(", ")})` : ""}`,
+        `${last.items} reports grouped into ${last.stories} stories, ${last.multi} covered by several outlets`,
+        `Photos for ${last.photos.total} stories: ${last.photos.event} of the subject or place (${pct(last.photos.event, last.photos.total)}), ${last.photos.object} of a key object (${pct(last.photos.object, last.photos.total)}), ${last.photos.broad} topic pictures (${pct(last.photos.broad, last.photos.total)}); ${last.photos.shared} had to share; ${last.photos.elsewhere} refused as the wrong place`,
+        ...(last.summaries ? [`Summaries: ${last.summaries.multiWritten}/${last.multi} multi-source stories written, plus ${last.summaries.single} single-outlet`] : []),
+      ]),
+    );
+  lines.push(
+    ...section("AI summaries (last 24 hours)", withSummaries.length ? [`${written} new (${sum(withSummaries, (r) => r.summaries!.free)} free, ${sum(withSummaries, (r) => r.summaries!.paid)} paid, ${sum(withSummaries, (r) => r.summaries!.fromArticles)} from full articles); ${failedChecks} failed their checks`] : ["No edition numbers recorded yet."]),
+    ...section("AI costs (aim: stay on the free allowance)", cost.lines),
+    ...section("Not measured", ["Visitor numbers: the site has no analytics or tracking by design."]),
+  );
 
   const verdict = attention.length ? `${attention.length} thing${attention.length === 1 ? "" : "s"} to look at` : "all good";
-  const subject = `S.M.P. News nightly report, ${new Date(now).toLocaleDateString("en-AU", { timeZone: "Australia/Perth", weekday: "short", day: "numeric", month: "short" })}: ${verdict}`;
+  const subject = `S.M.P. News nightly report, ${now.toLocaleDateString("en-AU", { timeZone: "Australia/Perth", weekday: "short", day: "numeric", month: "short" })}: ${verdict}`;
   const text = [
     `S.M.P. News: the last 24 hours to ${perth(now)} AWST.`,
     "",
@@ -160,18 +299,14 @@ async function main(): Promise<void> {
     ...lines,
     `Site: ${SITE}  Runs: https://github.com/${REPO}/actions/workflows/edition.yml`,
   ].join("\n");
+  await send(subject, text);
+}
 
-  if (process.env.REPORT_DRY_RUN) {
-    console.log(`${subject}\n\n${text}`);
-    return;
-  }
-  const res = await fetch(process.env.REPORT_URL!, {
-    method: "POST",
-    headers: { authorization: `Bearer ${process.env.REPORT_TOKEN}`, "content-type": "application/json" },
-    body: JSON.stringify({ subject, text }),
-  });
-  if (!res.ok) throw new Error(`Sending the report failed: ${res.status} ${await res.text()}`);
-  console.log(`Sent: ${subject}`);
+async function main(): Promise<void> {
+  const now = new Date();
+  const all = await history();
+  if (process.env.REPORT_KIND === "edition") await editionEmail(all, now);
+  else await nightlyEmail(all, now);
 }
 
 main().catch((err: unknown) => {

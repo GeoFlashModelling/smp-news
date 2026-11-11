@@ -10,6 +10,18 @@ const RATE_LIMIT_WAIT_MS = 30_000;
 /** The model's allowance for today is used up; waiting won't help, so callers move to another model. */
 export class GeminiDailyQuotaError extends Error {}
 
+export interface ModelUsage {
+  free: number;
+  paid: number;
+  /** The free daily allowance ran out during this edition. */
+  freeUsedUp?: boolean;
+  /** Billed tokens on the paid key: input, then output including thinking. */
+  paidTokens?: [number, number];
+}
+
+/** Requests sent this edition, per model and key (Google counts every request against the free daily allowance). */
+export const geminiUsage: Record<string, ModelUsage> = {};
+
 export interface GeminiOptions {
   /** Environment variable holding the key: the free GEMINI_API_KEY unless a caller asks for the paid one. */
   keyEnv?: string;
@@ -32,8 +44,12 @@ export async function geminiJson(model: string, system: string, user: string, sc
   const key = process.env[keyEnv];
   if (!key) throw new Error(`${keyEnv} is not set`);
   const started = Date.now();
-  const request = () =>
-    fetch(`${API}/${encodeURIComponent(model)}:generateContent`, {
+  const tally = (geminiUsage[model] ??= { free: 0, paid: 0 });
+  const paid = keyEnv !== "GEMINI_API_KEY";
+  const request = () => {
+    if (paid) tally.paid++;
+    else tally.free++;
+    return fetch(`${API}/${encodeURIComponent(model)}:generateContent`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-goog-api-key": key },
       signal: AbortSignal.timeout(options.timeoutMs ?? TIMEOUT_MS),
@@ -49,10 +65,14 @@ export async function geminiJson(model: string, system: string, user: string, sc
         },
       }),
     });
+  };
   const busy = (status: number) => status === 429 || status === 503;
   let res = await request();
   // A used-up daily quota won't come back by waiting.
-  if (res.status === 429 && /PerDay/i.test(await res.clone().text())) throw new GeminiDailyQuotaError(`Gemini daily quota for ${model} used up (429)`);
+  if (res.status === 429 && /PerDay/i.test(await res.clone().text())) {
+    if (!paid) tally.freeUsedUp = true;
+    throw new GeminiDailyQuotaError(`Gemini daily quota for ${model} used up (429)`);
+  }
   for (let retry = 0; busy(res.status) && retry < (options.retries ?? RATE_LIMIT_RETRIES); retry++) {
     await new Promise((r) => setTimeout(r, RATE_LIMIT_WAIT_MS));
     res = await request();
@@ -73,6 +93,12 @@ export async function geminiJson(model: string, system: string, user: string, sc
   }
   const usage = body.usageMetadata;
   // Thinking is billed as output.
+  const promptTokens = usage?.promptTokenCount ?? 0;
+  const outputTokens = (usage?.candidatesTokenCount ?? 0) + (usage?.thoughtsTokenCount ?? 0);
+  if (paid) {
+    const [input, output] = tally.paidTokens ?? [0, 0];
+    tally.paidTokens = [input + promptTokens, output + outputTokens];
+  }
   const finish = body.promptFeedback?.blockReason ?? body.candidates?.[0]?.finishReason;
-  return { json, raw, ms: Date.now() - started, promptTokens: usage?.promptTokenCount ?? 0, outputTokens: (usage?.candidatesTokenCount ?? 0) + (usage?.thoughtsTokenCount ?? 0), ...(finish ? { finish } : {}) };
+  return { json, raw, ms: Date.now() - started, promptTokens, outputTokens, ...(finish ? { finish } : {}) };
 }

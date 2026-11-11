@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+import type { ModelUsage } from "../ai/gemini.js";
 
 /** One edition's numbers, for the nightly report (scripts/report.ts). Counts only: no story text, no keys. */
 export interface EditionRecord {
@@ -13,10 +14,13 @@ export interface EditionRecord {
   multi: number;
   photos: { total: number; event: number; object: number; broad: number; shared: number; elsewhere: number; multiWithPhoto: number };
   summaries?: { multiWritten: number; single: number; written: number; free: number; paid: number; fromArticles: number; failed: number; paidAud: number; dayAud: number };
+  /** Gemini requests per model, free and paid (summaries, photo ideas, quiz, facts). */
+  ai?: Record<string, ModelUsage>;
   files: number;
 }
 
-const KEEP_DAYS = 4;
+/** Long enough for a month-to-date spend in the edition emails. */
+const KEEP_DAYS = 35;
 
 /** Adds this edition to the history file GitHub Actions carries between runs, dropping entries older than a few days. */
 export async function recordEdition(file: string, record: EditionRecord): Promise<void> {

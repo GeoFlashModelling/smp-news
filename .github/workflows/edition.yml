@@ -57,7 +57,8 @@ jobs:
           path: .cache/history.json
           key: history-${{ github.run_id }}
           restore-keys: history-
-      - run: npm run edition
+      - id: edition
+        run: npm run edition
         env:
           # Free key: photo search words, and summaries when SUMMARIES is "on".
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -70,6 +71,18 @@ jobs:
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist
+      # The owner's email after each update (scripts/report.ts): how it went and today's AI costs. Code pushes are
+      # left out, and a failed email never stops the edition being published.
+      - name: Email this update
+        if: always() && github.event_name != 'push'
+        continue-on-error: true
+        run: npx tsx scripts/report.ts
+        env:
+          REPORT_KIND: edition
+          EDITION_OUTCOME: ${{ steps.edition.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPORT_URL: ${{ vars.REPORT_URL }}
+          REPORT_TOKEN: ${{ secrets.REPORT_TOKEN }}
 
   deploy:
     needs: build

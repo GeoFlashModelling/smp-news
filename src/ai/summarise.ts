@@ -82,16 +82,16 @@ const COOL_MS = 60_000;
 const PAID_GAP_MS = 400;
 
 /** Paid prices in US$ per million tokens [input, output]; a model missing here is never used with the paid key. */
-const PAID_PRICES: Record<string, [number, number]> = {
+export const PAID_PRICES: Record<string, [number, number]> = {
   "gemini-3.1-flash-lite": [0.25, 1.5],
   "gemini-3.5-flash-lite": [0.3, 2.5],
   "gemini-3.8-flash": [0.75, 3.75],
 };
 const DEFAULT_PAID_MODEL = "gemini-3.1-flash-lite";
 /** Deliberately high, so the limits below err on the safe side when the exchange rate moves. */
-const AUD_PER_USD = 1.6;
+export const AUD_PER_USD = 1.6;
 /** About A$100 a month. Google's own A$100 monthly cap on the paid project is the backstop. */
-const DAILY_PAID_LIMIT_AUD = 3.2;
+export const DAILY_PAID_LIMIT_AUD = 3.2;
 /** A single edition may use at most an eighth of the day's limit, so even a lost spend record can't run away. */
 const RUN_PAID_LIMIT_AUD = DAILY_PAID_LIMIT_AUD / 8;
 const MAX_OUTPUT_TOKENS = 4096;

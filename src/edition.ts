@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { gunzipSync } from "node:zlib";
+import { geminiUsage } from "./ai/gemini.js";
 import { summarisable, summariseStories } from "./ai/summarise.js";
 import { loadSources } from "./config/sources.js";
 import { applyBlocklist, loadBlocklist } from "./lib/blocklist.js";
@@ -80,6 +81,7 @@ async function main(): Promise<void> {
     multi: multi.length,
     photos: { total: photos.size, ...counts, multiWithPhoto: multi.filter((s) => s.photo).length },
     summaries,
+    ai: geminiUsage,
     files,
   });
   if (failed.length > 0) console.log(`Failed feeds: ${failed.map((f) => `${f.source} (${f.problem})`).join(", ")}`);
