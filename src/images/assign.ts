@@ -5,7 +5,7 @@ import { imageCandidates, placeCandidates } from "./entities.js";
 import { homeGround, venueMentioned } from "./grounds.js";
 import { confirmedPerson, deceasedName, isDeathStory, MEDICAL, medicalFile, photoIdeas, standIns, topicFiles, TOPICS } from "./ideas.js";
 import { searchPhotos, type SearchBudget } from "./search.js";
-import { findFiles, findPhotos, type Photo } from "./wikimedia.js";
+import { findFiles, findPhotos, notAPhotoFile, type Photo } from "./wikimedia.js";
 
 const COMMONS_SEARCHES_PER_EDITION = 300;
 const OPENVERSE_SEARCHES_PER_EDITION = 15;
@@ -226,7 +226,8 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     // Good photos another story already shows, with their tier: other photos of the same thing are looked for.
     const taken: [Photo, keyof PhotoCounts][] = [];
     const fresh = (p: Photo | null | undefined): Photo | null => {
-      if (!p) return null;
+      // Cached lookups predate some filters, so maps are checked again here.
+      if (!p || notAPhotoFile(p.src)) return null;
       if (p.width < MIN_SHARP_WIDTH) {
         blurry ??= [p, tier];
         return null;
