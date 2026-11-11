@@ -9,11 +9,16 @@ import type { SourceBlock } from "./prompt.js";
  * since-suppressed name unlikely. In sexual-offence stories only names in the outlets' own headlines count: victims
  * may never be identified, and outlets don't put them in headlines.
  *
- * Never named: anyone in a story about a child or young person, a suppression order, someone who "cannot be named",
- * a children's court, or suicide; and anyone the reports call a victim or complainant in a sensitive story.
+ * Never named: anyone in a story mentioning a suppression order, someone who "cannot be named", a children's or youth
+ * court, young offenders, or suicide; anyone in a story where a child is involved together with a family relationship
+ * (naming an adult would identify the child); and anyone the reports call a victim or complainant in a sensitive story.
+ * Where a child or teenager is involved otherwise (an adult accused of grooming teenagers), a name counts only when at
+ * least three outlets put it in their own headlines: a young accused is never named in mainstream headlines.
  */
 const NEVER_NAME =
-  /\b(suppression orders?|suppressed|cannot be (legally )?(named|identified)|can't be (legally )?(named|identified)|not be named|children's court|youth (court|detention|justice)|juveniles?|minors?|young offenders?|schoolboy|schoolgirl|teen(ager)?s?|([1-9]|1[0-7])-year-old|suicid\w*|self-harm|took (his|her|their) own life)\b/i;
+  /\b(suppression orders?|suppressed|cannot be (legally )?(named|identified)|can't be (legally )?(named|identified)|not be named|children's court|youth (court|detention|justice)|juveniles?|young offenders?|suicid\w*|self-harm|took (his|her|their) own life)\b/i;
+const YOUNG = /\b(child(ren)?|kids?|minors?|schoolboy|schoolgirl|schoolchildren|students?|teen(ager)?s?|girls?|boys?|([1-9]|1[0-7])-year-olds?|underage)\b/i;
+const FAMILY = /\b(daughters?|sons?|step\w+|niece|nephew|grand(daughter|son|child\w*)|father|mother|dad|mum|uncle|aunt|cousin|brother|sister|relatives?|family member)\b/i;
 const VICTIM_BEFORE = /\b(victims?|complainants?|survivors?|accusers?|alleged victims?|the woman|the girl|the boy)\b[^.]{0,25}$/i;
 
 /** Capitalised words that start names of places and organisations, or common words, rather than people. */
@@ -42,24 +47,30 @@ function candidates(text: string): Map<string, string> {
   return found;
 }
 
-/** Whether anyone in this story may be named at all. */
-export function mayName(items: Item[]): boolean {
-  return !items.some((i) => NEVER_NAME.test(`${i.title} ${i.summary}`));
+/** Whether anyone in this story may be named: "no", "headlines" (three outlets' headlines, a child involved) or "yes". */
+export function mayName(items: Item[]): "no" | "headlines" | "yes" {
+  const text = items.map((i) => `${i.title} ${i.summary}`);
+  if (text.some((t) => NEVER_NAME.test(t))) return "no";
+  if (!text.some((t) => YOUNG.test(t))) return "yes";
+  return text.some((t) => FAMILY.test(t)) ? "no" : "headlines";
 }
 
-/** Surname → full name, for people at least two independent outlets name (careful and brief stories only). */
+/** Surname → full name, for people several independent outlets name (careful and brief stories only). */
 export function namedByOutlets(blocks: SourceBlock[], mode: LegalMode): Map<string, string> {
   const named = new Map<string, string>();
-  if (mode === "normal" || !mayName(blocks.map((b) => b.item))) return named;
+  const allowed = mode === "normal" ? "no" : mayName(blocks.map((b) => b.item));
+  if (allowed === "no") return named;
+  const titlesOnly = mode === "brief" || allowed === "headlines";
+  const needed = allowed === "headlines" ? 3 : 2;
   const owners = new Map<string, Set<string>>();
   const full = new Map<string, string>();
   for (const b of blocks) {
-    const text = mode === "brief" ? b.item.title : `${b.item.title}. ${b.text}`;
+    const text = titlesOnly ? b.item.title : `${b.item.title}. ${b.text}`;
     for (const [surname, name] of candidates(text)) {
       owners.set(surname, (owners.get(surname) ?? new Set()).add(b.item.source.owner_group));
       if (!full.has(surname) || name.length < full.get(surname)!.length) full.set(surname, name);
     }
   }
-  for (const [surname, groups] of owners) if (groups.size >= 2) named.set(surname, full.get(surname)!);
+  for (const [surname, groups] of owners) if (groups.size >= needed) named.set(surname, full.get(surname)!);
   return named;
 }
