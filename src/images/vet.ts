@@ -40,7 +40,7 @@ Answer fits false when the photo shows:
 - a town or city that is only where the researchers, company or people are based, not what the story is about (a city skyline on a story about a distant galaxy);
 - something unrelated to the story's subject (a touch screen on an inquiry into the building industry);
 - anything that could mislead a reader about who or what was involved.
-When the photo plainly relates to the story's subject or topic, answer true even if a better photo might exist.
+Photos of the people involved or of the event are never used, so never refuse a photo for not showing the person, the suspect, the match or the event itself: a place or topic stands in for them (a parliament for a candidate dropped over a post, a city where an arrest happened). When the photo plainly relates to the story's subject, place or topic, answer true even if a better photo might exist.
 reason: up to 8 words.`;
 
 export interface VetItem {
@@ -48,7 +48,9 @@ export interface VetItem {
   photo: Photo;
 }
 
-const verdictKey = (id: string, photo: Photo) => `vet:${id}|${photo.src.split("?")[0]}`;
+/** Bump when the instructions change, so earlier verdicts are asked again (the rest of the image cache stays). */
+const VET_VERSION = 2;
+const verdictKey = (id: string, photo: Photo) => `vet${VET_VERSION}:${id}|${photo.src.split("?")[0]}`;
 
 /** The cached verdict on a story's photo: true suits, false refused, undefined not yet asked. */
 export function verdict(cache: ImageCache, id: string, photo: Photo): boolean | undefined {
