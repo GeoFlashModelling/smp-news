@@ -152,7 +152,10 @@ interface Remembered {
   photo: Photo;
   tier: keyof PhotoCounts;
   death: boolean;
+  rules?: number;
 }
+/** Bump when the order photos are chosen in changes, so every story chooses once more (searches stay cached). */
+const PICK_RULES = 2;
 
 /** A photo's subject as a search for other photos of the same thing: "Parliament House, Canberra" → "Parliament House Canberra". */
 function sameThing(subject: string): string {
@@ -293,7 +296,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       counts[chosenTier]++;
       if (!photo) counts.shared++;
       // A good photo of its own is kept from now on; a shared, blurry or topic picture is looked at again next hour.
-      if (photo && chosenTier !== "broad") cache.set(`chosen:${story.id}`, { photo: chosen, tier: chosenTier, death: death.has(story.id) } satisfies Remembered);
+      if (photo && chosenTier !== "broad") cache.set(`chosen:${story.id}`, { photo: chosen, tier: chosenTier, death: death.has(story.id), rules: PICK_RULES } satisfies Remembered);
       return true;
     };
     if (death.has(story.id)) {
@@ -321,6 +324,13 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       photo = (await wider(photo)) ?? (ofPlace ? eventList.slice(eventList.indexOf(photo) + 1).find((p): p is Photo => Boolean(p && fits(p) && fresh(p))) : undefined) ?? photo;
     }
     if (!photo) photo = await alternative(["event"], 2);
+    // Allegation stories: a hand-picked topic photo (the parliament, a courthouse) before searched objects, which can
+    // come from the allegation itself and look like the scene (owner, 11 Nov 2026: a basketball court on a candidate
+    // dropped over remarks to a basketballer).
+    if (!photo && legal.has(story.id)) {
+      tier = "broad";
+      photo = first(topicFiles(story).map((f) => here(library.get(f))));
+    }
     if (!photo) {
       tier = "object";
       photo = await firstSearch(idea?.searches ?? []);
@@ -352,7 +362,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
   for (const story of stories) {
     const memory = cache.get<Remembered>(`chosen:${story.id}`);
     const p = memory?.photo;
-    if (!p || memory.death !== death.has(story.id) || used.has(fileOf(p)) || notAPhotoFile(p.src) || p.width < MIN_SHARP_WIDTH) continue;
+    if (!p || memory.rules !== PICK_RULES || memory.death !== death.has(story.id) || used.has(fileOf(p)) || notAPhotoFile(p.src) || p.width < MIN_SHARP_WIDTH) continue;
     if ((story.id === leadId && p.large === undefined) || shotElsewhere(p, story)) continue;
     photos.set(story.id, p);
     used.add(fileOf(p));
