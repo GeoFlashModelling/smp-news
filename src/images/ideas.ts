@@ -52,7 +52,7 @@ const SCHEMA = {
 
 const SYSTEM = `You choose pictures for an Australian news website. Pictures are free-licensed file photos from Wikipedia and Wikimedia Commons, never photos of the event itself.
 
-Pictures are chosen most specific first: who or where the story is about, then a key object it discusses, then a broad picture of its topic. For each story you get its id, whether it is a court or crime story ("legal"), its headlines and the start of a report. Return for each story:
+Pictures are chosen most specific first: who or where the story is about, then a key object it discusses, then a broad picture of its topic. For each story you get its id, its section, whether it is a court or crime story ("legal"), its headlines and the start of up to two reports. First work out what the story is about as a whole, then choose pictures for that. Return for each story:
 - subject: the exact English Wikipedia article title of the one well-known person, organisation, team, product or place the story is mainly about, when a photo of it would suit the story. Examples: "Pope Leo XIV", "Real Madrid CF", "Australia national rugby union team", "Tesla Cybertruck", "Victoria Barracks, Sydney". Use "" when there is no single clear subject, when the subject is a private individual, or when legal is true.
 - venue: the exact English Wikipedia article title of the specific place where the story happens: the ground, stadium, course or circuit of a match or race; the venue of a concert, festival or show; the building, landmark, mine, port, hospital, court or other site at the centre of any other story. Examples: "Sydney Cricket Ground", "Perth Stadium", "Flemington Racecourse", "Royal Perth Hospital", "Supreme Court of Victoria", "Port Hedland", "Main Square, Kraków". Use the place the headlines or report name. For a sports match where they name none, use the home ground of the home (first-named) team when it is well known. Otherwise use "".
 - searches: 1 to 3 short image-search phrases (2 to 4 words, no punctuation), most specific first, for the key object or setting the report discusses: "Hawaiian pizza", "open pit gold mine Western Australia", "lithium battery cells", "Boeing 737 MAX", "Walhalla Victoria", "Melbourne skyline".
@@ -242,9 +242,10 @@ export async function photoIdeas(stories: Story[], legal: Set<string>, cache: Im
       const lines = batch.map((s, n) =>
         JSON.stringify({
           id: String(n + 1),
+          section: s.section,
           legal: legal.has(s.id),
           headlines: [s.headline.title, ...s.items.filter((it) => it !== s.headline).slice(0, 2).map((it) => it.title)],
-          report: tidy(s.items.find((it) => it.summary)?.summary, 300),
+          reports: s.items.filter((it) => it.summary).slice(0, 2).map((it) => tidy(it.summary, 250)),
         }),
       );
       try {

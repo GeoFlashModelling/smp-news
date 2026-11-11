@@ -5,6 +5,7 @@ import { imageCandidates, placeCandidates } from "./entities.js";
 import { homeGround, venueMentioned } from "./grounds.js";
 import { confirmedPerson, deceasedName, isDeathStory, MEDICAL, medicalFile, photoIdeas, standIns, topicFiles, TOPICS } from "./ideas.js";
 import { searchPhotos, type SearchBudget } from "./search.js";
+import { verdict, vetPhotos, VET_REQUESTS } from "./vet.js";
 import { findFiles, findPhotos, notAPhotoFile, type Photo } from "./wikimedia.js";
 
 const COMMONS_SEARCHES_PER_EDITION = 300;
@@ -145,7 +146,11 @@ export interface PhotoCounts {
   shared: number;
   /** Photos refused for showing somewhere the story isn't about. */
   elsewhere: number;
+  /** Photos the model judged off the point of their story (vet.ts). */
+  offPoint: number;
 }
+/** Rounds of checking chosen photos and choosing again for the refused ones. */
+const VET_ROUNDS = 3;
 
 /** The photo a story was given, kept while it still passes the checks. */
 interface Remembered {
@@ -221,7 +226,8 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
   const library = await findFiles(new Map([...TOPICS, ...MEDICAL].map((t) => [t.file, t.caption])), cache);
 
   const photos = new Map<string, Photo>();
-  const counts: PhotoCounts = { event: 0, object: 0, broad: 0, shared: 0, elsewhere: 0 };
+  const counts: PhotoCounts = { event: 0, object: 0, broad: 0, shared: 0, elsewhere: 0, offPoint: 0 };
+  const chosenOf = new Map<string, { photo: Photo; tier: keyof PhotoCounts; shared: boolean }>();
   const budget: SearchBudget = { commons: COMMONS_SEARCHES_PER_EDITION, openverse: OPENVERSE_SEARCHES_PER_EDITION, until: Date.now() + SEARCH_MINUTES * 60_000 };
   // Stories are picked in order of prominence, so the more prominent story keeps a photo two stories could share.
   const used = new Set<string>();
@@ -238,7 +244,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     const taken: [Photo, keyof PhotoCounts][] = [];
     const fresh = (p: Photo | null | undefined): Photo | null => {
       // Cached lookups predate some filters, so maps are checked again here.
-      if (!p || notAPhotoFile(p.src)) return null;
+      if (!p || notAPhotoFile(p.src) || verdict(cache, story.id, p) === false) return null;
       if (p.width < MIN_SHARP_WIDTH) {
         blurry ??= [p, tier];
         return null;
@@ -293,8 +299,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       if (!chosen) return false;
       photos.set(story.id, chosen);
       used.add(fileOf(chosen));
-      counts[chosenTier]++;
-      if (!photo) counts.shared++;
+      chosenOf.set(story.id, { photo: chosen, tier: chosenTier, shared: !photo });
       // A good photo of its own is kept from now on; a shared, blurry or topic picture is looked at again next hour.
       if (photo && chosenTier !== "broad") cache.set(`chosen:${story.id}`, { photo: chosen, tier: chosenTier, death: death.has(story.id), rules: PICK_RULES } satisfies Remembered);
       return true;
@@ -363,14 +368,36 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     const memory = cache.get<Remembered>(`chosen:${story.id}`);
     const p = memory?.photo;
     if (!p || memory.rules !== PICK_RULES || memory.death !== death.has(story.id) || used.has(fileOf(p)) || notAPhotoFile(p.src) || p.width < MIN_SHARP_WIDTH) continue;
-    if ((story.id === leadId && p.large === undefined) || shotElsewhere(p, story)) continue;
+    if ((story.id === leadId && p.large === undefined) || shotElsewhere(p, story) || verdict(cache, story.id, p) === false) continue;
     photos.set(story.id, p);
     used.add(fileOf(p));
-    counts[memory.tier]++;
+    chosenOf.set(story.id, { photo: p, tier: memory.tier, shared: false });
     cache.set(`chosen:${story.id}`, memory);
     settled.add(story.id);
   }
   for (const story of stories) if (!settled.has(story.id)) await pick(story);
+
+  // Every chosen photo is read against its story; refused ones go and the story chooses again. Death stories keep
+  // their medical or confirmed photo.
+  const vetBudget = { requests: VET_REQUESTS };
+  for (let round = 0; round < VET_ROUNDS; round++) {
+    const items = stories.filter((s) => !death.has(s.id) && chosenOf.has(s.id)).map((s) => ({ story: s, photo: chosenOf.get(s.id)!.photo }));
+    counts.offPoint += await vetPhotos(items, cache, vetBudget);
+    const redo = items.filter((i) => verdict(cache, i.story.id, i.photo) === false).map((i) => i.story);
+    if (!redo.length) break;
+    for (const s of redo) {
+      const file = fileOf(chosenOf.get(s.id)!.photo);
+      chosenOf.delete(s.id);
+      photos.delete(s.id);
+      cache.delete(`chosen:${s.id}`);
+      if (![...chosenOf.values()].some((c) => fileOf(c.photo) === file)) used.delete(file);
+    }
+    for (const s of redo) await pick(s);
+  }
+  for (const c of chosenOf.values()) {
+    counts[c.tier]++;
+    if (c.shared) counts.shared++;
+  }
 
   await cache.save();
   return { photos, counts };

@@ -290,7 +290,7 @@ async function nightlyEmail(all: EditionRecord[], now: Date): Promise<void> {
       ...section("Latest edition", [
         `${last.feeds.ok}/${last.feeds.total} feeds OK${last.feeds.failed.length ? ` (failing: ${last.feeds.failed.join(", ")})` : ""}`,
         `${last.items} reports grouped into ${last.stories} stories, ${last.multi} covered by several outlets`,
-        `Photos for ${last.photos.total} stories: ${last.photos.event} of the subject or place (${pct(last.photos.event, last.photos.total)}), ${last.photos.object} of a key object (${pct(last.photos.object, last.photos.total)}), ${last.photos.broad} topic pictures (${pct(last.photos.broad, last.photos.total)}); ${last.photos.shared} had to share; ${last.photos.elsewhere} refused as the wrong place`,
+        `Photos for ${last.photos.total} stories: ${last.photos.event} of the subject or place (${pct(last.photos.event, last.photos.total)}), ${last.photos.object} of a key object (${pct(last.photos.object, last.photos.total)}), ${last.photos.broad} topic pictures (${pct(last.photos.broad, last.photos.total)}); ${last.photos.shared} had to share; ${last.photos.elsewhere} refused as the wrong place${last.photos.offPoint ? `, ${last.photos.offPoint} as off the point` : ""}`,
         ...(last.summaries ? [`Summaries: ${last.summaries.multiWritten}/${last.multi} multi-source stories written, plus ${last.summaries.single} single-outlet`] : []),
       ]),
     );

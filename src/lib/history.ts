@@ -12,7 +12,7 @@ export interface EditionRecord {
   items: number;
   stories: number;
   multi: number;
-  photos: { total: number; event: number; object: number; broad: number; shared: number; elsewhere: number; multiWithPhoto: number };
+  photos: { total: number; event: number; object: number; broad: number; shared: number; elsewhere: number; offPoint?: number; multiWithPhoto: number };
   summaries?: { multiWritten: number; single: number; written: number; free: number; paid: number; fromArticles: number; failed: number; paidAud: number; dayAud: number; waiting?: number; oldestWaitHours?: number };
   /** Gemini requests per model, free and paid (summaries, photo ideas, quiz, facts). */
   ai?: Record<string, ModelUsage>;
