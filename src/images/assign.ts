@@ -299,7 +299,10 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     const venue = place(venues.get(venueOf.get(story.id) ?? ""));
     const subjectList = [idea?.subject && !legal.has(story.id) ? named.get(idea.subject) : null, ...(subjectsOf.get(story.id) ?? []).map((n) => subjects.get(n))];
     const placeList = (placesOf.get(story.id) ?? []).map((n) => place(places.get(n)));
-    const eventList = [...(story.section === "sport" ? [venue, ...subjectList] : [...subjectList, venue]), ...placeList];
+    // In science and tech a town in the reports is usually just where the researchers or company are (a galaxy study
+    // from Salt Lake City), so the object the story is about comes before the town.
+    const townsLast = story.section === "science-tech" || story.section === "tech";
+    const eventList = [...(story.section === "sport" ? [venue, ...subjectList] : [...subjectList, venue]), ...(townsLast ? [] : placeList)];
     let photo = first(eventList);
     if (photo && !fits(photo)) {
       // Portrait or too small for the lead: the same subject in landscape; for a place, another place the reports name.
@@ -310,6 +313,10 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     if (!photo) {
       tier = "object";
       photo = await firstSearch(idea?.searches ?? []);
+    }
+    if (!photo && townsLast) {
+      tier = "event";
+      photo = first(placeList);
     }
     if (!photo) {
       tier = "broad";

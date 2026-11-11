@@ -41,7 +41,7 @@ const TIMEOUT_MS = 20_000;
 /** Only licences that allow reuse with credit. Anything else (fair use, "all rights reserved", NC/ND) is refused. */
 export const FREE_LICENCE = /^(CC0|CC BY(-SA)? \d(\.\d)?( \w+)?|Public domain|PD\b.*|Attribution|GFDL.*|No restrictions)$/i;
 /** Lead images and search results that aren't news pictures. */
-export const NOT_A_PHOTO = /\b(logo|flag|coat[_ ]of[_ ]arms|seal[_ ]of|emblem|map|locator|location|signature|diagram|chart|icon|wordmark|banner|svg)\b/i;
+export const NOT_A_PHOTO = /\b(logo|flag|coat[_ ]of[_ ]arms|seal[_ ]of|emblem|map|locator|location|projection|hemisphere|LamAz|orthographic|signature|diagram|chart|icon|wordmark|banner|svg)\b/i;
 
 const SMALL_WORDS = new Set(["of", "in", "the", "and", "de", "to", "for", "a", "an", "on", "at", "du", "la", "le", "van", "von", "da", "del", "y", "und", "bin", "al"]);
 
@@ -149,7 +149,8 @@ async function lookupBatch(names: string[], mode: LookupMode): Promise<Map<strin
   for (const p of pages.query?.pages ?? []) {
     if (p.missing || p.pageprops?.disambiguation !== undefined || !p.pageimage) continue;
     description.set(p.title, p.description ?? "");
-    if (NOT_A_PHOTO.test(p.pageimage.replace(/_/g, " "))) continue;
+    // Run-together place names ("ChinaDaqingLindian.png") are locator maps.
+    if (NOT_A_PHOTO.test(p.pageimage.replace(/_/g, " ")) || /^(\p{Lu}\p{Ll}+){3,}\.(png|gif)$/u.test(p.pageimage)) continue;
     fileOf.set(p.title, `File:${p.pageimage}`);
   }
   if (fileOf.size === 0) return found;

@@ -124,7 +124,9 @@ export const TOPICS: { match: RegExp; file: string; caption: string }[] = [
 ];
 
 /** Someone's death (owner, 10 Nov 2026): a searched photo of a person may be someone else, so a medical photo is shown instead. */
-const DEATH = /\b(dies|died|has died|death of|dead at \d+|passes away|passed away|obituary|tributes? (flow|paid|pour)|mourn(s|ed|ing)?)\b/i;
+const DEATH = /\b(dies|died|has died|death of|dead at \d+|passes away|passed away|obituary|tributes? (flow|paid|pour))\b/i;
+/** "Nation mourns Dai Henwood", "mourns the loss of": a person or a death, not "mourns 'race to the bottom'" or "mourns decline". */
+const MOURNED = /\b[Mm]ourn(s|ed|ing)?\s+(?:[Tt]he\s+)?(?:[Dd]eath|[Ll]oss|[Pp]assing|(?:[Ff]or\s+)?\p{Lu}\p{Ll}+\s+\p{Lu}\p{Ll}+)/u;
 
 /** Medical photos for death stories, by cause; the last one is the default. Checked by eye: no people. */
 export const MEDICAL: { match: RegExp; file: string; caption: string }[] = [
@@ -140,7 +142,7 @@ const SOMEONE_DIED =
 /** Court stories keep their courthouse photo: an ambulance next to a trial would look like the scene. */
 const COURT_CASE = /\b(trial|court|accused|charged|sentenced|jury|guilty|pleads?|inquest|coroner)\b/i;
 
-const diedIn = (title: string) => DEATH.test(title) || SOMEONE_DIED.test(title);
+const diedIn = (title: string) => DEATH.test(title) || MOURNED.test(title) || SOMEONE_DIED.test(title);
 
 /** Whether the story is about someone's death: its headline, or most of its reports' titles, say so (and it isn't a court case). */
 export function isDeathStory(story: Story): boolean {
