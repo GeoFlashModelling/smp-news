@@ -51,6 +51,12 @@ jobs:
           path: .cache/quiz.json
           key: quiz-${{ github.run_id }}
           restore-keys: quiz-
+      # Today's fun facts, chosen once a day.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/facts.json
+          key: facts-${{ github.run_id }}
+          restore-keys: facts-
       # Each edition's numbers for the last few days, read by the nightly report (report.yml).
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
