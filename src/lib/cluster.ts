@@ -17,11 +17,22 @@ export interface ClusterOptions {
   threshold: number;
   /** Maximum hours between an item and the cluster's newest item. */
   windowHours: number;
-  /** Keep headlines naming different states or regions apart (`REGIONS`). */
+  /** Keep headlines naming different states or regions apart (`REGIONS`), and different countries (`COUNTRIES`). */
   separateRegions?: boolean;
+  /**
+   * A report whose headline names people, companies or places, none of them in the story's headlines, doesn't join it
+   * ("MC Mining appoints new directors" and "News Corp appoints new directors").
+   */
+  useNames?: boolean;
+  /**
+   * Optional lower threshold for a report sharing two names the story keeps returning to. Off by default: tested
+   * 11 Nov 2026, it chained nine different Hong Kong stories and three Elon Musk stories (a shared name is usually
+   * the same topic, not the same event).
+   */
+  namedThreshold?: number;
 }
 
-export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = { threshold: 0.32, windowHours: 36, separateRegions: true };
+export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = { threshold: 0.32, windowHours: 36, separateRegions: true, useNames: true };
 
 type Vec = Map<string, number>;
 
@@ -82,6 +93,106 @@ export function regionsIn(title: string): Set<string> {
   return new Set(REGIONS.filter(([, re]) => re.test(title)).map(([name]) => name));
 }
 
+/**
+ * Countries named in headlines, by name, people and a few unambiguous capitals. "Schools in Italy evacuated after
+ * bomb threats" and "Schools across UK evacuated over bomb threat" are two events. Australian states and New Zealand
+ * regions count as their country. Ambiguous names (Georgia, Jordan, Chad, Turkey the bird, Paris the person,
+ * Washington) are left out.
+ */
+const COUNTRIES: [string, RegExp][] = [
+  ["Australia", /\b(Australia|Australians?|Aussies?|WA|NSW|Queensland(ers?)?|Tasmanian?|Victorian|South Australian?|Western Australian?|Northern Territory|Sydney|Melbourne|Brisbane|Perth|Adelaide|Hobart|Darwin|Canberra|Albanese)\b/],
+  ["New Zealand", /\b(New Zealand(ers?)?|NZ|Kiwis|Aotearoa|Auckland|Wellington|Christchurch|Dunedin|Otago|Waikato|Tauranga|Luxon)\b/],
+  ["United Kingdom", /\b(UK|U\.K\.|Britain|British|England|English|Scotland|Scottish|Wales|Welsh|London|Starmer)\b/],
+  ["United States", /\b(US|U\.S\.|USA|America|Americans?|Trump|White House|Pentagon|Congress)\b/],
+  ["Italy", /\b(Italy|Italian|Rome|Milan)\b/],
+  ["France", /\b(France|French|Macron)\b/],
+  ["Germany", /\b(Germany|German|Berlin)\b/],
+  ["Spain", /\b(Spain|Spanish|Madrid|Barcelona)\b/],
+  ["Russia", /\b(Russia|Russian|Moscow|Kremlin|Putin)\b/],
+  ["Ukraine", /\b(Ukraine|Ukrainian|Kyiv|Zelensky[yi]?)\b/],
+  ["China", /\b(China|Chinese|Beijing|Xi Jinping)\b/],
+  ["Japan", /\b(Japan|Japanese|Tokyo)\b/],
+  ["India", /\b(India|Indian|Delhi|Mumbai|Modi)\b(?! Ocean)/],
+  ["Indonesia", /\b(Indonesia|Indonesian|Jakarta|Bali|Prabowo)\b/],
+  ["Israel", /\b(Israel|Israeli|Netanyahu|Knesset)\b/],
+  ["Iran", /\b(Iran|Iranian|Tehran)\b/],
+  ["Canada", /\b(Canada|Canadian|Ottawa|Toronto)\b/],
+  ["Poland", /\b(Poland|Polish|Warsaw|Krak[oó]w)\b/],
+  ["Philippines", /\b(Philippines|Filipino|Manila)\b/],
+  ["Papua New Guinea", /\b(Papua New Guinea|PNG|Port Moresby)\b/],
+];
+
+export function countriesIn(title: string): Set<string> {
+  // "New South Wales" isn't Wales; "New England" may be Australia or the US.
+  const t = title.replace(/New South Wales/g, "NSW").replace(/New England/g, "");
+  return new Set(COUNTRIES.filter(([, re]) => re.test(t)).map(([name]) => name));
+}
+
+/** A word that opens a headline or a clause, where every word is capitalised. */
+const CLAUSE_START = /^|[:.?!|—–]\s+|\s[-–]\s|["“‘']/;
+
+/** "Bulgarian" and "Bulgaria", "Ukrainian" and "Ukraine": names sharing their first six letters. */
+function sameName(a: string, b: string): boolean {
+  return a.length >= 6 && b.length >= 6 && a.slice(0, 6) === b.slice(0, 6);
+}
+
+/** Capitalised words that name a role or a kind of thing, not who or what a story is about. */
+const NOT_NAMES = new Set([
+  ..."ceo cfo md pm mp ai tv gdp nfl nba afl nrl covid breaking exclusive opinion analysis watch live update explainer review podcast quiz".split(" "),
+  // Titles and institutions any outlet may or may not name ("WA Police Commissioner" and "Blanch" are one person).
+  ..."commissioner premier minister president senator governor mayor chief judge justice coroner inquest police government council court parliament senate house treasurer opposition leader".split(" "),
+  // Seasons and holidays: a "white Christmas" hailstorm is the Mt Magnet hailstorm.
+  ..."christmas easter summer winter spring autumn".split(" "),
+].map(stem));
+
+/**
+ * Names in each headline: people, companies, products, places. A capitalised word counts as a name when, across this
+ * edition's sentence-case headlines, it is mostly capitalised mid-sentence. In title-case headlines ("Trump Is Firmly
+ * in Jensen Huang's Corner") only words other outlets capitalise mid-sentence count. Countries, states and regions are
+ * left to `COUNTRIES` and `REGIONS`.
+ */
+export function namesIn(titles: string[]): Set<string>[] {
+  const split = (title: string) => {
+    const out: { key: string; capital: boolean; start: boolean; word: string }[] = [];
+    // "U.N." is "UN"; "ex-Crusaders" names the Crusaders.
+    for (const m of title.matchAll(/[\p{L}\p{N}](?:[\p{L}\p{N}'’&]|\.(?=\p{Lu}))*/gu)) {
+      const word = m[0].replace(/['’]s$/, "").replace(/\./g, "").replace(/['’]+$/, "");
+      if (word.length < 2) continue;
+      const before = title.slice(Math.max(0, m.index - 3), m.index);
+      const start = m.index === 0 || new RegExp(`(${CLAUSE_START.source})$`).test(before);
+      out.push({ key: stem(word.toLowerCase()), capital: /^\p{Lu}/u.test(word), start, word });
+    }
+    return out;
+  };
+  const words = titles.map(split);
+  const titleCase = words.map((list) => {
+    const long = list.filter((w) => w.word.length >= 4 && !w.start);
+    return long.length >= 3 && long.filter((w) => w.capital).length >= 0.6 * long.length;
+  });
+  const capital = new Map<string, number>();
+  const lower = new Map<string, number>();
+  words.forEach((list, n) => {
+    for (const w of list) {
+      if (w.start || (titleCase[n] && w.capital)) continue;
+      const counts = w.capital ? capital : lower;
+      counts.set(w.key, (counts.get(w.key) ?? 0) + 1);
+    }
+  });
+  return words.map((list, n) => {
+    const names = new Set<string>();
+    for (const w of list) {
+      if (!w.capital || STOPWORDS.has(w.key) || NOT_NAMES.has(w.key) || countriesIn(w.word).size || regionsIn(w.word).size) continue;
+      const caps = capital.get(w.key) ?? 0;
+      const low = lower.get(w.key) ?? 0;
+      const sentenceCaseWord = !titleCase[n] && !w.start;
+      // A sentence-case headline's first word ("Westpac outage…") is a name when it is never written in lower case.
+      const opener = !titleCase[n] && w.start && low === 0;
+      if (opener || ((sentenceCaseWord || caps > 0) && low <= 0.25 * caps + (sentenceCaseWord ? 0.5 : 0))) names.add(w.key);
+    }
+    return names;
+  });
+}
+
 function termFreq(tokens: string[], weight: number, into: Vec = new Map()): Vec {
   for (const t of tokens) into.set(t, (into.get(t) ?? 0) + weight);
   return into;
@@ -124,6 +235,9 @@ function normalised(sum: Vec): Vec {
 
 interface Working extends Cluster {
   regions: Set<string>;
+  countries: Set<string>;
+  /** Names in the story's headlines, with how many headlines name each. */
+  names: Map<string, number>;
   titleSum: Vec;
   fullSum: Vec;
   titleCentroid: Vec;
@@ -147,21 +261,32 @@ export function clusterItems(items: Item[], options: ClusterOptions = DEFAULT_CL
   const order = items.map((_, n) => n).sort((a, b) => items[a]!.published.getTime() - items[b]!.published.getTime());
   const clusters: Working[] = [];
   const windowMs = options.windowHours * 3600 * 1000;
+  const itemNames = options.useNames ? namesIn(items.map((i) => i.title)) : items.map(() => new Set<string>());
+  const disjoint = (a: Set<string>, b: Set<string> | Map<string, number>) => a.size > 0 && b.size > 0 && ![...a].some((x) => b.has(x));
 
   for (const n of order) {
     const item = items[n]!;
     const headlineOnly = !item.source.ai_input_allowed || item.summary.length === 0;
     const regions = regionsIn(item.title);
+    const countries = options.separateRegions ? countriesIn(item.title) : new Set<string>();
+    const names = itemNames[n]!;
     let best: Working | null = null;
-    let bestSim = options.threshold;
+    let bestSim = 0;
     for (const c of clusters) {
       if (item.published.getTime() - c.last.getTime() > windowMs) continue;
       if (c.items.some((m) => m.source.id === item.source.id && m.title === item.title)) continue;
-      if (options.separateRegions && regions.size && c.regions.size && ![...regions].some((r) => c.regions.has(r))) continue;
+      if (options.separateRegions && disjoint(regions, c.regions)) continue;
+      // Different names or countries keep a report out, unless it shares any name or country with the story: a big
+      // story's headlines mention other countries and people in passing.
+      const sharesAny = [...names].some((x) => c.names.has(x) || [...c.names.keys()].some((y) => sameName(x, y))) || [...countries].some((x) => c.countries.has(x));
+      if (!sharesAny && (disjoint(names, c.names) || disjoint(countries, c.countries))) continue;
       const sim = headlineOnly
         ? cosine(titleVecs[n]!, c.titleCentroid)
         : Math.max(cosine(fullVecs[n]!, c.fullCentroid), cosine(titleVecs[n]!, c.titleCentroid));
-      if (sim > bestSim) {
+      // Only names the story keeps returning to: a big story collects passing names from its many headlines.
+      const shared = [...names].filter((x) => (c.names.get(x) ?? 0) >= Math.min(2, c.items.length)).length;
+      const needed = shared >= 2 && options.namedThreshold !== undefined ? Math.min(options.namedThreshold, options.threshold) : options.threshold;
+      if (sim > needed && sim > bestSim) {
         best = c;
         bestSim = sim;
       }
@@ -169,6 +294,8 @@ export function clusterItems(items: Item[], options: ClusterOptions = DEFAULT_CL
     if (best) {
       best.items.push(item);
       for (const r of regions) best.regions.add(r);
+      for (const x of countries) best.countries.add(x);
+      for (const x of names) best.names.set(x, (best.names.get(x) ?? 0) + 1);
       if (item.published > best.last) best.last = item.published;
       addInto(best.titleSum, titleVecs[n]!);
       addInto(best.fullSum, fullVecs[n]!);
@@ -179,6 +306,8 @@ export function clusterItems(items: Item[], options: ClusterOptions = DEFAULT_CL
       const fullSum: Vec = new Map(fullVecs[n]!);
       clusters.push({
         regions,
+        countries,
+        names: new Map([...names].map((x) => [x, 1])),
         items: [item],
         first: item.published,
         last: item.published,

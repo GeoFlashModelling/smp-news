@@ -177,6 +177,23 @@ npm run cluster-report -- .cache/snapshots/<file>.json.gz 0.32
 
 Lists every story covered by two or more owners, with the headlines grouped into it. The second number is the similarity threshold (higher = stricter grouping); the live value is `DEFAULT_CLUSTER_OPTIONS` in `src/lib/cluster.ts`.
 
+**Measure grouping and sections (`npm run cluster-eval`):** on the newest snapshot (or one given), a free Gemini model reads headlines only and judges the 150 most prominent multi-outlet stories:
+- **Purity:** stories whose headlines are all about one event, and the share of headlines that are strays.
+- **Splits:** of the 150 most similar pairs of stories, how many are the same event.
+- **Sections:** stories in a right section; the model gives a best section and an "also reasonable" one.
+
+Load the free key first, as for the other local tests. Answers are cached in `.cache/cluster-labels.json`, so a run after a change only asks about groups that changed and is judged the same way. The first run takes about 9 minutes and about 25 free requests. The model is a noisy judge: treat 1 to 2 points as noise.
+
+**Names and countries keep different events apart (11 Nov 2026, step 0.9):** a report doesn't join a story when its headline names different people, companies or places from the story's headlines, or a different country, and shares none of either. Examples: four companies' "appoints new managing director", the Westpac and Apple outages, and bomb threats at Italian and UK schools.
+- Names are capitalised words that outlets write capitalised mid-sentence (`namesIn`). Job titles, institutions and holidays don't count (`NOT_NAMES`), and names sharing their first six letters match ("Bulgarian" and "Bulgaria").
+- Countries include their people, capitals and leaders (`COUNTRIES`).
+- Measured on the 11 Nov evening snapshot:
+  - stories with no stray headline 76.7% → 79.3%;
+  - stray headlines 10.3% → 7.2%;
+  - similar pairs that are one event 28 → 33 (mostly a single analysis piece left as its own story);
+  - multi-outlet stories 268 → 259: about 9 wrong groupings undone, 2 real stories lost (Canterbury and Timaru police; Santa Barbara and California).
+- A lower threshold for reports sharing two names (`namedThreshold`) was tried and is off: it chained nine different Hong Kong stories.
+
 **Story IDs stay the same (11 Nov 2026):** a story's ID (and web address, summary and photo) used to come from its earliest report, so it changed when that report left the feeds; about ten written stories an hour were being written again. Now each edition matches its stories to the earlier ones by the reports they share, and a matched story keeps its ID (`src/lib/identity.ts`, state in `.cache/stories.json`, kept 4 days). When stories merge, the one sharing most reports keeps its ID; when one splits, the part with most of the old reports keeps it. On two snapshots 14 hours apart, 104 of 146 multi-outlet stories kept their ID (74 before); the rest were new.
 
 **Different places stay apart (11 Nov 2026):** a headline that names an Australian state or a New Zealand region (by name or main towns) doesn't join a story whose headlines only name other ones, so "Thunderstorms forecast for Otago" and "thunderstorms over Brisbane" are two stories (`REGIONS` in `src/lib/cluster.ts`). Headlines that name no place, or one of the same places, group as before. On two saved snapshots this split none of the existing multi-outlet stories. Ambiguous names (Victoria, Canterbury, Hamilton, Nelson, Newcastle) and Canberra are left out on purpose.

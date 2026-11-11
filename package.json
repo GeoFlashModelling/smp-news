@@ -15,6 +15,7 @@
     "check-terms": "tsx src/tools/check-terms.ts",
     "snapshot": "tsx src/tools/snapshot.ts",
     "cluster-report": "tsx src/tools/cluster-report.ts",
+    "cluster-eval": "tsx src/tools/cluster-eval.ts",
     "ai-test": "tsx src/tools/ai-test.ts"
   },
   "devDependencies": {
