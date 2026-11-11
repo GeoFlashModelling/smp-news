@@ -110,6 +110,12 @@ const RUN_SECONDS = 480;
 /** A summary normally comes back in 5 to 15 seconds; a call hanging longer is usually an overloaded model, so move on. */
 const CALL_TIMEOUT_MS = 45_000;
 const MAX_STORIES_PER_RUN = 150;
+/**
+ * Off the front page, a story is only written (or rewritten) while it is still news: a major outlet's homepage carries
+ * it now, or a report came in within this many hours. What built up while nothing could be written falls away
+ * quietly rather than being caught up on (owner, 11 Nov 2026); a summary it already has stays.
+ */
+const CURRENT_HOURS = 6;
 /** Full articles read per story, at most; only the paid model sees them (the free tier gets descriptions only). */
 const MAX_ARTICLES = 3;
 /** Stories written at the same time; each works through the models on its own, within the shared per-minute gaps. */
@@ -258,7 +264,9 @@ export async function summariseStories(stories: Story[], important: Set<string>,
 
   const writeups = new Map<string, StoryWriteup>();
   const queue: { story: Story; blocks: SourceBlock[] }[] = [];
-  const ordered = [...stories.filter((s) => important.has(s.id)), ...stories.filter((s) => !important.has(s.id))];
+  // The front page first, then what the major outlets are leading with.
+  const ordered = [...stories.filter((s) => important.has(s.id)), ...stories.filter((s) => !important.has(s.id)).sort((a, b) => b.lead - a.lead)];
+  const current = (s: Story) => important.has(s.id) || s.front > 0 || now.getTime() - s.last.getTime() <= CURRENT_HOURS * 3_600_000;
   for (const story of ordered) {
     const blocks = summarisable(story);
     if (!blocks) continue;
@@ -267,13 +275,13 @@ export async function summariseStories(stories: Story[], important: Set<string>,
     if (story.independent < 2 && !prev && !important.has(story.id)) continue;
     const mode = legalMode(story.items);
     if (prev?.summary && !stillValid(prev, mode)) delete state.writeups[story.id];
-    const current = state.writeups[story.id];
-    if (current) current.seen = now.toISOString();
-    if (needsWriting(current, blocks, mode, now)) queue.push({ story, blocks });
+    const written = state.writeups[story.id];
+    if (written) written.seen = now.toISOString();
+    if (current(story) && needsWriting(written, blocks, mode, now)) queue.push({ story, blocks });
     else {
       delete pending[story.id];
-      if (current?.summary) {
-        writeups.set(story.id, current);
+      if (written?.summary) {
+        writeups.set(story.id, written);
         counts.kept++;
       }
     }
