@@ -110,6 +110,14 @@ function paidAud(r: EditionRecord): number {
   });
 }
 
+/**
+ * One Perth day's paid spend. Overlapping runs can lose each other's history records, so the summaries' own running
+ * total for the day (kept with the daily cap) is used when it is higher than the records add up to.
+ */
+function dayAud(records: EditionRecord[]): number {
+  return Math.max(sum(records, paidAud), ...records.map((r) => r.summaries?.dayAud ?? 0));
+}
+
 const paidRequests = (r: EditionRecord) => sum(Object.values(r.ai ?? {}), (u) => u.paid);
 
 /** How the day's AI use stands against the free allowance and the paid cap. */
@@ -119,8 +127,10 @@ function costs(all: EditionRecord[], now: Date): { lines: string[]; attention: s
   const month = all.filter((r) => dayIn("Australia/Perth", r.at).slice(0, 7) === dayIn("Australia/Perth", now).slice(0, 7));
   // Google's free allowance resets at midnight Pacific time (3 or 4 pm in Perth).
   const sinceReset = all.filter((r) => dayIn("America/Los_Angeles", r.at) === dayIn("America/Los_Angeles", now));
-  const todayAud = sum(today, paidAud);
-  const monthAud = sum(month, paidAud);
+  const todayAud = dayAud(today);
+  const monthAud = sum([...new Set(month.map((r) => dayIn("Australia/Perth", r.at)))], (day) =>
+    dayAud(month.filter((r) => dayIn("Australia/Perth", r.at) === day)),
+  );
   const firstDay = month[0] ? dayIn("Australia/Perth", month[0].at) : null;
   const daysSoFar = firstDay ? Math.max(1, Math.round((Date.parse(dayIn("Australia/Perth", now)) - Date.parse(firstDay)) / DAY_MS) + 1) : 1;
   const [year, mon] = dayIn("Australia/Perth", now).split("-").map(Number) as [number, number];

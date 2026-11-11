@@ -78,7 +78,7 @@ const REWRITE_GAP_HOURS = 3;
 const MAX_FAILURES = 3;
 
 /** Free key, best writing first. Flash models allow ~20 requests a day each; Flash-Lite ~500 (shared with photo ideas). */
-const FREE_FLASH = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.8-flash"];
+const FREE_FLASH = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.8-flash", "gemini-3-flash-preview"];
 const FREE_LITE = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite"];
 /** Keeps each model under its free per-minute limit (15 a minute for Flash-Lite, fewer for Flash). */
 const MIN_GAP_MS: Record<string, number> = { lite: 4_500, flash: 12_500 };
@@ -272,7 +272,8 @@ export async function summariseStories(stories: Story[], important: Set<string>,
     const mode = legalMode(story.items);
     // Each worker starts on a different Flash-Lite model, so both models' per-minute allowances are used.
     const lite = worker % 2 === 0 ? FREE_LITE : [...FREE_LITE].reverse();
-    const ladder = [...(important.has(story.id) ? FREE_FLASH : []), ...lite];
+    // Top stories get the better Flash models first; the rest use whatever Flash allowance is left once Flash-Lite runs out.
+    const ladder = important.has(story.id) ? [...FREE_FLASH, ...lite] : [...lite, ...FREE_FLASH];
     // Every free model paused: wait for the first to come back rather than skip the story.
     for (;;) {
       const open = ladder.filter((m) => !state.exhausted[m]).map((m) => cooling.get(m) ?? 0);
@@ -290,8 +291,10 @@ export async function summariseStories(stories: Story[], important: Set<string>,
     const note = (model: string, errors: string[]) => {
       if (errors.length) why.push(`${model}: ${errors.slice(0, 3).join("; ")}`);
     };
+    // Paid writing is for stories with no summary yet; a rewrite waits for the free allowance (it resets at 4 or 5 pm Perth).
+    const mayPay = paidReady && !state.writeups[story.id]?.summary;
     // Sources whose terms allow it: the paid model writes from their full articles (read in memory, never stored).
-    if (paidReady && state.spend.aud < DAILY_PAID_LIMIT_AUD && blocks.some((b) => b.item.source.full_text_allowed)) {
+    if (mayPay && state.spend.aud < DAILY_PAID_LIMIT_AUD && blocks.some((b) => b.item.source.full_text_allowed)) {
       const texts = new Map<string, string>();
       for (const b of blocks.filter((b) => b.item.source.full_text_allowed).slice(0, MAX_ARTICLES)) {
         const text = await fetchArticle(b.item);
@@ -330,7 +333,7 @@ export async function summariseStories(stories: Story[], important: Set<string>,
         break;
       }
     }
-    if (!summary && paidReady && !paidTried) {
+    if (!summary && mayPay && !paidTried) {
       try {
         const r = await attempt(paidModel, true, blocks, headlines, mode);
         summary = r.summary;
@@ -374,10 +377,13 @@ export async function summariseStories(stories: Story[], important: Set<string>,
   };
 
   let next = 0;
+  let taken = 0;
+  const freeLeft = () => [...FREE_LITE, ...FREE_FLASH].some((m) => !state.exhausted[m]);
   const worker = async (n: number) => {
     while (next < queue.length) {
       const job = queue[next++]!;
-      if (next > MAX_STORIES_PER_RUN || Date.now() > deadline) later(job.story);
+      if (!freeLeft() && state.writeups[job.story.id]?.summary) later(job.story);
+      else if (++taken > MAX_STORIES_PER_RUN || Date.now() > deadline) later(job.story);
       else await write(job, n);
     }
   };
