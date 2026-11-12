@@ -299,7 +299,7 @@ All sources live in `config/sources.json`. Each source has:
 | Field | Meaning |
 |---|---|
 | `id` | Short lowercase name, e.g. `perthnow` |
-| `lean` | `left`, `centre-left`, `centre`, `centre-right` or `right`, or `null` (see below). The coverage bar folds this to left / centre / right. Feel Good stories show no bar |
+| `lean` | `left`, `centre-left`, `centre`, `centre-right` or `right`, or `null` (see below). The coverage bar folds this to left / centre / right (centre-left with the left, centre-right with the right). No finer steps: MBFC's "extreme" still sits at `right` (Caldron Pool) and "least biased" is `centre`. Feel Good stories show no bar |
 | `content_type` | `news`, `analysis`, `opinion` (not counted towards agreement), `feel-good`, `community` (local/suburban/student papers, community radio: unrated, shown as "local / unrated" in the bar) or `official` (government, police, universities: lean must be `null`, never in the bar, labelled "Official statement") |
 | `owner_group` | Parent company, e.g. `News Corp`. Outlets with the same owner count once for independence |
 | `paywall` | `free`, `partial` or `paywalled` |
