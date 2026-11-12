@@ -14,6 +14,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/abc-news-australia/",
       "feeds": [
         {
           "url": "https://www.abc.net.au/news/feed/45910/rss.xml",
@@ -141,6 +143,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": false,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/special-broadcasting-service-sbs/",
       "feeds": [
         {
           "url": "https://www.sbs.com.au/news/topic/australia/feed",
@@ -173,6 +177,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": false,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/the-guardian/",
       "feeds": [
         {
           "url": "https://www.theguardian.com/australia-news/rss",
@@ -217,7 +223,8 @@
           "via": "direct"
         }
       ],
-      "agenda": true
+      "agenda": true,
+      "notes": "MBFC rates the parent outlet, not this edition; its rating is used."
     },
     {
       "id": "the-conversation-au",
@@ -233,6 +240,8 @@
       "terms_url": "https://theconversation.com/au/republishing-guidelines",
       "full_text_basis": "Creative Commons Attribution-NoDerivatives 4.0 (republishing guidelines)",
       "ai_input_allowed": true,
+      "factual": "very-high",
+      "factual_url": "https://mediabiasfactcheck.com/the-conversation/",
       "feeds": [
         {
           "url": "https://theconversation.com/au/articles.atom",
@@ -295,6 +304,7 @@
       "terms_url": "https://360info.org/about/",
       "full_text_basis": "Creative Commons Attribution 4.0 (stated on every article)",
       "ai_input_allowed": true,
+      "factual": "not-rated",
       "feeds": [
         {
           "url": "https://360info.org/feed/",
@@ -321,6 +331,8 @@
       "terms_url": "https://globalvoices.org/about/global-voices-attribution-policy/",
       "full_text_basis": "Creative Commons Attribution (republishing guidelines, updated 9 Apr 2025)",
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/global-voices/",
       "feeds": [
         {
           "url": "https://globalvoices.org/feed/",
@@ -344,6 +356,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/crikey/",
       "feeds": [
         {
           "url": "https://www.crikey.com.au/feed/",
@@ -367,6 +381,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/7news/",
       "feeds": [
         {
           "url": "https://7news.com.au/rss",
@@ -393,6 +409,7 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": false,
+      "factual": "not-rated",
       "feeds": [
         {
           "url": "https://www.watoday.com.au/rss/national/western-australia.xml",
@@ -424,6 +441,7 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "not-rated",
       "feeds": [
         {
           "url": "https://www.perthnow.com.au/news/feed",
@@ -450,6 +468,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mostly-factual",
+      "factual_url": "https://mediabiasfactcheck.com/the-spectator/",
       "feeds": [
         {
           "url": "https://www.spectator.com.au/feed/",
@@ -459,7 +479,7 @@
           "via": "direct"
         }
       ],
-      "notes": "Opinion-heavy: excluded from agreement counting."
+      "notes": "Opinion-heavy: excluded from agreement counting. MBFC rates the parent outlet, not this edition; its rating is used."
     },
     {
       "id": "quadrant",
@@ -473,6 +493,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mixed",
+      "factual_url": "https://mediabiasfactcheck.com/quadrant-magazine/",
       "feeds": [
         {
           "url": "https://quadrant.org.au/feed/",
@@ -496,6 +518,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/npr/",
       "feeds": [
         {
           "url": "https://feeds.npr.org/1004/rss.xml",
@@ -525,6 +549,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "low",
+      "factual_url": "https://mediabiasfactcheck.com/fox-news/",
       "feeds": [
         {
           "url": "https://moxie.foxnews.com/google-publisher/world.xml",
@@ -605,6 +631,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": false,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/the-sydney-morning-herald/",
       "feeds": [
         {
           "url": "https://www.smh.com.au/rss/feed.xml",
@@ -650,6 +678,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": false,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/the-age/",
       "feeds": [
         {
           "url": "https://www.theage.com.au/rss/feed.xml",
@@ -674,6 +704,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": false,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/brisbane-times/",
       "feeds": [
         {
           "url": "https://www.brisbanetimes.com.au/rss/feed.xml",
@@ -696,6 +728,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": false,
+      "factual": "very-high",
+      "factual_url": "https://mediabiasfactcheck.com/afr/",
       "feeds": [
         {
           "url": "https://www.afr.com/rss/feed.xml",
@@ -721,6 +755,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/the-west-australian/",
       "feeds": [
         {
           "url": "https://thewest.com.au/news/feed",
@@ -752,6 +788,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": false,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/canberra-times/",
       "feeds": [
         {
           "url": "https://www.canberratimes.com.au/rss.xml",
@@ -776,6 +814,7 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "not-rated",
       "feeds": [
         {
           "url": "https://reneweconomy.com.au/feed/",
@@ -800,6 +839,7 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "not-rated",
       "feeds": [
         {
           "url": "https://www.themandarin.com.au/feed/",
@@ -823,6 +863,7 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "not-rated",
       "feeds": [
         {
           "url": "https://www.smartcompany.com.au/feed/",
@@ -867,6 +908,7 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "not-rated",
       "feeds": [
         {
           "url": "https://johnmenadue.com/feed/",
@@ -890,6 +932,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mixed",
+      "factual_url": "https://mediabiasfactcheck.com/caldron-pool/",
       "feeds": [
         {
           "url": "https://www.caldronpool.com/feed",
@@ -958,6 +1002,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/rnz/",
       "feeds": [
         {
           "url": "https://www.rnz.co.nz/rss/national.xml",
@@ -1002,6 +1048,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": false,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/new-zealand-herald/",
       "feeds": [
         {
           "url": "https://www.nzherald.co.nz/arc/outboundfeeds/rss/section/nz/?outputType=xml",
@@ -1025,6 +1073,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/stuff/",
       "feeds": [
         {
           "url": "https://www.stuff.co.nz/rss/national",
@@ -1048,6 +1098,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/1news-new-zealand/",
       "feeds": [
         {
           "url": "https://www.1news.co.nz/arc/outboundfeeds/rss/category/new-zealand/?outputType=xml",
@@ -1071,6 +1123,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/newsroom-new-zealand/",
       "feeds": [
         {
           "url": "https://newsroom.co.nz/feed/",
@@ -1094,6 +1148,7 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "not-rated",
       "feeds": [
         {
           "url": "https://www.odt.co.nz/sitemaps/odt/rss",
@@ -1117,6 +1172,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/channel-news-asia/",
       "feeds": [
         {
           "url": "https://www.channelnewsasia.com/rssfeeds/8395884",
@@ -1139,6 +1196,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mixed",
+      "factual_url": "https://mediabiasfactcheck.com/south-china-morning-post/",
       "feeds": [
         {
           "url": "https://www.scmp.com/rss/91/feed",
@@ -1161,6 +1220,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/japan-times/",
       "feeds": [
         {
           "url": "https://www.japantimes.co.jp/feed/",
@@ -1183,6 +1244,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mixed",
+      "factual_url": "https://mediabiasfactcheck.com/times-of-india/",
       "feeds": [
         {
           "url": "https://timesofindia.indiatimes.com/rssfeeds/296589292.cms",
@@ -1205,6 +1268,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/france24/",
       "feeds": [
         {
           "url": "https://www.france24.com/en/rss",
@@ -1227,6 +1292,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mostly-factual",
+      "factual_url": "https://mediabiasfactcheck.com/euronews/",
       "feeds": [
         {
           "url": "https://www.euronews.com/rss",
@@ -1249,6 +1316,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/sky-news/",
       "feeds": [
         {
           "url": "https://feeds.skynews.com/feeds/rss/world.xml",
@@ -1272,6 +1341,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mixed",
+      "factual_url": "https://mediabiasfactcheck.com/the-independent/",
       "feeds": [
         {
           "url": "https://www.independent.co.uk/news/world/rss",
@@ -1294,6 +1365,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mixed",
+      "factual_url": "https://mediabiasfactcheck.com/gb-news/",
       "feeds": [
         {
           "url": "https://www.gbnews.com/feeds/news.rss",
@@ -1316,6 +1389,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mostly-factual",
+      "factual_url": "https://mediabiasfactcheck.com/the-critic/",
       "feeds": [
         {
           "url": "https://thecritic.co.uk/feed/",
@@ -1339,6 +1414,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mostly-factual",
+      "factual_url": "https://mediabiasfactcheck.com/washington-post/",
       "feeds": [
         {
           "url": "https://feeds.washingtonpost.com/rss/world",
@@ -1362,6 +1439,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mostly-factual",
+      "factual_url": "https://mediabiasfactcheck.com/the-hill/",
       "feeds": [
         {
           "url": "https://thehill.com/feed/",
@@ -1384,6 +1463,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/politico/",
       "feeds": [
         {
           "url": "https://rss.politico.com/politics-news.xml",
@@ -1406,6 +1487,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/vox/",
       "feeds": [
         {
           "url": "https://www.vox.com/rss/index.xml",
@@ -1428,6 +1511,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mostly-factual",
+      "factual_url": "https://mediabiasfactcheck.com/the-intercept/",
       "feeds": [
         {
           "url": "https://theintercept.com/feed/?rss",
@@ -1450,6 +1535,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/mother-jones/",
       "feeds": [
         {
           "url": "https://www.motherjones.com/feed/",
@@ -1472,6 +1559,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mostly-factual",
+      "factual_url": "https://mediabiasfactcheck.com/huffington-post/",
       "feeds": [
         {
           "url": "https://chaski.huffpost.com/us/auto/vertical/world-news",
@@ -1494,6 +1583,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mostly-factual",
+      "factual_url": "https://mediabiasfactcheck.com/washington-examiner/",
       "feeds": [
         {
           "url": "https://www.washingtonexaminer.com/feed/",
@@ -1516,6 +1607,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mostly-factual",
+      "factual_url": "https://mediabiasfactcheck.com/national-review/",
       "feeds": [
         {
           "url": "https://www.nationalreview.com/feed/",
@@ -1539,6 +1632,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mixed",
+      "factual_url": "https://mediabiasfactcheck.com/the-daily-wire/",
       "feeds": [
         {
           "url": "https://www.dailywire.com/feeds/rss.xml",
@@ -1561,6 +1656,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mixed",
+      "factual_url": "https://mediabiasfactcheck.com/breitbart/",
       "feeds": [
         {
           "url": "https://feeds.feedburner.com/breitbart",
@@ -1583,6 +1680,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mixed",
+      "factual_url": "https://mediabiasfactcheck.com/the-free-press/",
       "feeds": [
         {
           "url": "https://www.thefp.com/feed",
@@ -1605,6 +1704,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/reason/",
       "feeds": [
         {
           "url": "https://reason.com/feed/",
@@ -1628,6 +1729,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mixed",
+      "factual_url": "https://mediabiasfactcheck.com/the-post-millennial/",
       "feeds": [
         {
           "url": "https://www.thepostmillennial.com/feed",
@@ -1650,6 +1753,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/cnbc/",
       "feeds": [
         {
           "url": "https://www.cnbc.com/id/100727362/device/rss/rss.html",
@@ -1673,6 +1778,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mostly-factual",
+      "factual_url": "https://mediabiasfactcheck.com/business-insider/",
       "feeds": [
         {
           "url": "https://feeds.businessinsider.com/custom/all",
@@ -1695,6 +1802,7 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "not-rated",
       "feeds": [
         {
           "url": "https://www.miningweekly.com/page/australasia/feed",
@@ -2503,6 +2611,7 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "not-rated",
       "feeds": [
         {
           "url": "https://insidestory.org.au/feed/",
@@ -2527,6 +2636,7 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "not-rated",
       "feeds": [
         {
           "url": "https://theklaxon.com.au/feed/",
@@ -2551,6 +2661,7 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "not-rated",
       "feeds": [
         {
           "url": "https://www.croakey.org/feed/",
@@ -2598,6 +2709,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "mostly-factual",
+      "factual_url": "https://mediabiasfactcheck.com/the-epoch-times/",
       "feeds": [
         {
           "url": "https://www.theepochtimes.com/world/australia/feed",
@@ -2608,8 +2721,7 @@
           "via": "direct"
         }
       ],
-      "reliability_note": "Mixed factual reliability (Media Bias/Fact Check)",
-      "notes": "AllSides: Lean Right. MBFC rates factual reporting as mixed; one of few right-leaning outlets reporting Australian news daily."
+      "notes": "AllSides: Lean Right. MBFC rates factual reporting as mixed; one of few right-leaning outlets reporting Australian news daily. MBFC rates the parent outlet, not this edition; its rating is used."
     },
     {
       "id": "daily-declaration",
@@ -2623,6 +2735,7 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "not-rated",
       "feeds": [
         {
           "url": "https://dailydeclaration.org.au/feed/",
@@ -2647,6 +2760,8 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "high",
+      "factual_url": "https://mediabiasfactcheck.com/lowy-institute/",
       "feeds": [
         {
           "url": "https://www.lowyinstitute.org/the-interpreter/rss.xml",
@@ -2657,7 +2772,7 @@
           "via": "direct"
         }
       ],
-      "notes": "Foreign-policy analysis. Lean is editorial judgement (not rated by AllSides/MBFC)."
+      "notes": "Foreign-policy analysis. Lean is editorial judgement (not rated by AllSides/MBFC). MBFC rates the parent outlet, not this edition; its rating is used."
     },
     {
       "id": "aspi-strategist",
@@ -2671,6 +2786,7 @@
       "enabled": true,
       "full_text_allowed": false,
       "ai_input_allowed": true,
+      "factual": "not-rated",
       "feeds": [
         {
           "url": "https://www.aspistrategist.org.au/feed/",

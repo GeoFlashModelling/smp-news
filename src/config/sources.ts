@@ -13,6 +13,10 @@ export const UNRATED_CONTENT_TYPES: readonly (typeof CONTENT_TYPES)[number][] = 
 export const PAYWALLS = ["free", "partial", "paywalled"] as const;
 export const RATING_REGIONS = ["AU", "US", "UK"] as const;
 export const FEED_VIA = ["direct"] as const;
+/** Media Bias/Fact Check's factual-reporting rating; `not-rated` when MBFC has no page for the outlet or its parent. */
+export const FACTUAL_RATINGS = ["very-high", "high", "mostly-factual", "mixed", "low", "very-low", "not-rated"] as const;
+/** Ratings that put a note beside the source on story pages, for every source alike, whatever its lean (step 0.11). */
+const NOTED_RATINGS: readonly string[] = ["mixed", "low", "very-low"];
 export const SECTIONS = [
   "local-wa",
   "local-nsw",
@@ -73,8 +77,10 @@ export interface Source {
   agenda?: boolean;
   /** Hours without a new item before a feed counts as stale; for outlets that publish weekly. Default 48. */
   stale_hours?: number;
-  /** Shown next to the source on story pages, e.g. "Mixed factual reliability (Media Bias/Fact Check)". */
-  reliability_note?: string;
+  /** Required for every enabled source with a lean. Mixed or lower shows a note on story pages (`reliabilityNote`). */
+  factual?: (typeof FACTUAL_RATINGS)[number];
+  /** The MBFC page the rating came from; for an edition MBFC doesn't rate separately, its parent outlet's page. */
+  factual_url?: string;
   /** The outlet's terms or licence page; required when full_text_allowed is true. */
   terms_url?: string;
   /** Why full text is allowed, e.g. "CC BY 4.0" or "terms read 7 Nov 2026: no scraping or AI clause". */
@@ -94,6 +100,12 @@ export function toBarLean(lean: Lean): BarLean {
   if (lean === "left" || lean === "centre-left") return "left";
   if (lean === "right" || lean === "centre-right") return "right";
   return "centre";
+}
+
+export function reliabilityNote(source: Source): string | null {
+  if (!source.factual || !NOTED_RATINGS.includes(source.factual)) return null;
+  const rating = source.factual.replace("-", " ");
+  return `${rating.charAt(0).toUpperCase()}${rating.slice(1)} factual reporting (Media Bias/Fact Check)`;
 }
 
 function isOneOf<T extends string>(values: readonly T[], value: unknown): value is T {
@@ -146,7 +158,10 @@ export function validateSources(config: unknown): string[] {
     if (s.terms_url !== undefined && !isHttpsUrl(s.terms_url)) problems.push(`${at}: terms_url must be an https URL`);
     if (s.full_text_basis !== undefined && (typeof s.full_text_basis !== "string" || !s.full_text_basis.trim())) problems.push(`${at}: full_text_basis must be non-empty text`);
     if (s.full_text_allowed && (s.terms_url === undefined || s.full_text_basis === undefined)) problems.push(`${at}: full_text_allowed requires terms_url and full_text_basis`);
-    if (s.reliability_note !== undefined && (typeof s.reliability_note !== "string" || !s.reliability_note.trim())) problems.push(`${at}: reliability_note must be non-empty text`);
+    if ("reliability_note" in s) problems.push(`${at}: reliability_note is no longer used; set factual (the note follows from it)`);
+    if (s.factual !== undefined && !isOneOf(FACTUAL_RATINGS, s.factual)) problems.push(`${at}: factual must be one of ${FACTUAL_RATINGS.join(", ")}`);
+    else if (s.enabled && s.lean !== null && s.factual === undefined) problems.push(`${at}: factual is required for sources with a lean (Media Bias/Fact Check rating, or not-rated)`);
+    if (s.factual !== undefined && s.factual !== "not-rated" && !(isHttpsUrl(s.factual_url) && s.factual_url!.startsWith("https://mediabiasfactcheck.com/"))) problems.push(`${at}: factual_url must be the Media Bias/Fact Check page`);
     if (s.agenda !== undefined && typeof s.agenda !== "boolean") problems.push(`${at}: agenda must be true or false`);
     if (s.stale_hours !== undefined && !(Number.isInteger(s.stale_hours) && s.stale_hours > 0)) problems.push(`${at}: stale_hours must be a positive whole number`);
     if (!Array.isArray(s.feeds)) return problems.push(`${at}: feeds must be an array`);

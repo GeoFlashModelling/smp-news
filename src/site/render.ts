@@ -1,7 +1,7 @@
 import { legalMode, SUICIDE } from "../ai/legal-risk.js";
 import type { Claim, ClaimList } from "../ai/schema.js";
 import { summarisable, type StoryWriteup } from "../ai/summarise.js";
-import { isLocal, LOCAL_SECTIONS, type Section, type Source } from "../config/sources.js";
+import { isLocal, LOCAL_SECTIONS, reliabilityNote, type Section, type Source } from "../config/sources.js";
 import type { Photo } from "../images/wikimedia.js";
 import type { Fact, Facts } from "../lib/facts.js";
 import type { Item } from "../lib/normalise.js";
@@ -218,7 +218,8 @@ function sourceRow(item: Item): string {
     s.paywall === "paywalled" ? "Paywall" : s.paywall === "partial" ? "Some paywalled" : "Free",
     s.content_type === "opinion" ? "Opinion" : s.content_type === "analysis" ? "Analysis" : null,
   ].filter(Boolean);
-  const note = s.reliability_note ? `<span class="note">${esc(s.reliability_note)}</span>` : "";
+  const text = reliabilityNote(s);
+  const note = text ? `<a class="note" href="${esc(s.factual_url!)}" rel="noopener">${esc(text)}</a>` : "";
   return `<li><p class="outlet">${esc(s.name)} ${tags.map((t) => `<span class="tag">${esc(t!)}</span>`).join("")}</p><a href="${esc(item.url)}" rel="noopener">${esc(item.title)}</a><p class="meta">${timeTag(item.published)}${note ? " · " : ""}${note}</p></li>`;
 }
 
@@ -351,6 +352,7 @@ export function renderAbout(sources: Source[], updated: Date): string {
 <p>We never use photos from news outlets. Every picture is a free-licensed file photo from <a href="https://commons.wikimedia.org/" rel="noopener">Wikimedia Commons</a> or <a href="https://openverse.org/" rel="noopener">Openverse</a> (mostly Flickr), shown with its photographer and licence. They are not pictures of the event itself. We look, in order, for a photo of the story's main person, organisation or thing; then the place or object at the centre of the story; then a place named in the reports; then the story's broad topic. Search words are suggested by an AI model (Google Gemini) and every photo is checked by our software for its licence and that its title matches. If nothing suitable turns up, the story shows S.M.P. artwork for its section. Court and crime stories never show a person, only places, buildings or objects, so no one is pictured next to an allegation. If a picture is wrong for a story, <a href="#corrections">tell us</a>.</p>
 <h2>Where the lean ratings come from</h2>
 <p>Ratings are opinions, not facts. They come from <a href="https://www.allsides.com/media-bias/ratings" rel="noopener">AllSides</a> and <a href="https://mediabiasfactcheck.com/" rel="noopener">Media Bias/Fact Check</a> where available; otherwise they are our editorial judgement. World outlets are rated on a US/UK axis, which doesn't map exactly onto Australian politics. Local, community and student outlets aren't rated; official sources (government, universities) are listed separately.</p>
+<p>Where Media Bias/Fact Check rates an outlet's factual reporting "Mixed" or lower, its story links carry a note saying so, linking to the rating. The same rule applies to every outlet, left or right. Outlets it hasn't rated get no note.</p>
 ${
     SUMMARIES_ON
       ? `<h2>Summaries</h2>
