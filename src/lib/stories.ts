@@ -68,7 +68,7 @@ function storyId(items: Item[]): string {
 }
 
 const SPORT_WORDS =
-  /\b(AFLW?|NRLW?|cricket|Test match|rugby|A-League|Matildas|Socceroos|Wallabies|Kangaroos|Kiwi Ferns|World Cup|grand final|footy|tennis|Wimbledon|Olympics?|netball|golf|F1|Formula One|Grand Prix|premiership|ODI|T20|Ashes|Super Rugby|NBA|NFL|Brownlow)\b/i;
+  /\b(AFLW?|NRLW?|cricket|Test match|rugby|A-League|Matildas|Socceroos|Wallabies|Kangaroos|Kiwi Ferns|World Cup|grand final|footy|tennis|Wimbledon|Olympics?|netball|golf|F1|Formula One|Grand Prix|premiership|ODI|T20|Ashes|Super Rugby|NBA|NFL|Brownlow|WTA|ATP|Premier League|Champions League|Melbourne Cup|jockey)\b/i;
 const WA_PLACES =
   /\b(WA|W\.A\.|Western Australian?|Perth|Fremantle|Mandurah|Bunbury|Joondalup|Rockingham|Kalgoorlie|Geraldton|Broome|Karratha|Port Hedland|South Hedland|Pilbara|Kimberley|Goldfields|Esperance|Busselton|Margaret River|Margs|Armadale|Cockburn|Wanneroo|Albany|Great Southern(?! Bank)|Wheatbelt|Narrogin|Kununurra|Dunsborough|Yallingup|Ningaloo|Rottnest|Nedlands|Subiaco|Cottesloe|Floreat|Joondanna|Yanchep|Kwinana|Ellenbrook|Baldivis|Gidgegannup|Toodyay|Wiluna|Swan River|Kings Park|Optus Stadium|WACA|WAFL|Scorchers|Wildcats|West Coast Eagles|Dockers|Roger Cook)\b/;
 /** "WA" alone also abbreviates Washington state ("Everett, WA"), so in American outlets' reports only a named WA place counts. */
@@ -82,13 +82,33 @@ const WA_PATH =
   /^\/(wa|community-news|national\/western-australia|countryman)\/|^\/news\/(wa|perth|regional|pilbara|south-west|great-southern-herald|albany-advertiser|south-western-times|kalgoorlie-miner|geraldton-guardian|narrogin-observer|busselton-dunsborough-times|the-kimberley-echo|broome-advertiser|north-west-telegraph|augusta-margaret-river-times|harvey-waroona-reporter|manjimup-bridgetown-times|bunbury-herald|avon-valley-advocate|midwest-times|pilbara-news)\//;
 /** Sections given away by the web address, for items from WA outlets' feeds that carry every kind of news. */
 const PATH_SECTIONS: readonly [RegExp, Section][] = [
-  [/^\/entertainment\//, "entertainment"],
-  [/^\/sport\//, "sport"],
-  [/^\/(news\/)?business\/|^\/business\/companies\//, "business"],
   [/^\/news\/world\//, "world"],
   [/^\/news\/politics\/federal-politics\//, "politics"],
-  [/^\/news\/technology\//, "tech"],
 ];
+/**
+ * Topics given away by a folder in the web address ("/sport/tennis/…", "/life/people/celebrity/…", "/business/…").
+ * They decide for items whose feed is labelled only with places (World, Australia, ...): an outlet's world or
+ * "latest" feed carries its sport, celebrity and business stories too (12 Nov 2026: WTA Finals, Harry Kane and
+ * Nvidia under World).
+ */
+const TOPIC_PATHS: readonly [RegExp, Section][] = [
+  [/\/(sport|sports)\//, "sport"],
+  // Not "/tv/": the Independent files its news videos there.
+  [/\/(entertainment|celebrity|celebrity-gossip|showbiz|movies|film|music|books|royals)\//, "entertainment"],
+  [/\/(business|markets|companies|money)\//, "business"],
+  [/\/(tech|technology)\//, "tech"],
+  [/\/science\//, "science-tech"],
+];
+/** New Zealand is left out: its outlets' business and media stories belong in the New Zealand section on an Australian site. */
+const PLACE_SECTIONS: ReadonlySet<Section> = new Set(["world", "australia", "local-wa"]);
+
+function pathOf(url: string): string {
+  try {
+    return new URL(url).pathname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
 const AU_PLACES =
   /\b(Australia|Australians?|Aussies?|Sydney|Melbourne|Brisbane|Adelaide|Hobart|Darwin|Canberra|Gold Coast|NSW|Victorian?|Queensland(ers)?|Tasmanian?|Albanese|Parliament House)\b/;
 /** Unambiguous New Zealand places and names; Canterbury, Nelson and Hastings are left out because Australia and the UK have them too. */
@@ -105,15 +125,11 @@ const MAX_INFORMATIVE_SECTIONS = 2;
  * other labels decide, and Australia when neither does (12 Nov 2026: 25 of 62 Local WA stories weren't WA news).
  */
 function itemSections(item: Item, text: string): readonly Section[] {
-  if (!item.sections.includes("local-wa") || namesWa(item, text)) return item.sections;
-  let path = "";
-  try {
-    path = new URL(item.url).pathname.toLowerCase();
-  } catch {
-    // not a web address: the feed's labels decide
-  }
+  const path = pathOf(item.url);
+  const topic = TOPIC_PATHS.find(([re]) => re.test(path))?.[1];
+  if (!item.sections.includes("local-wa") || namesWa(item, text)) return topic && item.sections.every((s) => PLACE_SECTIONS.has(s)) ? [topic] : item.sections;
   if (WA_PATH.test(path) || WA_PLACES_ANY_CASE.test(path.replace(/[-/]/g, " "))) return ["local-wa"];
-  const byPath = PATH_SECTIONS.find(([re]) => re.test(path))?.[1];
+  const byPath = topic ?? PATH_SECTIONS.find(([re]) => re.test(path))?.[1];
   if (byPath) return [byPath];
   const rest = item.sections.filter((s) => s !== "local-wa");
   return rest.length ? rest : ["australia"];
