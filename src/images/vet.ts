@@ -44,7 +44,7 @@ Answer fits false when the photo shows:
 - something unrelated to the story's subject (a touch screen on an inquiry into the building industry; a courthouse on a story about a TV series that isn't about a court case);
 - a particular place (a named building, street, town, city, landmark or shop) in a different country, or a different Australian state or city, from where the story happens: a courthouse in Arkansas for an inquiry in Victoria, a petrol station in India for New Zealand fuel prices, Brisbane for a train stuck in a New Zealand tunnel, bushland in Sydney for a search in Victoria. "taken in", when given, is where the photo was taken. A thing that looks the same anywhere (a laptop, a gavel, a cricket ball, a koala) is not a place;
 - anything that could mislead a reader about who or what was involved.
-Photos of the people involved or of the event are never used, so never refuse a photo for not showing the person, the suspect, the match or the event itself: a place or topic stands in for them (a parliament for a candidate dropped over a post, a city where an arrest happened). When the photo plainly relates to the story's subject, place or topic, answer true even if a better photo might exist.
+A file photo (portrait) of the story's main person fits: the Pope for the Pope's visit to Peru, a leader for a story about what that leader said or did. Photos of the event itself never exist, so never refuse a photo for not showing the person, the suspect, the match or the event: a place or topic stands in for them (a parliament for a candidate dropped over a post, a city where an arrest happened). When the photo plainly relates to the story's subject, place or topic, answer true even if a better photo might exist.
 reason: up to 8 words.`;
 
 export interface VetItem {
@@ -55,7 +55,7 @@ export interface VetItem {
 }
 
 /** Bump when the instructions change, so earlier verdicts are asked again (the rest of the image cache stays). */
-const VET_VERSION = 3;
+const VET_VERSION = 4;
 const verdictKey = (id: string, photo: Photo) => `vet${VET_VERSION}:${id}|${photo.src.split("?")[0]}`;
 
 /** The cached verdict on a story's photo: true suits, false refused, undefined not yet asked. */
