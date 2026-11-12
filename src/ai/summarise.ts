@@ -76,9 +76,16 @@ const KEEP_DAYS = 3;
 const MIN_SOURCES = 2;
 /** A single-outlet story needs a description of at least this length; a one-line teaser is too thin to write from. */
 const SINGLE_MIN_CHARS = 120;
-/** Rewrite when this many owner groups the summary didn't use have joined, at most once per gap. */
-const REWRITE_NEW_OWNERS = 2;
-const REWRITE_GAP_HOURS = 3;
+/** Rewrite when this many owner groups the summary didn't use have joined, at most once per gap (owner, 12 Nov 2026: was 2 and 3 h). */
+const REWRITE_NEW_OWNERS = 3;
+const REWRITE_GAP_HOURS = 6;
+/**
+ * Share of the reports a summary was written from that must still be in the story for it to be rewritten. Below this
+ * the story's reports have drifted to another event, and a rewrite would change the story's topic (owner, 12 Nov 2026).
+ */
+const REWRITE_KEPT_SHARE = 0.5;
+/** A summary that failed its checks is tried again after this gap, up to MAX_FAILURES times. */
+const RETRY_GAP_HOURS = 3;
 const MAX_FAILURES = 3;
 
 /** Free key, best writing first. Flash models allow ~20 requests a day each; Flash-Lite ~500 (shared with photo ideas). */
@@ -166,11 +173,14 @@ export function summarisable(story: Story): SourceBlock[] | null {
   return blocks.length === 1 && blocks[0]!.text.length >= SINGLE_MIN_CHARS ? blocks : null;
 }
 
-function needsWriting(prev: StoryWriteup | undefined, blocks: SourceBlock[], mode: LegalMode, now: Date): boolean {
+function needsWriting(prev: StoryWriteup | undefined, story: Story, blocks: SourceBlock[], mode: LegalMode, now: Date): boolean {
   if (!prev) return true;
   const hoursSince = (now.getTime() - Date.parse(prev.written)) / 3_600_000;
-  if (!prev.summary) return (prev.checks ?? 1) < CHECKS || ((prev.failures ?? 1) < MAX_FAILURES && hoursSince >= REWRITE_GAP_HOURS);
+  if (!prev.summary) return (prev.checks ?? 1) < CHECKS || ((prev.failures ?? 1) < MAX_FAILURES && hoursSince >= RETRY_GAP_HOURS);
   if ((prev.failures ?? 0) >= MAX_FAILURES) return false;
+  const urls = new Set(story.items.map((i) => i.url));
+  const before = Object.values(prev.sources);
+  if (before.length && before.filter((s) => urls.has(s.url)).length < before.length * REWRITE_KEPT_SHARE) return false;
   // Written from one outlet and now covered by more: rewrite once as a comparison.
   if (prev.owners.length < MIN_SOURCES && blocks.length >= MIN_SOURCES) return true;
   // Written in the old short format when the reports support a fuller account: rewrite once, longer.
@@ -277,7 +287,7 @@ export async function summariseStories(stories: Story[], important: Set<string>,
     if (prev?.summary && !stillValid(prev, mode)) delete state.writeups[story.id];
     const written = state.writeups[story.id];
     if (written) written.seen = now.toISOString();
-    if (current(story) && needsWriting(written, blocks, mode, now)) queue.push({ story, blocks });
+    if (current(story) && needsWriting(written, story, blocks, mode, now)) queue.push({ story, blocks });
     else {
       delete pending[story.id];
       if (written?.summary) {
