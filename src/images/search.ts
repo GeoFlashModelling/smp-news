@@ -177,7 +177,13 @@ export async function searchPhotos(query: string, cache: ImageCache, budget: Sea
     if (!photos.length) {
       if (budget.openverse <= 0) return before;
       budget.openverse--;
-      photos = await openverseSearch(query);
+      try {
+        photos = await openverseSearch(query);
+      } catch (err) {
+        // Openverse's 504s and timeouts take up to the full timeout each and come in runs (12 Nov 2026), so one failure ends it for this edition.
+        budget.openverse = 0;
+        throw err;
+      }
     }
     cache.set(key, photos);
     return photos;
@@ -185,8 +191,7 @@ export async function searchPhotos(query: string, cache: ImageCache, budget: Sea
     if (err instanceof SlowDown) {
       if (err.message.startsWith("commons")) budget.commons = 0;
       else budget.openverse = 0;
-    }
-    console.log(`Photo search failed for "${query}": ${err instanceof Error ? err.message : err}`);
+    }    console.log(`Photo search failed for "${query}": ${err instanceof Error ? err.message : err}`);
     return before;
   }
 }

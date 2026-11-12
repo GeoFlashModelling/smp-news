@@ -12,6 +12,9 @@ const MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
 const BATCH = 25;
 /** Free requests per edition: the first run checks about 200 shown photos, then only new choices need asking. */
 export const VET_REQUESTS = 8;
+/** All rounds of checking together stop starting requests after this long; a busy model gets one try of up to a minute. */
+export const VET_MINUTES = 2;
+const CALL_TIMEOUT_MS = 60_000;
 const REQUEST_GAP_MS = 4_500;
 const REJECTIONS_LOGGED = 25;
 
@@ -67,12 +70,12 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * Only titles, report descriptions and captions are sent. Photos left unasked are shown and asked about next time.
  * Returns how many were refused.
  */
-export async function vetPhotos(items: VetItem[], cache: ImageCache, budget: { requests: number }): Promise<number> {
+export async function vetPhotos(items: VetItem[], cache: ImageCache, budget: { requests: number; until: number }): Promise<number> {
   const todo = items.filter((i) => verdict(cache, i.story.id, i.photo) === undefined);
   if (!todo.length || !process.env.GEMINI_API_KEY || process.env.PHOTO_AI === "off") return 0;
   let refused = 0;
   let m = 0;
-  for (let i = 0; i < todo.length && budget.requests > 0 && m < MODELS.length; ) {
+  for (let i = 0; i < todo.length && budget.requests > 0 && m < MODELS.length && Date.now() < budget.until; ) {
     if (i) await sleep(REQUEST_GAP_MS);
     budget.requests--;
     const batch = todo.slice(i, i + BATCH);
@@ -86,7 +89,7 @@ export async function vetPhotos(items: VetItem[], cache: ImageCache, budget: { r
       }),
     );
     try {
-      const reply = await geminiJson(MODELS[m]!, SYSTEM, lines.join("\n"), SCHEMA);
+      const reply = await geminiJson(MODELS[m]!, SYSTEM, lines.join("\n"), SCHEMA, { retries: 0, timeoutMs: CALL_TIMEOUT_MS });
       const answers = ((reply.json as { photos?: unknown[] } | null)?.photos ?? []) as Record<string, unknown>[];
       for (const a of answers) {
         const item = batch[Number(String(a.id ?? "").trim()) - 1];

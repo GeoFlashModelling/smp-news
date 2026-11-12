@@ -27,6 +27,13 @@ const REQUESTS_PER_MODEL = 12;
  */
 const PAID_REQUESTS = 4;
 const REQUEST_GAP_MS = 4_500;
+/**
+ * A busy model gets one try of up to a minute, then the next model is asked, and no new requests start after a few
+ * minutes: Gemini's default 2-minute timeout with retries once held a single request for ~9 minutes overnight and ran
+ * the edition past its time limit (12 Nov 2026). Stories left unasked wait for the next edition.
+ */
+const CALL_TIMEOUT_MS = 60_000;
+const IDEAS_MINUTES = 3;
 const MAX_SEARCHES = 3;
 
 const SCHEMA = {
@@ -230,7 +237,8 @@ export async function photoIdeas(stories: Story[], legal: Set<string>, cache: Im
   if (todo.length && process.env.GEMINI_API_KEY && process.env.PHOTO_AI !== "off") {
     let m = 0;
     let used = 0;
-    for (let i = 0; i < todo.length && m < models.length; ) {
+    const until = Date.now() + IDEAS_MINUTES * 60_000;
+    for (let i = 0; i < todo.length && m < models.length && Date.now() < until; ) {
       if (used === (models[m]?.paid ? PAID_REQUESTS : REQUESTS_PER_MODEL)) [m, used] = [m + 1, 0];
       const current = models[m];
       if (!current) break;
@@ -249,7 +257,7 @@ export async function photoIdeas(stories: Story[], legal: Set<string>, cache: Im
         }),
       );
       try {
-        const reply = await geminiJson(model, SYSTEM, lines.join("\n"), SCHEMA, current.paid ? { keyEnv: "GEMINI_PAID_API_KEY" } : {});
+        const reply = await geminiJson(model, SYSTEM, lines.join("\n"), SCHEMA, { ...(current.paid ? { keyEnv: "GEMINI_PAID_API_KEY" } : {}), retries: 0, timeoutMs: CALL_TIMEOUT_MS });
         if (current.paid) console.log(`Photo ideas for ${batch.length} stories from ${model} on the paid key`);
         const answers = ((reply.json as { stories?: unknown[] } | null)?.stories ?? []) as Record<string, unknown>[];
         for (const a of answers) {

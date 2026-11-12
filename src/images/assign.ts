@@ -5,7 +5,7 @@ import { imageCandidates, placeCandidates } from "./entities.js";
 import { homeGround, venueMentioned } from "./grounds.js";
 import { confirmedPerson, deceasedName, isDeathStory, MEDICAL, medicalFile, photoIdeas, standIns, topicFiles, TOPICS } from "./ideas.js";
 import { searchPhotos, type SearchBudget } from "./search.js";
-import { verdict, vetPhotos, VET_REQUESTS } from "./vet.js";
+import { verdict, vetPhotos, VET_MINUTES, VET_REQUESTS } from "./vet.js";
 import { findFiles, findPhotos, notAPhotoFile, type Photo } from "./wikimedia.js";
 
 const COMMONS_SEARCHES_PER_EDITION = 300;
@@ -379,7 +379,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
 
   // Every chosen photo is read against its story; refused ones go and the story chooses again. Death stories keep
   // their medical or confirmed photo.
-  const vetBudget = { requests: VET_REQUESTS };
+  const vetBudget = { requests: VET_REQUESTS, until: Date.now() + VET_MINUTES * 60_000 };
   for (let round = 0; round < VET_ROUNDS; round++) {
     const items = stories.filter((s) => !death.has(s.id) && chosenOf.has(s.id)).map((s) => ({ story: s, photo: chosenOf.get(s.id)!.photo }));
     counts.offPoint += await vetPhotos(items, cache, vetBudget);
