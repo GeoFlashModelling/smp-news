@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { SECTIONS, toBarLean, type BarLean, type Section, type Source } from "../config/sources.js";
+import { isLocal, LOCAL_SECTIONS, SECTIONS, toBarLean, type BarLean, type LocalSection, type Section, type Source } from "../config/sources.js";
 import { tokenize, type Cluster } from "./cluster.js";
 import { isLegalRisk } from "../ai/legal-risk.js";
 import type { StoryWriteup } from "../ai/summarise.js";
@@ -33,7 +33,7 @@ export interface Story {
   writeup?: StoryWriteup;
 }
 
-const SECTION_PRIORITY: readonly Section[] = ["local-wa", "australia", "new-zealand", "politics", "world", "business", "tech", "science-tech", "sport", "entertainment", "feel-good"];
+const SECTION_PRIORITY: readonly Section[] = [...LOCAL_SECTIONS, "australia", "new-zealand", "politics", "world", "business", "tech", "science-tech", "sport", "entertainment", "feel-good"];
 /**
  * A story's weight halves every 8 hours from its first report. Measured from the latest report instead, big stories
  * that some outlet keeps re-posting stayed on top for two days.
@@ -75,6 +75,33 @@ const WA_PLACES =
 function namesWa(item: Item, text: string): boolean {
   return WA_PLACES.test(item.source.region_of_rating === "US" ? text.replace(/\bW\.?A\.?(?![\w.])/g, "") : text);
 }
+/**
+ * Places, leaders and institutions that make a story local to the other states and territories. Names shared with
+ * other countries or federal politics are left out or fenced off: Newcastle United, Victoria Beckham, Charles Darwin,
+ * Palmerston North, and "Canberra", which usually means the federal government.
+ */
+const STATE_PLACES: Record<Exclude<LocalSection, "local-wa">, RegExp> = {
+  "local-nsw":
+    /\b(NSW|New South Wales|Sydney(siders)?|Newcastle(?! United| upon)|Wollongong|Illawarra|Shoalhaven|Parramatta|Penrith|Blacktown|Bankstown|Chatswood|Lane Cove|Bondi|Manly|Cronulla|Central Coast|Hunter Valley|Blue Mountains|Byron Bay|Northern Rivers|Lismore|Tamworth|Dubbo|Wagga Wagga|Albury|Coffs Harbour|Port Macquarie|Broken Hill|Minns government|Chris Minns)\b/,
+  "local-vic":
+    /\b(Victoria(?! Beckham| Cross| Park|, B\.?C\.?| Falls)|Victorians?(?![- ](era|England|London|Britain|times|novels?|Gothic|age|literature|values))|Melbourne|Geelong|Ballarat|Bendigo|Shepparton|Mildura|Gippsland|Mornington Peninsula|Dandenong|Frankston|Footscray|Werribee|Wodonga|Warrnambool|Walhalla|Allan government|Jacinta Allan|Spring Street|VCAA|Big Build)\b/,
+  "local-qld":
+    /\b(Queensland(ers?)?|QLD|Brisbane|Gold Coast|Sunshine Coast|Cairns|Townsville|Toowoomba|Rockhampton|Mackay|Bundaberg|Moreton Bay|Gympie|Hervey Bay|Noosa|Whitsundays?|Mount Isa|Crisafulli)\b/,
+  "local-sa":
+    /\b(South Australian?s?|Adelaide|Mount Gambier|Whyalla|Port Augusta|Port Lincoln|Murray Bridge|Barossa|McLaren Vale|Kangaroo Island|Glenelg|Fleurieu|Riverland|Malinauskas)\b/,
+  "local-tas":
+    /\b(Tasmanian?s?|Tassie|Hobart|Launceston|Devonport|Burnie|Huon Valley|Bruny Island|Cradle Mountain|Port Arthur|Fingal Valley|Rockliff)\b/,
+  "local-act":
+    /\b(ACT (government|Policing|Legislative Assembly|Health|Labor|Greens|Liberals|Supreme Court|Magistrates Court)|Canberra Liberals|Canberrans|Andrew Barr|Barr government|Belconnen|Tuggeranong|Woden|Gungahlin|Weston Creek|Molonglo|Canberra Hospital|in the ACT)\b/,
+  "local-nt":
+    /\b(Northern Territory|NT|Territorians?|(?<!Charles )Darwin(?!'s|ian|ism| was| (believed|wrote|thought|argued|famously|himself))|Alice Springs|Tennant Creek|Arnhem Land|Kakadu|Uluru|Palmerston(?! North)|Groote Eylandt|Tiwi Islands|Finocchiaro)\b/,
+};
+/** Whether an item names places in the state a local section covers. */
+function namesState(section: LocalSection, item: Item, text: string): boolean {
+  return section === "local-wa" ? namesWa(item, text) : STATE_PLACES[section].test(text);
+}
+/** Share of a story's reports naming one state's places that makes it that state's local news. */
+const STATE_SHARE = 0.5;
 /** The same places in a web address ("…/declining-humpback-numbers-western-australia"), where case says nothing. */
 const WA_PLACES_ANY_CASE = new RegExp(WA_PLACES.source, "i");
 /** Web addresses of WA local pages: PerthNow's /wa/ and community pages, WAtoday's WA pages, The West's WA and regional mastheads. */
@@ -100,7 +127,7 @@ const TOPIC_PATHS: readonly [RegExp, Section][] = [
   [/\/science\//, "science-tech"],
 ];
 /** New Zealand is left out: its outlets' business and media stories belong in the New Zealand section on an Australian site. */
-const PLACE_SECTIONS: ReadonlySet<Section> = new Set(["world", "australia", "local-wa"]);
+const PLACE_SECTIONS: ReadonlySet<Section> = new Set(["world", "australia", ...LOCAL_SECTIONS]);
 
 function pathOf(url: string): string {
   try {
@@ -123,34 +150,48 @@ const MAX_INFORMATIVE_SECTIONS = 2;
  * celebrity gossip and eastern-states sport (Community News republishes PerthNow's whole site), so a Local WA label
  * counts only when the item names a WA place or sits on a WA local page; otherwise its web address or the feed's
  * other labels decide, and Australia when neither does (12 Nov 2026: 25 of 62 Local WA stories weren't WA news).
+ * The other states' local feeds (ABC city feeds, community papers) carry little else, so their label counts unless
+ * the report names another state and not their own.
  */
 function itemSections(item: Item, text: string): readonly Section[] {
   const path = pathOf(item.url);
   const topic = TOPIC_PATHS.find(([re]) => re.test(path))?.[1];
-  if (!item.sections.includes("local-wa") || namesWa(item, text)) return topic && item.sections.every((s) => PLACE_SECTIONS.has(s)) ? [topic] : item.sections;
-  if (WA_PATH.test(path) || WA_PLACES_ANY_CASE.test(path.replace(/[-/]/g, " "))) return ["local-wa"];
+  const locals = item.sections.filter(isLocal);
+  const named = (s: LocalSection) => namesState(s, item, text);
+  if (locals.every(named)) return topic && item.sections.every((s) => PLACE_SECTIONS.has(s)) ? [topic] : item.sections;
+  const kept = locals.filter((s) => {
+    if (named(s)) return true;
+    if (s === "local-wa") return WA_PATH.test(path) || WA_PLACES_ANY_CASE.test(path.replace(/[-/]/g, " "));
+    return !LOCAL_SECTIONS.some((other) => other !== s && named(other));
+  });
+  if (kept.length) return kept;
   const byPath = topic ?? PATH_SECTIONS.find(([re]) => re.test(path))?.[1];
   if (byPath) return [byPath];
-  const rest = item.sections.filter((s) => s !== "local-wa");
+  const rest = item.sections.filter((s) => !isLocal(s));
   return rest.length ? rest : ["australia"];
 }
 
 function pickSection(items: Item[]): Section {
   const texts = items.map((i) => `${i.title} ${i.summary.slice(0, 200)}`);
   const share = (re: RegExp) => texts.filter((t) => re.test(t)).length / items.length;
-  if (share(SPORT_WORDS) >= 0.4) return "sport";
+  const labelled = items.map((i, n) => ({ sections: itemSections(i, texts[n]!) }));
+  // Sport pages and sport-only feeds keep a club's story in Sport, not its state's local news ("Parramatta Eels…").
+  const sportOnly = labelled.filter((l) => l.sections.length === 1 && l.sections[0] === "sport").length / items.length;
+  if (share(SPORT_WORDS) >= 0.4 || sportOnly >= 0.5) return "sport";
   if (items.filter((item, n) => namesWa(item, texts[n]!)).length / items.length >= 0.3) return "local-wa";
   // Trans-Tasman stories go to whichever country the reports name more often.
   if (share(NZ_PLACES) >= 0.3 && share(NZ_PLACES) > share(AU_PLACES)) return "new-zealand";
+  // Another state's local news when most reports name its places and no other state comes close.
+  const states = (Object.keys(STATE_PLACES) as (keyof typeof STATE_PLACES)[]).map((s) => [s, share(STATE_PLACES[s])] as const).sort((a, b) => b[1] - a[1]);
+  if (states[0]![1] >= STATE_SHARE && states[0]![1] > states[1]![1]) return states[0]![0];
 
-  const labelled = items.map((i, n) => ({ sections: itemSections(i, texts[n]!) }));
   const informative = labelled.filter((i) => i.sections.length <= MAX_INFORMATIVE_SECTIONS);
   const counts = new Map<Section, number>();
   for (const i of informative.length ? informative : labelled) for (const s of i.sections) counts.set(s, (counts.get(s) ?? 0) + 1 / i.sections.length);
   let best: Section = labelled[0]?.sections[0] ?? "world";
   for (const s of SECTION_PRIORITY) if ((counts.get(s) ?? 0) > (counts.get(best) ?? 0)) best = s;
 
-  if (best === "local-wa" && items.length > 1) best = "australia";
+  if (isLocal(best) && items.length > 1) best = "australia";
   if (best === "world" && share(AU_PLACES) >= 0.3) best = "australia";
   return best;
 }
@@ -297,7 +338,7 @@ function isScienceSource(source: Source): boolean {
  * politics) fills up to HOME_SLOTS, then the rest by prominence with world stories capped, since Australian outlets
  * lead mostly with Australian news.
  */
-const HOME_SECTIONS: readonly Section[] = ["australia", "local-wa", "politics"];
+const HOME_SECTIONS: readonly Section[] = ["australia", "politics", ...LOCAL_SECTIONS];
 const HOME_SLOTS = 5;
 const WA_SLOTS = 2;
 /** The lead story plus a full 3-by-3 grid on desktop (owner, 10 Nov 2026). */

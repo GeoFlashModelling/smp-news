@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 import { gunzipSync } from "node:zlib";
 import { geminiUsage } from "./ai/gemini.js";
 import { summarisable, summariseStories } from "./ai/summarise.js";
-import { loadSources } from "./config/sources.js";
+import { isLocal, loadSources } from "./config/sources.js";
 import { applyBlocklist, loadBlocklist } from "./lib/blocklist.js";
 import { assignPhotos } from "./images/assign.js";
 import { clusterItems } from "./lib/cluster.js";
@@ -49,8 +49,11 @@ async function main(): Promise<void> {
   let summaries: EditionRecord["summaries"];
   const front = frontPage(stories, now, (s) => process.env.SUMMARIES !== "on" || summarisable(s) !== null);
   if (process.env.SUMMARIES === "on") {
-    // The top stories and each section's first writable stories fill the front page's written slots.
-    const slots = [...front.bySection.values()].flatMap((list) => sectionCards(list, front.top, (s) => summarisable(s) !== null));
+    // The top stories and each section's first writable stories fill the front page's written slots. The other
+    // states' local blocks only show what is written anyway: no extra single-outlet or paid writing for them.
+    const slots = [...front.bySection]
+      .filter(([sec]) => !isLocal(sec) || sec === "local-wa")
+      .flatMap(([, list]) => sectionCards(list, front.top, (s) => summarisable(s) !== null));
     const important = new Set([...front.top, ...slots].map((s) => s.id));
     const { writeups, counts: c } = await summariseStories(shownStories(stories), important, resolve(process.env.SUMMARY_STATE ?? ".cache/summaries.json"), now);
     for (const story of stories) story.writeup = writeups.get(story.id);

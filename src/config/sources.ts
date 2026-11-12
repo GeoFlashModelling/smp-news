@@ -15,6 +15,13 @@ export const RATING_REGIONS = ["AU", "US", "UK"] as const;
 export const FEED_VIA = ["direct"] as const;
 export const SECTIONS = [
   "local-wa",
+  "local-nsw",
+  "local-vic",
+  "local-qld",
+  "local-sa",
+  "local-tas",
+  "local-act",
+  "local-nt",
   "australia",
   "new-zealand",
   "world",
@@ -32,6 +39,12 @@ export const NON_POLITICAL_SECTIONS: readonly Section[] = ["sport", "science-tec
 export type Lean = (typeof LEANS)[number];
 export type BarLean = "left" | "centre" | "right";
 export type Section = (typeof SECTIONS)[number];
+export type LocalSection = Extract<Section, `local-${string}`>;
+/** Each state's and territory's local news; the front page shows the reader's one (Local WA without scripts). */
+export const LOCAL_SECTIONS = SECTIONS.filter((s): s is LocalSection => s.startsWith("local-"));
+export function isLocal(section: Section): section is LocalSection {
+  return section.startsWith("local-");
+}
 
 export interface Feed {
   url: string;

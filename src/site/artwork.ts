@@ -1,4 +1,4 @@
-import type { Section } from "../config/sources.js";
+import { isLocal, type LocalSection, type Section } from "../config/sources.js";
 
 /**
  * S.M.P. section artwork: the picture a story gets when no free-licensed photo of its subject exists.
@@ -8,12 +8,12 @@ import type { Section } from "../config/sources.js";
 const STEEL = "url(#steel)";
 const GOLD = "url(#gold)";
 
-const SYMBOLS: Record<Section, string> = {
+const SYMBOLS: Record<Exclude<Section, Exclude<LocalSection, "local-wa">>, string> = {
   // Southern Cross
   australia: [
     [326, 58, 30], [304, 296, 36], [222, 176, 30], [412, 142, 25], [368, 214, 15],
   ].map(([x, y, r], i) => star(x!, y!, r!, i === 1 ? GOLD : STEEL)).join(""),
-  // Sun setting over the Indian Ocean
+  // Sun setting over the Indian Ocean (rising over the Pacific, for the other states' local news)
   "local-wa": `<path d="M240 200a80 80 0 0 1 160 0z" fill="${GOLD}"/>
 ${[0, 1, 2].map((i) => `<path d="M${180 + i * 20} ${222 + i * 22} q35 -14 70 0 t70 0 t70 0 t70 0" stroke="${STEEL}" stroke-width="8" fill="none" stroke-linecap="round"/>`).join("")}`,
   // Silver fern frond unfurling into a gold koru
@@ -96,7 +96,7 @@ export function sectionArtwork(section: Section): string {
 <linearGradient id="gold" gradientUnits="userSpaceOnUse" x1="200" y1="60" x2="440" y2="300"><stop offset="0" stop-color="#936C1C"/><stop offset=".5" stop-color="#D9C08A"/><stop offset="1" stop-color="#B8A37C"/></linearGradient>
 </defs>
 <rect width="640" height="360" fill="url(#bg)"/>
-${SYMBOLS[section]}
+${SYMBOLS[isLocal(section) ? "local-wa" : section]}
 </svg>
 `;
 }

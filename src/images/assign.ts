@@ -1,4 +1,5 @@
 import { isLegalRisk } from "../ai/legal-risk.js";
+import { LOCAL_SECTIONS } from "../config/sources.js";
 import type { Story } from "../lib/stories.js";
 import { ImageCache } from "./cache.js";
 import { imageCandidates, placeCandidates } from "./entities.js";
@@ -107,7 +108,7 @@ function aboutAbroad(story: Story, text: string): boolean {
   return [...text.matchAll(COUNTRY)].some((m) => m[1] !== "New Zealand") || mentions(text, "United States") || mentions(text, "United Kingdom");
 }
 
-const HOME_SECTIONS = new Set<string>(["australia", "local-wa", "new-zealand"]);
+const HOME_SECTIONS = new Set<string>(["australia", "new-zealand", ...LOCAL_SECTIONS]);
 
 /**
  * A searched photo taken abroad, on a story set in Australia or New Zealand: an outdoor scene (a petrol station, a

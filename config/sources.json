@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "checked": "2026-11-10",
+  "checked": "2026-11-12",
   "sources": [
     {
       "id": "abc",
@@ -79,7 +79,49 @@
         {
           "url": "https://www.abc.net.au/news/feed/8057540/rss.xml",
           "sections": [
-            "australia"
+            "local-sa"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://www.abc.net.au/news/feed/8055316/rss.xml",
+          "sections": [
+            "local-nsw"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://www.abc.net.au/news/feed/8057136/rss.xml",
+          "sections": [
+            "local-vic"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://www.abc.net.au/news/feed/8053540/rss.xml",
+          "sections": [
+            "local-qld"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://www.abc.net.au/news/feed/8054562/rss.xml",
+          "sections": [
+            "local-tas"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://www.abc.net.au/news/feed/8057234/rss.xml",
+          "sections": [
+            "local-act"
+          ],
+          "via": "direct"
+        },
+        {
+          "url": "https://www.abc.net.au/news/feed/8057648/rss.xml",
+          "sections": [
+            "local-nt"
           ],
           "via": "direct"
         }
@@ -2680,7 +2722,7 @@
         {
           "url": "https://tasmaniantimes.com/feed/",
           "sections": [
-            "australia"
+            "local-tas"
           ],
           "via": "direct"
         }
@@ -2702,7 +2744,7 @@
         {
           "url": "https://pulsetasmania.com.au/feed/",
           "sections": [
-            "australia"
+            "local-tas"
           ],
           "via": "direct"
         }
@@ -2724,7 +2766,7 @@
         {
           "url": "https://starweekly.com.au/feed/",
           "sections": [
-            "australia"
+            "local-vic"
           ],
           "via": "direct"
         }
@@ -2747,7 +2789,7 @@
         {
           "url": "https://newcastleweekly.com.au/feed/",
           "sections": [
-            "australia"
+            "local-nsw"
           ],
           "via": "direct"
         }

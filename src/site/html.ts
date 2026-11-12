@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import type { Section } from "../config/sources.js";
+import type { LocalSection, Section } from "../config/sources.js";
 
 /** Changes whenever the stylesheet or script does, so browsers fetch the new one instead of a cached copy. */
 const ASSET_VERSION = createHash("sha256")
@@ -18,6 +18,13 @@ export const SUMMARIES_ON = process.env.SUMMARIES === "on";
 
 export const SECTION_LABELS: Record<Section, string> = {
   "local-wa": "Local WA",
+  "local-nsw": "Local NSW",
+  "local-vic": "Local VIC",
+  "local-qld": "Local QLD",
+  "local-sa": "Local SA",
+  "local-tas": "Local TAS",
+  "local-act": "Local ACT",
+  "local-nt": "Local NT",
   australia: "Australia",
   "new-zealand": "New Zealand",
   politics: "Politics",
@@ -30,8 +37,32 @@ export const SECTION_LABELS: Record<Section, string> = {
   "feel-good": "Feel Good",
 };
 
-/** Menu and front-page order: local first (Perth/WA for now), then Australia, New Zealand, the world, then the rest. */
+/**
+ * Menu and front-page order: local first, then Australia, New Zealand, the world, then the rest. "local-wa" stands
+ * for the reader's own state: site.js points the menu link and the front page's local block at it.
+ */
 export const NAV_ORDER: readonly Section[] = ["local-wa", "australia", "new-zealand", "world", "politics", "business", "science-tech", "tech", "sport", "entertainment", "feel-good"];
+
+/**
+ * States and territories, with the browser time zones that pick each one (owner, 5–6 Nov 2026). Canberra readers'
+ * devices report Sydney time, so ACT is chosen by hand; Broken Hill keeps Adelaide time but is in NSW.
+ */
+export const STATES: readonly { section: LocalSection; code: string; name: string; zones: readonly string[] }[] = [
+  { section: "local-wa", code: "WA", name: "Western Australia", zones: ["Australia/Perth", "Australia/West", "Australia/Eucla"] },
+  { section: "local-nsw", code: "NSW", name: "New South Wales", zones: ["Australia/Sydney", "Australia/NSW", "Australia/Canberra", "Australia/ACT", "Australia/Broken_Hill", "Australia/Yancowinna", "Australia/Lord_Howe", "Australia/LHI"] },
+  { section: "local-vic", code: "VIC", name: "Victoria", zones: ["Australia/Melbourne", "Australia/Victoria"] },
+  { section: "local-qld", code: "QLD", name: "Queensland", zones: ["Australia/Brisbane", "Australia/Queensland", "Australia/Lindeman"] },
+  { section: "local-sa", code: "SA", name: "South Australia", zones: ["Australia/Adelaide", "Australia/South"] },
+  { section: "local-tas", code: "TAS", name: "Tasmania", zones: ["Australia/Hobart", "Australia/Tasmania", "Australia/Currie"] },
+  { section: "local-act", code: "ACT", name: "the ACT", zones: [] },
+  { section: "local-nt", code: "NT", name: "the Northern Territory", zones: ["Australia/Darwin", "Australia/North"] },
+];
+
+/** The reader's state, for local news: hidden until site.js shows it (without scripts the site shows WA). */
+function localLine(): string {
+  const options = STATES.map((s) => `<option value="${s.section}" data-tz="${s.zones.join(" ")}" data-name="${esc(s.name)}">${s.code}</option>`).join("");
+  return `<div class="local-line" data-local-line hidden><div class="wrap">Showing local news for <strong data-local-name>Western Australia</strong> · <label>Change <select data-local-select aria-label="Your state or territory">${options}</select></label> <button type="button" class="local-geo" data-local-geo hidden>Use my location</button> <span class="local-msg" data-local-msg aria-live="polite"></span></div></div>`;
+}
 
 const ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 
@@ -63,9 +94,8 @@ export interface PageOptions {
 }
 
 export function page(o: PageOptions): string {
-  const nav = NAV_ORDER.map(
-    (s) => `<a href="${o.root}${s}/"${o.active === s ? ' aria-current="page"' : ""}>${esc(SECTION_LABELS[s])}</a>`,
-  ).join("");
+  const current = (s: Section) => (o.active === s || (s === "local-wa" && typeof o.active === "string" && o.active.startsWith("local-")) ? ' aria-current="page"' : "");
+  const nav = NAV_ORDER.map((s) => `<a href="${o.root}${s}/"${current(s)}${s === "local-wa" ? " data-local-nav" : ""}>${esc(SECTION_LABELS[s])}</a>`).join("");
   const extra = (
     [
       ["weather", "Weather"],
@@ -97,6 +127,7 @@ export function page(o: PageOptions): string {
   </div>
   <nav class="sections" aria-label="Sections"><div class="wrap">${nav}${extra}</div></nav>
 </header>
+${localLine()}
 <div class="preview" role="note"><div class="wrap"><strong>Preview edition.</strong> Stories are grouped automatically from <a href="${o.root}about/">free news sources</a>. ${SUMMARIES_ON ? "Summaries are written by AI from those sources and checked automatically; open a story to compare every side." : "Written summaries of what every side reports are coming soon; for now you can see who covered each story and read it from several sides."}</div></div>
 <main id="main" class="wrap">
 ${o.body}

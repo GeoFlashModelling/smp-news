@@ -64,7 +64,14 @@ Return same: true when A and B are about the same event and should be one story.
 
 const SECTION_HELP: Record<Section, string> = {
   "local-wa": "news from Western Australia (Perth, regional WA, the WA government)",
-  australia: "Australian news outside WA, including federal government and courts",
+  "local-nsw": "news from New South Wales (Sydney, regional NSW, the NSW government)",
+  "local-vic": "news from Victoria (Melbourne, regional Victoria, the Victorian government)",
+  "local-qld": "news from Queensland (Brisbane, regional Queensland, the Queensland government)",
+  "local-sa": "news from South Australia (Adelaide, regional SA, the SA government)",
+  "local-tas": "news from Tasmania (Hobart, Launceston, the Tasmanian government)",
+  "local-act": "news from the ACT (Canberra's suburbs, the ACT government; not federal politics)",
+  "local-nt": "news from the Northern Territory (Darwin, Alice Springs, the NT government)",
+  australia: "national Australian news, including the federal government and stories spanning several states",
   "new-zealand": "New Zealand news",
   politics: "Australian federal or state politics: parties, elections, parliament, policy fights",
   world: "news from other countries and international affairs",
@@ -77,7 +84,7 @@ const SECTION_HELP: Record<Section, string> = {
 };
 const SECTION = `You place news stories in the sections of an Australian news site from Perth. Sections:
 ${SECTIONS.map((s) => `- ${s}: ${SECTION_HELP[s]}`).join("\n")}
-A story about Western Australia goes in local-wa even if it is about politics or business there. For each story you get its headlines; return the best section and, when another section would also be reasonable, that one as also (else "").`;
+A story about one state or territory goes in its local section (local-wa, local-vic, ...) even if it is about politics or business there. For each story you get its headlines; return the best section and, when another section would also be reasonable, that one as also (else "").`;
 
 function vector(titles: string[]): Map<string, number> {
   const v = new Map<string, number>();

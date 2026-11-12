@@ -1,15 +1,15 @@
 import { legalMode, SUICIDE } from "../ai/legal-risk.js";
 import type { Claim, ClaimList } from "../ai/schema.js";
 import { summarisable, type StoryWriteup } from "../ai/summarise.js";
-import type { Section, Source } from "../config/sources.js";
+import { isLocal, LOCAL_SECTIONS, type Section, type Source } from "../config/sources.js";
 import type { Photo } from "../images/wikimedia.js";
 import type { Fact, Facts } from "../lib/facts.js";
 import type { Item } from "../lib/normalise.js";
 import type { Quiz } from "../lib/quiz.js";
 import type { Forecast } from "../lib/weather.js";
 import { quizBox, weatherStrip } from "./extras.js";
-import { coverageGroup, SECTION_HEADLINES, SECTION_LINKS, sectionCards, type CoverageGroup, type FrontPage, type Story } from "../lib/stories.js";
-import { CORRECTIONS_EMAIL, NAV_ORDER, SECTION_LABELS, SITE_NAME, SUMMARIES_ON, esc, page, plural, timeTag } from "./html.js";
+import { coverageGroup, SECTION_HEADLINES, SECTION_LINKS, SECTION_WRITTEN, sectionCards, type CoverageGroup, type FrontPage, type Story } from "../lib/stories.js";
+import { CORRECTIONS_EMAIL, NAV_ORDER, SECTION_LABELS, SITE_NAME, STATES, SUMMARIES_ON, esc, page, plural, timeTag } from "./html.js";
 
 const GROUP_LABELS: Record<CoverageGroup, string> = {
   left: "Left",
@@ -168,16 +168,25 @@ export function renderFront(front: FrontPage, updated: Date, facts: Facts, weath
   const sectionBlock = (sec: Section) => {
     const all = front.bySection.get(sec) ?? [];
     const cards = sectionCards(all, front.top, isCard);
-    const links = all.filter((s) => !front.top.includes(s) && !cards.includes(s)).slice(0, SECTION_LINKS);
-    if (cards.length === 0 && links.length === 0) return "";
-    return `<section class="sec" aria-labelledby="h-${sec}">
+    // A state's block with few written stories lists more headlines instead.
+    const linkCount = isLocal(sec) ? SECTION_LINKS + SECTION_WRITTEN - cards.length : SECTION_LINKS;
+    const links = all.filter((s) => !front.top.includes(s) && !cards.includes(s)).slice(0, linkCount);
+    const state = STATES.find((s) => s.section === sec);
+    if (cards.length === 0 && links.length === 0 && !state) return "";
+    // Every state's block is in the page; site.js shows the reader's one, and Local WA shows without scripts.
+    const local = state ? ` data-local="${sec}"${sec === "local-wa" ? "" : " hidden"}` : "";
+    return `<section class="sec" aria-labelledby="h-${sec}"${local}>
   <h2 id="h-${sec}"><a href="${sec}/">${esc(SECTION_LABELS[sec])}</a></h2>
   ${cards.length ? `<div class="grid">${cards.map((s) => storyCard(s, root, false)).join("")}</div>` : ""}
   ${links.length ? `<h3 class="more">More ${esc(SECTION_LABELS[sec])} headlines</h3>${mixedList(links, root, false)}` : ""}
+  ${state && !cards.length && !links.length ? `<p class="note">No local news for ${esc(state.name)} in this edition yet.</p>` : ""}
   <p class="all"><a href="${sec}/">All ${esc(SECTION_LABELS[sec])} →</a></p>
 </section>`;
   };
-  const news = NAV_ORDER.filter((sec) => NEWS_FIRST.includes(sec)).map(sectionBlock).join("");
+  const news = NAV_ORDER.filter((sec) => NEWS_FIRST.includes(sec))
+    .flatMap((sec) => (sec === "local-wa" ? LOCAL_SECTIONS : [sec]))
+    .map(sectionBlock)
+    .join("");
   const rest = NAV_ORDER.filter((sec) => !NEWS_FIRST.includes(sec)).map(sectionBlock).join("");
   const body = `<h1 class="visually-hidden">${SITE_NAME}</h1>
 ${weatherStrip(weather, root)}
@@ -325,12 +334,13 @@ export function renderAbout(sources: Source[], updated: Date): string {
 <h2>The front page</h2>
 <ul>
 <li><strong>Top stories:</strong> the events leading on major Australian news sites right now and covered by the most independent outlets, with fresher news ranked higher. Two places go to local stories. The last top story, marked "And finally", is chosen to end on a lighter note.</li>
-<li><strong>Sections:</strong> local news first (Western Australia for now), then Australia, New Zealand and the world, then politics, business, science, tech, sport, entertainment and good news. Each shows stories with our written summary, then more headlines.</li>
+<li><strong>Local news:</strong> news from your state or territory, guessed from your device's time zone (Canberra readers choose the ACT with "Change"). You can also choose a state yourself, or press "Use my location": your device works out the state and nothing is sent to us. Without scripts, the site shows Western Australia.</li>
+<li><strong>Sections:</strong> local news first, then Australia, New Zealand and the world, then politics, business, science, tech, sport, entertainment and good news. Each shows stories with our written summary, then more headlines.</li>
 <li><strong>Weather:</strong> seven-day forecasts for every capital city from <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> (CC BY 4.0). The front page shows your capital, guessed from your device's time zone; choose another with "Change". For official warnings, see the <a href="https://www.bom.gov.au/australia/warnings/" rel="noopener">Bureau of Meteorology</a>.</li>
 <li><strong>On this day and Did you know?:</strong> from Wikipedia's selected anniversaries and "Did you know" facts (CC BY-SA 4.0).</li>
 <li><strong>Daily quiz:</strong> ten general-knowledge questions a day from the <a href="https://opentdb.com/" rel="noopener">Open Trivia Database</a> (CC BY-SA 4.0).</li>
 </ul>
-<p>Your weather city and quiz answers are kept in your own browser only; nothing is sent to us.</p>
+<p>Your state, weather city and quiz answers are kept in your own browser only; nothing is sent to us.</p>
 <h2>What you see on a story</h2>
 <ul>
 <li><strong>Coverage bar:</strong> how many independent owners on the left, centre and right reported the story. Outlets owned by the same company count once. Opinion pieces are listed but not counted.</li>
