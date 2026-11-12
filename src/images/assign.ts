@@ -107,6 +107,17 @@ function aboutAbroad(story: Story, text: string): boolean {
   return [...text.matchAll(COUNTRY)].some((m) => m[1] !== "New Zealand") || mentions(text, "United States") || mentions(text, "United Kingdom");
 }
 
+const HOME_SECTIONS = new Set<string>(["australia", "local-wa", "new-zealand"]);
+
+/**
+ * A searched photo taken abroad, on a story set in Australia or New Zealand: an outdoor scene (a petrol station, a
+ * street, bushland) looks foreign even when it isn't of a named place. Hand-picked library photos aren't checked.
+ */
+function takenAbroad(photo: Photo, story: Story): boolean {
+  if (photo.lat === undefined || photo.lon === undefined || !HOME_SECTIONS.has(story.section)) return false;
+  return regionOf(photo.lat, photo.lon) === "abroad" && !aboutAbroad(story, storyText(story));
+}
+
 /**
  * A photo of somewhere the story isn't about would mislead (owner, 10 Nov 2026: a US federal building on an
  * Australian story). Two tests:
@@ -264,12 +275,12 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       if (!words.length || words.length > 5) return null;
       for (const found of await searchPhotos(name, cache, budget)) {
         const title = (found.title ?? found.subject).toLowerCase();
-        if (fits(found) && words.every((w) => title.includes(w)) && !refuse(found) && fresh(found)) return found;
+        if (fits(found) && words.every((w) => title.includes(w)) && !refuse(found, undefined, true) && fresh(found)) return found;
       }
       return null;
     };
-    const refuse = (p: Photo, asPlace?: boolean) => {
-      const wrong = shotElsewhere(p, story, asPlace);
+    const refuse = (p: Photo, asPlace?: boolean, searched = false) => {
+      const wrong = shotElsewhere(p, story, asPlace) || (searched && takenAbroad(p, story));
       if (wrong && counts.elsewhere++ < REFUSALS_LOGGED) console.log(`Photo refused as elsewhere: "${p.subject}" (${p.lat?.toFixed(1) ?? "-"}, ${p.lon?.toFixed(1) ?? "-"}) for ${story.section} story "${story.headline.title}"`);
       return wrong;
     };
@@ -277,7 +288,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     const place = (p: Photo | null | undefined) => (p && !refuse(p, true) ? p : null);
     const firstSearch = async (queries: string[]) => {
       for (const q of queries) {
-        for (const photo of await searchPhotos(q, cache, budget)) if (!refuse(photo) && fresh(photo)) return photo;
+        for (const photo of await searchPhotos(q, cache, budget)) if (!refuse(photo, undefined, true) && fresh(photo)) return photo;
       }
       return null;
     };
@@ -368,7 +379,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     const memory = cache.get<Remembered>(`chosen:${story.id}`);
     const p = memory?.photo;
     if (!p || memory.rules !== PICK_RULES || memory.death !== death.has(story.id) || used.has(fileOf(p)) || notAPhotoFile(p.src) || p.width < MIN_SHARP_WIDTH) continue;
-    if ((story.id === leadId && p.large === undefined) || shotElsewhere(p, story) || verdict(cache, story.id, p) === false) continue;
+    if ((story.id === leadId && p.large === undefined) || shotElsewhere(p, story) || (memory.tier === "object" && takenAbroad(p, story)) || verdict(cache, story.id, p) === false) continue;
     photos.set(story.id, p);
     used.add(fileOf(p));
     chosenOf.set(story.id, { photo: p, tier: memory.tier, shared: false });
@@ -381,7 +392,10 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
   // their medical or confirmed photo.
   const vetBudget = { requests: VET_REQUESTS, until: Date.now() + VET_MINUTES * 60_000 };
   for (let round = 0; round < VET_ROUNDS; round++) {
-    const items = stories.filter((s) => !death.has(s.id) && chosenOf.has(s.id)).map((s) => ({ story: s, photo: chosenOf.get(s.id)!.photo }));
+    const items = stories.filter((s) => !death.has(s.id) && chosenOf.has(s.id)).map((s) => {
+      const photo = chosenOf.get(s.id)!.photo;
+      return { story: s, photo, takenIn: photo.lat !== undefined && photo.lon !== undefined ? regionOf(photo.lat, photo.lon).replace("abroad", "outside Australia and New Zealand") : undefined };
+    });
     counts.offPoint += await vetPhotos(items, cache, vetBudget);
     const redo = items.filter((i) => verdict(cache, i.story.id, i.photo) === false).map((i) => i.story);
     if (!redo.length) break;
