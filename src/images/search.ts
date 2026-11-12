@@ -19,6 +19,44 @@ const EVENT_PHOTO =
 const PERSON_PHOTO =
   /\b(man|men|woman|women|boy|girls?|child(ren)?|kids?|portrait|headshot|selfie|judge|senator|minister|president|mayor|officer|actor|actress|singer|speaking|speech|interview|meets|meeting|visits?|visiting|advocate|lawyer|expert|member)\b/i;
 
+/** A place, club or object, so "Golden Boot" and "Sydney Cricket Ground" are not read as people's names. */
+const NOT_A_PERSON =
+  /\b(house|ground|stadium|hospital|bridge|river|park|building|centre|center|tower|airport|beach|bay|street|road|oval|arena|court|club|university|school|station|cathedral|church|palace|castle|museum|library|hall|square|garden|gardens|range|island|mountain|lake|harbour|harbor|opera|mine|port|wharf|pier|dam|reef|valley|gate|wall|memorial|monument|trophy|medal|award|boot|cup|ball|fc|afc|rfc|bank|market|office|zealand|wales|york)\b/i;
+/** The parenthetical Wikipedia adds to a person ("Grant Anderson (rugby league)"), not "(cropped)" or "(stadium)". */
+const PERSON_ROLE =
+  /\([^)]*\b(rugby|league|union|footballer|football|soccer|cricket|cricketer|basketball|tennis|golf|golfer|athlete|player|coach|actor|actress|singer|musician|politician|minister|journalist|comedian|writer|author|scientist|born|australian|american|british|english|french|german|italian|spanish|irish|scottish|welsh|zealand)\b[^)]*\)/i;
+
+/**
+ * A title that names a person ("Kalyn Ponga", "Grant Anderson (rugby league)"), or null when it names a place or thing.
+ * Search hits are often another player whose filename merely contains the sport.
+ */
+export function personShown(title: string): string | null {
+  const base = title.replace(/^File:/i, "").replace(/\.(jpe?g|png|webp)$/i, "").replace(/_/g, " ").replace(/\s+/g, " ").trim();
+  const match = base.match(/^(\p{Lu}[\p{L}'’.-]{1,24}(?:\s+\p{Lu}[\p{L}'’.-]{1,24}){1,2})(.*)$/u);
+  if (!match) return null;
+  const name = match[1]!;
+  const rest = (match[2] ?? "").trim();
+  if (NOT_A_PERSON.test(name)) return null;
+  if (rest === "" || /^\d{4}$/.test(rest) || PERSON_ROLE.test(rest)) return name;
+  return null;
+}
+
+function nameIn(name: string, text: string): boolean {
+  const words = name.toLowerCase().split(/\s+/).filter((w) => w.length >= 4);
+  const need = words.length ? words : [name.toLowerCase()];
+  const lower = text.toLowerCase();
+  return need.every((w) => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(lower));
+}
+
+/** A photo of a named person this text never mentions. */
+export function otherPerson(photo: { subject: string; title?: string }, text: string): boolean {
+  for (const raw of [photo.title, photo.subject]) {
+    const name = raw ? personShown(raw) : null;
+    if (name && !nameIn(name, text)) return true;
+  }
+  return false;
+}
+
 /** Old photos, scans and generated images: a 1927 team photo or a scanned catalogue isn't a file photo of today. */
 const NOT_CURRENT =
   /\bc?(1[0-8]\d\d|19[0-8]\d)\b|\b(LOC|DALL|Midjourney|Stable Diffusion|AI[- ]generated|catalogue|catalog|page|scan(ned)?|poster|leaflet|brochure|advertisement|newspaper|magazine|cover|screenshot|ranking|graph|table|statistics|infographic|illustration|drawing|painting|engraving|lithograph|postcard|stamp|Wellcome)\b/i;
@@ -62,7 +100,8 @@ export function captionFromTitle(title: string, max = 90): string {
 
 function usableTitle(query: string, title: string): boolean {
   const text = title.replace(/_/g, " ");
-  return !NOT_A_PHOTO.test(text) && !EVENT_PHOTO.test(text) && !PERSON_PHOTO.test(text) && !NOT_CURRENT.test(text) && relevant(query, text);
+  const person = personShown(text);
+  return !NOT_A_PHOTO.test(text) && !EVENT_PHOTO.test(text) && !PERSON_PHOTO.test(text) && !NOT_CURRENT.test(text) && relevant(query, text) && !(person && !nameIn(person, query));
 }
 
 /** A query that asks for an incident or a person would find the wrong kind of picture whatever the filters. */

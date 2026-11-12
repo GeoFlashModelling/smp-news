@@ -4,8 +4,8 @@ import type { Story } from "../lib/stories.js";
 import { ImageCache } from "./cache.js";
 import { imageCandidates, placeCandidates } from "./entities.js";
 import { homeGround, venueMentioned } from "./grounds.js";
-import { confirmedPerson, deceasedName, isDeathStory, MEDICAL, medicalFile, photoIdeas, standIns, topicFiles, TOPICS } from "./ideas.js";
-import { searchPhotos, type SearchBudget } from "./search.js";
+import { confirmedPerson, deceasedName, isDeathStory, MEDICAL, medicalFile, photoIdeas, standIns, topicFiles, topicPlaces, TOPICS } from "./ideas.js";
+import { otherPerson, searchPhotos, type SearchBudget } from "./search.js";
 import { verdict, vetPhotos, VET_MINUTES, VET_REQUESTS } from "./vet.js";
 import { findFiles, findPhotos, notAPhotoFile, type Photo } from "./wikimedia.js";
 
@@ -78,15 +78,131 @@ const BUILT =
  * Australian states and territories, by name and main towns. Canberra is left out: federal stories name many states
  * and Parliament House suits them all.
  */
-const STATES: RegExp[] = [
-  /\b(Western Australian?|WA|Perth|Fremantle|Mandurah|Bunbury|Kalgoorlie|Geraldton|Albany|Broome|Karratha|Port Hedland|Pilbara|Kimberley|Rottnest)\b/,
-  /\b(South Australian?|SA|Adelaide|Mount Gambier|Whyalla|Port Augusta|Barossa)\b/,
-  /\b(Northern Territory|NT|Darwin|Alice Springs|Uluru)\b/,
-  /\b(Queensland(er)?s?|Qld|QLD|Brisbane|Gold Coast|Sunshine Coast|Cairns|Townsville|Toowoomba|Rockhampton)\b/,
-  /\b(New South Wales|NSW|Sydney|Newcastle|Wollongong|Bondi|Parramatta|Byron Bay)\b/,
-  /\b(Victorian?s?|Vic|Melbourne|Geelong|Ballarat|Bendigo)\b/,
-  /\b(Tasmanian?s?|Tas|Hobart|Launceston|Beaconsfield)\b/,
+const STATE_LABELS: { test: RegExp; label: string }[] = [
+  { test: /\b(Western Australian?|WA|Perth|Fremantle|Mandurah|Bunbury|Kalgoorlie|Geraldton|Albany|Broome|Karratha|Port Hedland|Pilbara|Kimberley|Rottnest)\b/, label: "Western Australia" },
+  { test: /\b(South Australian?|SA|Adelaide|Mount Gambier|Whyalla|Port Augusta|Barossa)\b/, label: "South Australia" },
+  { test: /\b(Northern Territory|NT|Darwin|Alice Springs|Uluru)\b/, label: "Northern Territory" },
+  { test: /\b(Queensland(er)?s?|Qld|QLD|Brisbane|Gold Coast|Sunshine Coast|Cairns|Townsville|Toowoomba|Rockhampton)\b/, label: "Queensland" },
+  { test: /\b(New South Wales|NSW|Sydney|Newcastle|Wollongong|Bondi|Parramatta|Byron Bay)\b/, label: "New South Wales" },
+  { test: /\b(Victorian?s?|Vic|Melbourne|Geelong|Ballarat|Bendigo)\b/, label: "Victoria" },
+  { test: /\b(Tasmanian?s?|Tas|Hobart|Launceston|Beaconsfield)\b/, label: "Tasmania" },
 ];
+const STATES: RegExp[] = STATE_LABELS.map((s) => s.test);
+/** A local section already says where the story is. Canberra is not here: a federal story names it without being about the ACT. */
+const SECTION_PLACE: Record<string, string> = {
+  "local-wa": "Western Australia",
+  "local-nsw": "New South Wales",
+  "local-vic": "Victoria",
+  "local-qld": "Queensland",
+  "local-sa": "South Australia",
+  "local-tas": "Tasmania",
+  "local-act": "Australian Capital Territory",
+  "local-nt": "Northern Territory",
+  "new-zealand": "New Zealand",
+};
+
+/** Countries named in a piece of text, specific parts of the UK before the UK itself. Australia is left out. */
+function countriesIn(text: string): string[] {
+  const found: string[] = [];
+  if (/\b(Scotland|Scottish)\b/.test(text)) found.push("Scotland");
+  else if (/\b(England|English)\b/.test(text)) found.push("England");
+  else if (/\b(Wales|Welsh)\b/.test(text) && !/\bNew South Wales\b/.test(text)) found.push("Wales");
+  else if (ALSO_NAMED["United Kingdom"]!.test(text)) found.push("United Kingdom");
+  if (ALSO_NAMED["New Zealand"]!.test(text)) found.push("New Zealand");
+  if (ALSO_NAMED["United States"]!.test(text)) found.push("United States");
+  for (const match of text.matchAll(new RegExp(COUNTRY.source, "gu"))) {
+    const name = match[1]!;
+    if (["USA", "UK", "England", "Scotland", "Wales", "New Zealand"].includes(name) || found.includes(name)) continue;
+    found.push(name);
+  }
+  return found;
+}
+
+/** The one state or country a piece of text is about, or null when it names several or none. */
+function onePlace(text: string): string | null {
+  if (!text.trim()) return null;
+  const states = STATE_LABELS.filter((s) => s.test.test(text)).map((s) => s.label);
+  const countries = countriesIn(text);
+  if (states.length === 1 && countries.length === 0) return states[0]!;
+  if (countries.length === 1 && states.length === 0) return countries[0]!;
+  if (states.length === 1 && countries.length === 1) {
+    const stateAt = text.search(STATE_LABELS.find((s) => s.label === states[0])!.test);
+    const countryAt = text.search(new RegExp(countries[0]!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+    return stateAt !== -1 && (countryAt === -1 || stateAt <= countryAt) ? states[0]! : countries[0]!;
+  }
+  if (states.length > 1 || mentions(text, "Australia")) return "Australia";
+  return null;
+}
+
+/**
+ * Where a generic place photo should be: the reader's local section, else the state or country named in the
+ * displayed headline, else in the report titles. A body mention of a club's city does not override the headline.
+ */
+export function settingOf(story: Story): string | null {
+  const fixed = SECTION_PLACE[story.section];
+  if (fixed) return fixed;
+  const shown = [story.writeup?.summary?.headline, story.headline.title].filter(Boolean).join(" ");
+  return onePlace(shown) ?? onePlace(story.items.slice(0, 5).map((i) => i.title).join(" "));
+}
+
+/** Whether a photo is in that state or country: the caption says so, or the camera position does. */
+function showsSetting(photo: Photo, setting: string): boolean {
+  const caption = `${photo.title ?? ""} ${photo.subject}`;
+  const word: Record<string, RegExp> = {
+    "Western Australia": /\b(western australia|perth|fremantle)\b/i,
+    "New South Wales": /\b(new south wales|nsw|sydney)\b/i,
+    Victoria: /\b(victoria|melbourne)\b/i,
+    Queensland: /\b(queensland|brisbane)\b/i,
+    "South Australia": /\b(south australia|adelaide)\b/i,
+    Tasmania: /\b(tasmania|hobart)\b/i,
+    "Australian Capital Territory": /\b(australian capital territory|canberra)\b/i,
+    "Northern Territory": /\b(northern territory|darwin)\b/i,
+    "New Zealand": /\b(new zealand|aotearoa|auckland|wellington|christchurch)\b/i,
+    Australia: /\baustralia\b/i,
+    "United States": /\b(united states|u\.s\.|usa)\b/i,
+    "United Kingdom": /\b(united kingdom|britain)\b/i,
+    England: /\bengland\b/i,
+    Scotland: /\bscotland\b/i,
+    Wales: /\bwales\b/i,
+  };
+  if ((word[setting] ?? new RegExp(`\\b${setting.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i")).test(caption)) return true;
+  if (photo.lat === undefined || photo.lon === undefined) return false;
+  const region = regionOf(photo.lat, photo.lon);
+  if (setting === "New Zealand") return region === "New Zealand";
+  if (setting === "Australia") return region === "Australia";
+  const state = stateAt(photo.lat, photo.lon);
+  return state === setting;
+}
+
+/** Which Australian state a camera position is in. The same rough borders as the reader's "Use my location". */
+function stateAt(lat: number, lon: number): string | null {
+  if (lat > -9 || lat < -44.5 || lon < 112 || lon > 154.5) return null;
+  if (lat < -39.2 && lon > 143.5) return "Tasmania";
+  if (lon < 129) return "Western Australia";
+  if (lon < 138) return lat > -26 ? "Northern Territory" : "South Australia";
+  if (lon < 141) return lat > -26 ? "Queensland" : "South Australia";
+  if (lat >= -35.92 && lat <= -35.12 && lon >= 148.76 && lon <= 149.21) return "Australian Capital Territory";
+  if (lat > (lon < 150 ? -29 : -28.6)) return "Queensland";
+  const murray: [number, number][] = [[141, -34], [142.2, -34.15], [143.55, -35.3], [144.75, -36.1], [146.9, -36.07], [148.2, -36.8], [150, -37.5]];
+  let border = -37.5;
+  for (let i = 1; i < murray.length; i++) {
+    const prev = murray[i - 1] ?? murray[0]!;
+    const next = murray[i] ?? prev;
+    const x0 = prev[0];
+    const y0 = prev[1];
+    const x1 = next[0];
+    const y1 = next[1];
+    if (lon <= x1) {
+      border = y0 + ((lon - x0) / (x1 - x0)) * (y1 - y0);
+      break;
+    }
+  }
+  if (lon <= 150 && lat < border) return "Victoria";
+  return "New South Wales";
+}
+
+/** A theme that is a place or a sport, so the story's state or country can be added to the search. */
+const PLACED_THEME = /\b(rugby|football|cricket|soccer|tennis|golf|netball|basketball|stadium|ground|oval|court(house)?|police|hospital|school|university|beach|airport|station|freeway|street|mine|parliament|skyline)\b/i;
 
 /** A photo from one state on a story about others: a Darwin courthouse on a South Australian trial. */
 function otherState(caption: string, text: string): boolean {
@@ -238,6 +354,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
   const library = await findFiles(new Map([...TOPICS, ...MEDICAL].map((t) => [t.file, t.caption])), cache);
 
   const photos = new Map<string, Photo>();
+  let otherLogged = 0;
   const counts: PhotoCounts = { event: 0, object: 0, broad: 0, shared: 0, elsewhere: 0, offPoint: 0 };
   const chosenOf = new Map<string, { photo: Photo; tier: keyof PhotoCounts; shared: boolean }>();
   const budget: SearchBudget = { commons: COMMONS_SEARCHES_PER_EDITION, openverse: OPENVERSE_SEARCHES_PER_EDITION, until: Date.now() + SEARCH_MINUTES * 60_000 };
@@ -254,9 +371,15 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     let tier: keyof PhotoCounts = "event";
     // Good photos another story already shows, with their tier: other photos of the same thing are looked for.
     const taken: [Photo, keyof PhotoCounts][] = [];
+    const told = [story.headline.title, ...story.items.slice(0, 6).map((i) => `${i.title} ${i.summary}`)].join(" ");
     const fresh = (p: Photo | null | undefined): Photo | null => {
       // Cached lookups predate some filters, so maps are checked again here.
       if (!p || notAPhotoFile(p.src) || verdict(cache, story.id, p) === false) return null;
+      if (otherPerson(p, told)) {
+        if (otherLogged < REFUSALS_LOGGED) console.log(`Photo refused as someone else: "${p.subject}" for "${story.headline.title}"`);
+        otherLogged++;
+        return null;
+      }
       if (p.width < MIN_SHARP_WIDTH) {
         blurry ??= [p, tier];
         return null;
@@ -287,12 +410,22 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     };
     const here = (p: Photo | null | undefined) => (p && !refuse(p) ? p : null);
     const place = (p: Photo | null | undefined) => (p && !refuse(p, true) ? p : null);
-    const firstSearch = async (queries: string[]) => {
+    const firstSearch = async (queries: string[], where?: string) => {
       for (const q of queries) {
-        for (const photo of await searchPhotos(q, cache, budget)) if (!refuse(photo, undefined, true) && fresh(photo)) return photo;
+        for (const photo of await searchPhotos(q, cache, budget)) {
+          if (where && !showsSetting(photo, where)) continue;
+          if (!refuse(photo, Boolean(where), true) && fresh(photo)) return photo;
+        }
       }
       return null;
     };
+    // The library caption hides where the file was taken ("a rugby league match" is a match in England), so the
+    // filename is checked too and a file from somewhere else is skipped.
+    const fromLibrary = (files: string[]) =>
+      first(files.map((f) => {
+        const photo = library.get(f);
+        return photo ? here({ ...photo, title: `${photo.subject}. ${f.replace(/_/g, " ")}` }) : null;
+      }));
     const tried = new Set<string>();
     // Another photo of something a taken photo shows ("Parliament House, Canberra" → search for it), at that photo's tier.
     const alternative = async (tiers: (keyof PhotoCounts)[], most: number) => {
@@ -327,6 +460,10 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       return;
     }
     const idea = ideas.get(story.id);
+    const where = settingOf(story);
+    const localPlaces = where ? topicPlaces(story).map((p) => `${p} ${where}`) : [];
+    const theme = idea?.theme ?? "";
+    const placedTheme = where && theme && PLACED_THEME.test(theme) && !theme.toLowerCase().includes(where.toLowerCase()) ? `${theme} ${where}` : "";
     const venue = place(venues.get(venueOf.get(story.id) ?? ""));
     const subjectList = [idea?.subject && !legal.has(story.id) ? named.get(idea.subject) : null, ...(subjectsOf.get(story.id) ?? []).map((n) => subjects.get(n))];
     const placeList = (placesOf.get(story.id) ?? []).map((n) => place(places.get(n)));
@@ -346,7 +483,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     // dropped over remarks to a basketballer).
     if (!photo && legal.has(story.id)) {
       tier = "broad";
-      photo = first(topicFiles(story).map((f) => here(library.get(f))));
+      photo = (localPlaces.length ? await firstSearch(localPlaces, where!) : null) ?? fromLibrary(topicFiles(story));
     }
     if (!photo) {
       tier = "object";
@@ -358,7 +495,8 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     }
     if (!photo) {
       tier = "broad";
-      photo = (idea?.theme ? await firstSearch([idea.theme]) : null) ?? first(topicFiles(story).map((f) => here(library.get(f))));
+      const local = [...localPlaces, ...(placedTheme ? [placedTheme] : [])];
+      photo = (local.length ? await firstSearch(local, where!) : null) ?? (theme ? await firstSearch([theme]) : null) ?? fromLibrary(topicFiles(story));
     }
     for (const [p] of [...taken]) if (!photo) photo = first(standIns(p.subject, p.src).map((f) => here(library.get(f))));
     if (!photo) photo = await alternative(["object", "broad"], 4);
@@ -380,7 +518,8 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     const memory = cache.get<Remembered>(`chosen:${story.id}`);
     const p = memory?.photo;
     if (!p || memory.rules !== PICK_RULES || memory.death !== death.has(story.id) || used.has(fileOf(p)) || notAPhotoFile(p.src) || p.width < MIN_SHARP_WIDTH) continue;
-    if ((story.id === leadId && p.large === undefined) || shotElsewhere(p, story) || (memory.tier === "object" && takenAbroad(p, story)) || verdict(cache, story.id, p) === false) continue;
+    const told = [story.headline.title, ...story.items.slice(0, 6).map((i) => `${i.title} ${i.summary}`)].join(" ");
+    if ((story.id === leadId && p.large === undefined) || shotElsewhere(p, story) || otherPerson(p, told) || (memory.tier === "object" && takenAbroad(p, story)) || verdict(cache, story.id, p) === false) continue;
     photos.set(story.id, p);
     used.add(fileOf(p));
     chosenOf.set(story.id, { photo: p, tier: memory.tier, shared: false });
