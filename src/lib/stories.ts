@@ -70,7 +70,25 @@ function storyId(items: Item[]): string {
 const SPORT_WORDS =
   /\b(AFLW?|NRLW?|cricket|Test match|rugby|A-League|Matildas|Socceroos|Wallabies|Kangaroos|Kiwi Ferns|World Cup|grand final|footy|tennis|Wimbledon|Olympics?|netball|golf|F1|Formula One|Grand Prix|premiership|ODI|T20|Ashes|Super Rugby|NBA|NFL|Brownlow)\b/i;
 const WA_PLACES =
-  /\b(WA|W\.A\.|Western Australian?|Perth|Fremantle|Mandurah|Bunbury|Joondalup|Rockingham|Kalgoorlie|Geraldton|Broome|Karratha|Port Hedland|Pilbara|Kimberley|Goldfields|Esperance|Busselton|Margaret River|Armadale|Cockburn|Wanneroo)\b/;
+  /\b(WA|W\.A\.|Western Australian?|Perth|Fremantle|Mandurah|Bunbury|Joondalup|Rockingham|Kalgoorlie|Geraldton|Broome|Karratha|Port Hedland|South Hedland|Pilbara|Kimberley|Goldfields|Esperance|Busselton|Margaret River|Margs|Armadale|Cockburn|Wanneroo|Albany|Great Southern(?! Bank)|Wheatbelt|Narrogin|Kununurra|Dunsborough|Yallingup|Ningaloo|Rottnest|Nedlands|Subiaco|Cottesloe|Floreat|Joondanna|Yanchep|Kwinana|Ellenbrook|Baldivis|Gidgegannup|Toodyay|Wiluna|Swan River|Kings Park|Optus Stadium|WACA|WAFL|Scorchers|Wildcats|West Coast Eagles|Dockers|Roger Cook)\b/;
+/** "WA" alone also abbreviates Washington state ("Everett, WA"), so in American outlets' reports only a named WA place counts. */
+function namesWa(item: Item, text: string): boolean {
+  return WA_PLACES.test(item.source.region_of_rating === "US" ? text.replace(/\bW\.?A\.?(?![\w.])/g, "") : text);
+}
+/** The same places in a web address ("…/declining-humpback-numbers-western-australia"), where case says nothing. */
+const WA_PLACES_ANY_CASE = new RegExp(WA_PLACES.source, "i");
+/** Web addresses of WA local pages: PerthNow's /wa/ and community pages, WAtoday's WA pages, The West's WA and regional mastheads. */
+const WA_PATH =
+  /^\/(wa|community-news|national\/western-australia|countryman)\/|^\/news\/(wa|perth|regional|pilbara|south-west|great-southern-herald|albany-advertiser|south-western-times|kalgoorlie-miner|geraldton-guardian|narrogin-observer|busselton-dunsborough-times|the-kimberley-echo|broome-advertiser|north-west-telegraph|augusta-margaret-river-times|harvey-waroona-reporter|manjimup-bridgetown-times|bunbury-herald|avon-valley-advocate|midwest-times|pilbara-news)\//;
+/** Sections given away by the web address, for items from WA outlets' feeds that carry every kind of news. */
+const PATH_SECTIONS: readonly [RegExp, Section][] = [
+  [/^\/entertainment\//, "entertainment"],
+  [/^\/sport\//, "sport"],
+  [/^\/(news\/)?business\/|^\/business\/companies\//, "business"],
+  [/^\/news\/world\//, "world"],
+  [/^\/news\/politics\/federal-politics\//, "politics"],
+  [/^\/news\/technology\//, "tech"],
+];
 const AU_PLACES =
   /\b(Australia|Australians?|Aussies?|Sydney|Melbourne|Brisbane|Adelaide|Hobart|Darwin|Canberra|Gold Coast|NSW|Victorian?|Queensland(ers)?|Tasmanian?|Albanese|Parliament House)\b/;
 /** Unambiguous New Zealand places and names; Canterbury, Nelson and Hastings are left out because Australia and the UK have them too. */
@@ -80,18 +98,40 @@ const NZ_PLACES =
 /** Feeds labelled with many sections (an outlet's "all news" feed) say little about any one item. */
 const MAX_INFORMATIVE_SECTIONS = 2;
 
+/**
+ * An item's sections. The WA outlets' feeds are labelled Local WA, but they also carry national and world news,
+ * celebrity gossip and eastern-states sport (Community News republishes PerthNow's whole site), so a Local WA label
+ * counts only when the item names a WA place or sits on a WA local page; otherwise its web address or the feed's
+ * other labels decide, and Australia when neither does (12 Nov 2026: 25 of 62 Local WA stories weren't WA news).
+ */
+function itemSections(item: Item, text: string): readonly Section[] {
+  if (!item.sections.includes("local-wa") || namesWa(item, text)) return item.sections;
+  let path = "";
+  try {
+    path = new URL(item.url).pathname.toLowerCase();
+  } catch {
+    // not a web address: the feed's labels decide
+  }
+  if (WA_PATH.test(path) || WA_PLACES_ANY_CASE.test(path.replace(/[-/]/g, " "))) return ["local-wa"];
+  const byPath = PATH_SECTIONS.find(([re]) => re.test(path))?.[1];
+  if (byPath) return [byPath];
+  const rest = item.sections.filter((s) => s !== "local-wa");
+  return rest.length ? rest : ["australia"];
+}
+
 function pickSection(items: Item[]): Section {
   const texts = items.map((i) => `${i.title} ${i.summary.slice(0, 200)}`);
   const share = (re: RegExp) => texts.filter((t) => re.test(t)).length / items.length;
   if (share(SPORT_WORDS) >= 0.4) return "sport";
-  if (share(WA_PLACES) >= 0.3) return "local-wa";
+  if (items.filter((item, n) => namesWa(item, texts[n]!)).length / items.length >= 0.3) return "local-wa";
   // Trans-Tasman stories go to whichever country the reports name more often.
   if (share(NZ_PLACES) >= 0.3 && share(NZ_PLACES) > share(AU_PLACES)) return "new-zealand";
 
-  const informative = items.filter((i) => i.sections.length <= MAX_INFORMATIVE_SECTIONS);
+  const labelled = items.map((i, n) => ({ sections: itemSections(i, texts[n]!) }));
+  const informative = labelled.filter((i) => i.sections.length <= MAX_INFORMATIVE_SECTIONS);
   const counts = new Map<Section, number>();
-  for (const i of informative.length ? informative : items) for (const s of i.sections) counts.set(s, (counts.get(s) ?? 0) + 1 / i.sections.length);
-  let best: Section = items[0]?.sections[0] ?? "world";
+  for (const i of informative.length ? informative : labelled) for (const s of i.sections) counts.set(s, (counts.get(s) ?? 0) + 1 / i.sections.length);
+  let best: Section = labelled[0]?.sections[0] ?? "world";
   for (const s of SECTION_PRIORITY) if ((counts.get(s) ?? 0) > (counts.get(best) ?? 0)) best = s;
 
   if (best === "local-wa" && items.length > 1) best = "australia";
