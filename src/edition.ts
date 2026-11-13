@@ -15,7 +15,7 @@ import { fetchAllFeeds, type FeedSnapshot } from "./lib/fetch-feeds.js";
 import { normalise } from "./lib/normalise.js";
 import { loadQuiz } from "./lib/quiz.js";
 import { loadWeather } from "./lib/weather.js";
-import { buildStories, frontPage, sectionCards, shownStories, type Story } from "./lib/stories.js";
+import { buildStories, fileByTitle, frontPage, sectionCards, shownStories, type Story } from "./lib/stories.js";
 import { generateSite } from "./site/generate.js";
 
 /**
@@ -48,7 +48,7 @@ async function main(): Promise<void> {
   const multi = stories.filter((s) => s.independent >= 2);
   let summaryNote = "summaries off";
   let summaries: EditionRecord["summaries"];
-  const front = frontPage(stories, now, (s) => process.env.SUMMARIES !== "on" || summarisable(s) !== null);
+  let front = frontPage(stories, now, (s) => process.env.SUMMARIES !== "on" || summarisable(s) !== null);
   if (process.env.SUMMARIES === "on") {
     // The top stories and each section's first writable stories fill the front page's written slots. The other
     // states' local blocks only show what is written anyway: no extra single-outlet or paid writing for them.
@@ -57,7 +57,12 @@ async function main(): Promise<void> {
       .flatMap(([, list]) => sectionCards(list, front.top, (s) => summarisable(s) !== null));
     const important = new Set([...front.top, ...slots].map((s) => s.id));
     const { writeups, counts: c } = await summariseStories(shownStories(stories), important, resolve(process.env.SUMMARY_STATE ?? ".cache/summaries.json"), now);
-    for (const story of stories) story.writeup = writeups.get(story.id);
+    for (const story of stories) {
+      story.writeup = writeups.get(story.id);
+      // The written headline is the title on the card. A rates title is Business even when the outlet headline was not.
+      fileByTitle(story);
+    }
+    front = frontPage(stories, now, (s) => process.env.SUMMARIES !== "on" || summarisable(s) !== null);
     const multiWritten = multi.filter((s) => writeups.has(s.id)).length;
     summaryNote = `summaries for ${multiWritten}/${multi.length} multi-source + ${writeups.size - multiWritten} single-outlet (new ${c.written}: free ${c.free}, paid ${c.paid}, from full articles ${c.fromArticles}; kept ${c.kept}; failed checks ${c.failed}; waiting ${c.waiting}${c.waiting ? `, longest ${c.oldestWaitHours.toFixed(1)} h` : ""}; paid A$${c.paidAud.toFixed(3)} this run, A$${c.dayAud.toFixed(2)} today)`;
     summaries = { multiWritten, single: writeups.size - multiWritten, written: c.written, free: c.free, paid: c.paid, fromArticles: c.fromArticles, failed: c.failed, paidAud: c.paidAud, dayAud: c.dayAud, waiting: c.waiting, oldestWaitHours: c.oldestWaitHours };

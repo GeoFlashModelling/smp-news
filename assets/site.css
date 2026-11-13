@@ -187,8 +187,87 @@ main { padding-top: 20px; padding-bottom: 40px; }
 .fact .fact-year { font: 700 52px/1 var(--serif); color: var(--gold); letter-spacing: -1px; margin: 4px 0 8px; }
 .fact-fun { background: linear-gradient(160deg, var(--surface-2), var(--surface)); }
 .fact-fun .fact-label { color: var(--link); }
-.fact-quiz { background: linear-gradient(160deg, var(--navy), var(--bg)); border: 1px solid var(--gold-2); }
+.fact-quiz {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(95% 80% at 8% 0%, color-mix(in srgb, var(--paper) 46%, transparent), transparent 48%),
+    radial-gradient(75% 90% at 100% 0%, color-mix(in srgb, var(--gold) 42%, transparent), transparent 54%),
+    radial-gradient(70% 60% at 80% 100%, color-mix(in srgb, var(--link) 28%, transparent), transparent 52%),
+    radial-gradient(45% 50% at 30% 80%, color-mix(in srgb, var(--left) 18%, transparent), transparent 62%),
+    linear-gradient(165deg, var(--surface-2), var(--navy) 46%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--paper) 48%, var(--gold-2));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--paper) 62%, transparent),
+    inset 0 0 28px color-mix(in srgb, var(--paper) 8%, transparent);
+  overflow: hidden;
+}
+.fact-quiz::before,
+.fact-quiz::after { content: ""; position: absolute; pointer-events: none; }
+.fact-quiz::before {
+  inset: -55%;
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    color-mix(in srgb, var(--paper) 22%, transparent) 47%,
+    color-mix(in srgb, var(--gold) 36%, transparent) 50%,
+    color-mix(in srgb, var(--paper) 40%, transparent) 53%,
+    transparent 58%
+  );
+  transform: translateX(-12%) rotate(8deg);
+}
+.fact-quiz::after {
+  inset: 0;
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(circle at 16% 18%, var(--paper) 0 1.6px, color-mix(in srgb, var(--paper) 55%, transparent) 2.2px, transparent 8px),
+    radial-gradient(circle at 74% 14%, var(--gold) 0 1.8px, color-mix(in srgb, var(--gold) 50%, transparent) 2.6px, transparent 9px),
+    radial-gradient(circle at 88% 42%, var(--paper) 0 1px, transparent 5px),
+    radial-gradient(circle at 28% 58%, color-mix(in srgb, var(--paper) 85%, var(--link)) 0 1.4px, transparent 7px),
+    radial-gradient(circle at 56% 32%, var(--gold) 0 1px, transparent 5px),
+    radial-gradient(circle at 92% 76%, var(--paper) 0 1.5px, color-mix(in srgb, var(--paper) 45%, transparent) 2px, transparent 8px),
+    radial-gradient(circle at 42% 12%, var(--paper) 0 0.8px, transparent 4px),
+    radial-gradient(circle at 8% 78%, color-mix(in srgb, var(--link) 80%, var(--paper)) 0 1.3px, transparent 7px),
+    radial-gradient(circle at 64% 70%, var(--gold) 0 1.2px, transparent 6px);
+  opacity: 0.8;
+}
+.fact-quiz > * { position: relative; z-index: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  .fact-quiz::before { animation: quiz-sheen 7s ease-in-out infinite; }
+  .fact-quiz::after { animation: quiz-glitter 2.6s steps(1, end) infinite; }
+}
+@keyframes quiz-sheen {
+  0%, 18% { transform: translateX(-20%) rotate(8deg); }
+  62%, 100% { transform: translateX(22%) rotate(8deg); }
+}
+@keyframes quiz-glitter {
+  0% { opacity: 0.45; }
+  25% { opacity: 0.95; background-position: 7px -5px, -9px 7px, 3px 2px, 5px 9px, -7px 3px, 11px -7px, 2px 5px, -5px -3px, 6px 4px; }
+  50% { opacity: 0.4; background-position: -5px 7px, 9px -3px, 7px 5px, -7px -5px, 5px -9px, -3px 7px, 9px 1px, 3px 7px, -8px 2px; }
+  75% { opacity: 1; background-position: 3px 3px, -5px -7px, -7px 3px, 9px 1px, 1px 7px, 5px -5px, -9px 5px, 7px -7px, 4px -6px; }
+}
 .fact-quiz .fact-label { color: var(--gold); }
+.fact-quiz .quiz-mark {
+  margin: 2px 0 0;
+  font: 700 68px/0.85 var(--serif);
+  letter-spacing: -2px;
+  color: var(--gold);
+}
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .fact-quiz .quiz-mark {
+    background: linear-gradient(185deg, var(--paper) 0%, var(--gold) 46%, color-mix(in srgb, var(--paper) 62%, var(--gold)) 72%, var(--gold-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+.quiz-topics { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0 0 8px; padding: 0; }
+.quiz-topics li { font: 700 11px/1.2 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); border: 1px solid var(--gold-2); border-radius: 999px; padding: 5px 8px; }
+.fact-quiz .quiz-topics li {
+  background: color-mix(in srgb, var(--paper) 12%, transparent);
+  border-color: color-mix(in srgb, var(--paper) 40%, var(--gold-2));
+}
+.fact-quiz .quiz-play { margin-top: auto; padding-top: 8px; }
 .quiz-go { display: inline-block; margin-top: 4px; padding: 10px 20px; border-radius: 999px; background: var(--gold); color: var(--navy); font: 700 15px var(--sans); text-decoration: none; }
 .quiz-go:hover { background: #fff; color: var(--navy); }
 
@@ -252,9 +331,40 @@ th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--pape
 
 /* Daily quiz page. */
 .quiz-page { max-width: 760px; }
+.quiz-hero {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin: 0 0 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--gold-2);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(80% 140% at 0% 0%, rgba(217, 192, 138, 0.2), transparent 55%),
+    linear-gradient(165deg, #1c3344, var(--navy));
+}
+.quiz-hero .quiz-mark { margin: 0; font: 700 76px/0.8 var(--serif); letter-spacing: -3px; color: var(--gold); }
+.quiz-hero h1 { margin: 0 0 6px; }
+.quiz-hero .fact-label { color: var(--gold); }
+.quiz-score {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--gold-2);
+  border-radius: var(--radius);
+  background: linear-gradient(90deg, rgba(217, 192, 138, 0.28) var(--quiz-fill, 0%), var(--navy) var(--quiz-fill, 0%));
+  font: 700 22px/1.2 var(--serif);
+  color: var(--gold);
+}
+.quiz-score:empty { display: none; }
 .quiz { list-style: none; margin: 0; padding: 0; counter-reset: q; display: grid; gap: 12px; }
 .q { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; counter-increment: q; }
-.q-meta { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.q.got { border-color: var(--right-line); }
+.q.missed { border-color: var(--wrong-line); }
+.q-meta { margin: 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.q-diff { border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }
+.q-diff-easy { color: var(--right-line); border-color: var(--right-line); }
+.q-diff-medium { color: var(--gold); border-color: var(--gold-2); }
+.q-diff-hard { color: var(--wrong-line); border-color: var(--wrong-line); }
 .q-text { margin: 4px 0 10px; font: 600 18px/1.4 var(--serif); }
 .q-text::before { content: counter(q) ". "; color: var(--gold); }
 .q-answers { display: grid; gap: 6px; }
@@ -266,7 +376,6 @@ th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--pape
 .q-answers button.wrong { background: var(--wrong-answer); border-color: var(--wrong-line); }
 .q-letter { font-weight: 700; color: var(--gold); margin-right: 4px; }
 .q-result { margin: 8px 0 0; min-height: 1.2em; font-size: 14px; font-weight: 600; }
-.quiz-score { font: 600 18px var(--sans); color: var(--gold); }
 
 /* Footer. */
 .foot { background: #070f15; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }

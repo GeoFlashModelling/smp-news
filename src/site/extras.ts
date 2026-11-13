@@ -6,6 +6,16 @@ const WEATHER_CREDIT = `Forecasts from <a href="https://open-meteo.com/" rel="no
 const QUIZ_CREDIT = `Questions from the <a href="https://opentdb.com/" rel="noopener">Open Trivia Database</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener license">CC BY-SA 4.0</a>.`;
 
 const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const QUIZ_WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const QUIZ_MONTH = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+/** The quiz's Perth date, as "Friday 13 November". The stored day is already that calendar date. */
+function quizDate(day: string): string {
+  const [year, month, date] = day.split("-").map(Number);
+  if (!year || !month || !date) return day;
+  const utc = new Date(Date.UTC(year, month - 1, date));
+  return `${QUIZ_WEEKDAY[utc.getUTCDay()]} ${date} ${QUIZ_MONTH[month - 1]}`;
+}
 
 /** "Tue 10"; site.js turns the reader's own today into "Today". */
 function dayLabel(date: string): string {
@@ -54,30 +64,44 @@ ${cities}
 /** A box beside "On this day" and "Fun fact" on the front page. */
 export function quizBox(quiz: Quiz | null, root: string): string {
   if (!quiz) return "";
-  const topics = [...new Set(quiz.questions.map((q) => q.category))].slice(0, 4).join(", ");
-  return `<div class="fact fact-quiz"><p class="fact-label">Daily quiz</p><p class="fact-title">Need a break? Ten Questions. You Can Do It!</p><p class="fact-text">Today: ${esc(topics)} and more. New questions every day.</p><p><a class="quiz-go" href="${root}quiz/">Play today's quiz</a></p></div>`;
+  const topics = [...new Set(quiz.questions.map((q) => q.category))].slice(0, 3);
+  const chips = topics.map((topic) => `<li>${esc(topic)}</li>`).join("");
+  return `<div class="fact fact-quiz">
+<p class="fact-label">Daily quiz</p>
+<p class="quiz-mark" aria-hidden="true">10</p>
+<p class="fact-title">You can do it.</p>
+<ul class="quiz-topics">${chips}</ul>
+<p class="fact-text">Ten questions, new at midnight Perth time. Your score stays on this device.</p>
+<p class="quiz-play"><a class="quiz-go" href="${root}quiz/">Play today's quiz</a></p>
+</div>`;
 }
 
 export function renderQuiz(quiz: Quiz | null, updated: Date): string {
   const root = "../";
   const letters = ["A", "B", "C", "D"];
   const questions = quiz
-    ? `<ol class="quiz" data-quiz="${quiz.day}">${quiz.questions
+    ? `<header class="quiz-hero">
+<p class="quiz-mark" aria-hidden="true">10</p>
+<div>
+<p class="fact-label">Daily quiz</p>
+<h1>${esc(quizDate(quiz.day))}</h1>
+<p class="note">Ten questions. Pick an answer to see if you're right. Your score stays on this device only.</p>
+</div>
+</header>
+<p class="quiz-score" data-quiz-score aria-live="polite"></p>
+<ol class="quiz" data-quiz="${quiz.day}">${quiz.questions
         .map(
           (q, n) => `<li class="q" data-correct="${q.correct}">
-<p class="q-meta">${esc(q.category)} · ${q.difficulty}</p>
+<p class="q-meta"><span class="q-cat">${esc(q.category)}</span> <span class="q-diff q-diff-${q.difficulty}">${q.difficulty}</span></p>
 <p class="q-text" id="q${n}">${esc(q.question)}</p>
 <div class="q-answers" role="group" aria-labelledby="q${n}">${q.answers.map((a, i) => `<button type="button" data-i="${i}"><span class="q-letter">${letters[i]}</span> ${esc(a)}</button>`).join("")}</div>
 <p class="q-result" aria-live="polite"></p>
 <noscript><details><summary>Show answer</summary><p>${letters[q.correct]}: ${esc(q.answers[q.correct]!)}</p></details></noscript>
 </li>`,
         )
-        .join("")}</ol>
-<p class="quiz-score" data-quiz-score aria-live="polite"></p>`
+        .join("")}</ol>`
     : `<p class="callout">Today's quiz couldn't be loaded. Try again next hour.</p>`;
   const body = `<article class="quiz-page">
-<h1>Daily quiz</h1>
-<p class="note">Ten multiple-choice questions, new every day at midnight Perth time. Pick an answer to see if you're right; your score stays on this device only.</p>
 ${questions}
 <p class="wx-credit">${QUIZ_CREDIT}</p>
 </article>`;

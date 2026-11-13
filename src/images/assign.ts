@@ -6,7 +6,7 @@ import type { Story } from "../lib/stories.js";
 import { ImageCache } from "./cache.js";
 import { imageCandidates, placeCandidates } from "./entities.js";
 import { homeGround, venueMentioned } from "./grounds.js";
-import { confirmedPerson, deceasedName, isDeathStory, MEDICAL, medicalFile, photoIdeas, standIns, topicFiles, topicPlaces, TOPICS } from "./ideas.js";
+import { confirmedPerson, deceasedName, isDeathStory, MEDICAL, medicalFile, photoIdeas, SECTION_PHOTOS, standIns, topicFiles, topicPlaces, TOPICS } from "./ideas.js";
 import { groundedQuery, isPersonName, otherPerson, searchPhotos, type SearchBudget } from "./search.js";
 import { reportsMark, verdict, vetPhotos, VET_MINUTES, VET_REQUESTS } from "./vet.js";
 import { findFiles, findPhotos, notAPhotoFile, type Photo } from "./wikimedia.js";
@@ -308,7 +308,8 @@ function sameThing(subject: string): string {
  *    discuss ("Hawaiian pizza", "open pit gold mine");
  * 3. broad: a common thing that stands for the topic ("wild cat", "Wi-Fi router"), searched the same way, else a
  *    hand-picked photo for the topic (police, court, rugby…);
- * 4. otherwise the section artwork.
+ * 4. a photograph of that section's place (Perth for Local WA, the Harbour Bridge for Local NSW, and so on);
+ * 5. otherwise the section artwork, only when that file is missing.
  * No two stories share a photo while another good one exists (owner, 10 Nov 2026: repeats must not mean weaker
  * pictures): each search keeps several results, and when a story's photo of its subject or place is taken, other
  * photos of that same subject or place are searched for before a weaker kind of picture is tried. Photos of
@@ -379,7 +380,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
   const venues = await findPhotos([...venueOf.values()], "place", cache);
   const deceasedOf = new Map(stories.filter((s) => death.has(s.id)).map((s) => [s.id, deceasedName(s.headline.title)] as const).filter((e): e is [string, string] => e[1] !== null));
   const people = await findPhotos([...deceasedOf.values()], "person", cache);
-  const library = await findFiles(new Map([...TOPICS, ...MEDICAL].map((t) => [t.file, t.caption])), cache);
+  const library = await findFiles(new Map([...TOPICS, ...MEDICAL, ...Object.values(SECTION_PHOTOS)].map((t) => [t.file, t.caption])), cache);
 
   const photos = new Map<string, Photo>();
   let otherLogged = 0;
@@ -543,7 +544,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     for (const [p] of [...taken]) if (!photo) photo = first(standIns(p.subject, p.src).map((f) => here(library.get(f))));
     if (!photo) photo = await alternative(["object", "broad"], 4);
     if (!choose(photo) && story.independent >= 2) {
-      console.log(`No photo: ${story.id} "${story.headline.title}" (idea ${JSON.stringify(idea ?? null)}; places ${JSON.stringify(placesOf.get(story.id) ?? [])})`);
+      console.log(`No matched photo: ${story.id} "${story.headline.title}" (idea ${JSON.stringify(idea ?? null)}; places ${JSON.stringify(placesOf.get(story.id) ?? [])})`);
       // Forget the model's suggestions once, so the next edition asks again (headlines may have changed since).
       const retried = `idea-retried:${story.id}`;
       if (idea && !cache.has(retried)) {
@@ -589,6 +590,18 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       if (![...chosenOf.values()].some((c) => fileOf(c.photo) === file)) used.delete(file);
     }
     for (const s of redo) await pick(s, true);
+  }
+  // A story the closer photos missed still gets a real photograph of its section, not the drawing.
+  // These are hand-picked, so the caption check does not send them back to the drawing.
+  for (const story of stories) {
+    if (chosenOf.has(story.id)) continue;
+    const stand = SECTION_PHOTOS[story.section];
+    const photo = library.get(stand.file);
+    if (!photo || notAPhotoFile(photo.src)) continue;
+    const chosen = { ...photo, subject: stand.caption };
+    if (verdict(cache, story.id, chosen, reportsMark(story)) === false) continue;
+    photos.set(story.id, chosen);
+    chosenOf.set(story.id, { photo: chosen, tier: "broad", shared: false });
   }
   for (const c of chosenOf.values()) {
     counts[c.tier]++;

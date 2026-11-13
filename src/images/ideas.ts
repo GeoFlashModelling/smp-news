@@ -1,4 +1,5 @@
 import { geminiJson } from "../ai/gemini.js";
+import type { Section } from "../config/sources.js";
 import type { Story } from "../lib/stories.js";
 import type { ImageCache } from "./cache.js";
 /** What to look for when picturing a story. */
@@ -82,7 +83,7 @@ export const TOPICS: { match: RegExp; file: string; caption: string; place?: str
   { match: /\bheatwave\b|\bheat wave\b|\bscorcher\b/i, file: "Cottesloe Beach from the south, March 2022.jpg", caption: "Cottesloe Beach, Perth", place: "beach" },
   { match: /\bdrought\b/i, file: "Drought, Hughenden, Queensland, Australia 2014-08-09 11-19.jpg", caption: "drought near Hughenden, Queensland" },
   { match: /\bclimate\b|\bCOP ?\d+\b|\bemissions\b|\bnet zero\b|\bfossil fuels?\b|\brenewables?\b|\bglobal warming\b/i, file: "Albany Wind Farm, September 2026 10.jpg", caption: "the Albany Wind Farm, Western Australia" },
-  { match: /\bcourt\b|\btrial\b|\bsentenced?\b|\bguilty\b|\bjury\b|\bcharged\b|\bmagistrates?\b|\baccused\b|\babus(e|ed|ing)\b/i, file: "Legal Gavel (27571702173).jpg", caption: "a judge's gavel", place: "courthouse" },
+  { match: /\bcourt\b|\btrial\b|\bsentenced?\b|\bguilty\b|\bjury\b|\bcharged\b|\bmagistrates?\b|\baccused\b|\babus(e|ed|ing)\b|\barrest(ed|s)?\b|\bmurder(er|ed|s)?\b|\bhomicides?\b|\bassault(s|ed)?\b/i, file: "Legal Gavel (27571702173).jpg", caption: "a judge's gavel", place: "courthouse" },
   { match: /\bpolice\b|\bdetectives?\b|\bstabbed\b|\bstabbing\b|\bmissing\b|\bcrash\b|\bdrink[- ]driv(ing|er)\b|\bbomb (threats?|hoax(es)?|scares?)\b/i, file: "NSW Police car 2006 NYE.jpg", caption: "a police car at night", place: "police station" },
   { match: /\bReserve Bank\b|\bRBA\b|\binterest rates?\b|\binflation\b|\brate (cut|rise|hike)s?\b/i, file: "RBA Building August 2025.jpg", caption: "the Reserve Bank of Australia, Sydney" },
   { match: /\bASX\b|\bsharemarket\b|\bshare market\b|\bstocks?\b|\bshares\b|\binvestors\b/i, file: "Australian Securities Exchange entrance.jpg", caption: "the Australian Securities Exchange" },
@@ -91,7 +92,7 @@ export const TOPICS: { match: RegExp; file: string; caption: string; place?: str
   { match: /\bEVs?\b|\belectric (cars?|vehicles?)\b|\bBYD\b|\bTesla\b|\bcarmakers?\b|\bcar makers?\b|\btop speed\b/i, file: "Electric car charging points - geograph.org.uk - 7322507.jpg", caption: "electric car charging points" },
   { match: /\bWhite House\b|\bTrump\b|\bUS president\b/i, file: "The White House June 2024.jpg", caption: "the White House, Washington" },
   { match: /\bmidterms?\b|\bCongress\b|\bUS Senate\b|\bRepublicans?\b|\bDemocrats?\b|\bCapitol\b/i, file: "United States Capitol west front edit2 (cropped).jpg", caption: "the United States Capitol, Washington" },
-  { match: /\bhousing\b|\brents?\b|\brenters\b|\bhouse prices?\b|\bmortgages?\b|\bhome loans?\b/i, file: "Walking around the suburb of Kelso, Townsville, Australia 05.jpg", caption: "a suburban street in Kelso, Townsville", place: "suburban street" },
+  { match: /\bhousing\b|\brents?\b|\brenters\b|\bhouse prices?\b|\bmortgages?\b|\bhome loans?\b|\bhomeless(ness)?\b/i, file: "Walking around the suburb of Kelso, Townsville, Australia 05.jpg", caption: "a suburban street in Kelso, Townsville", place: "suburban street" },
   { match: /\bhospitals?\b|\bnurses?\b|\bdoctors?\b|\bpatients?\b|\bemergency department\b|\bramping\b/i, file: "Royal Perth Hospital, 2023.jpg", caption: "Royal Perth Hospital", place: "hospital" },
   { match: /\bschools?\b|\bteachers?\b|\bprincipals?\b/i, file: "Fairfield Public School classrooms.jpg", caption: "school classrooms in Fairfield, NSW", place: "school" },
   { match: /\buniversit(y|ies)\b|\bTAFE\b/i, file: "Edith Cowan University, City Campus, May 2026 01.jpg", caption: "Edith Cowan University's city campus, Perth", place: "university" },
@@ -212,11 +213,36 @@ export function standIns(subject: string, src: string): string[] {
   return STAND_INS.find((s) => s.match.test(subject) || s.files.some((f) => file.endsWith(f)))?.files ?? [];
 }
 
-/** Library photos (file names) that suit a story, best match first, from its report titles. */
+/** Library photos (file names) that suit a story, best match first. The headline readers see counts, as well as the report titles. */
 export function topicFiles(story: Story): string[] {
-  const text = story.items.slice(0, 5).map((i) => i.title).join(" ");
+  const text = [story.headline.title, story.writeup?.summary?.headline, ...story.items.slice(0, 5).map((i) => i.title)].filter(Boolean).join(" ");
   return TOPICS.filter((t) => t.match.test(text)).map((t) => t.file).slice(0, 5);
 }
+
+/**
+ * A real photograph for the section, used when no closer photo passes. Each file is a free Commons photo of that
+ * section's place, or a thing with no city in its name, checked for a free licence on 13 Nov 2026.
+ */
+export const SECTION_PHOTOS: Record<Section, { file: string; caption: string }> = {
+  "local-wa": { file: "Perth CBD from Mill Point.jpg", caption: "Perth" },
+  "local-nsw": { file: "Sydney Harbour Bridge from Circular Quay.jpg", caption: "the Sydney Harbour Bridge" },
+  "local-vic": { file: "Melbourne Skyline at daytime.jpg", caption: "the Melbourne skyline" },
+  "local-qld": { file: "Walking around the suburb of Kelso, Townsville, Australia 05.jpg", caption: "a suburban street in Kelso, Townsville" },
+  "local-sa": { file: "Adelaide skyline, December 2022.jpg", caption: "the Adelaide skyline" },
+  "local-tas": { file: "Hobart waterfront Nov 2011 - 2.jpg", caption: "the Hobart waterfront" },
+  "local-act": { file: "Parliament House at dusk, Canberra ACT.jpg", caption: "Parliament House, Canberra" },
+  "local-nt": { file: "City landscape of Darwin, Northern Territory.jpg", caption: "Darwin, Northern Territory" },
+  australia: { file: "Parliament House at dusk, Canberra ACT.jpg", caption: "Parliament House, Canberra" },
+  "new-zealand": { file: "Wellington Harbour, New Zealand.jpg", caption: "Wellington Harbour, New Zealand" },
+  world: { file: "The Earth seen from Apollo 17.jpg", caption: "the Earth, seen from Apollo 17" },
+  politics: { file: "Parliament House at dusk, Canberra ACT.jpg", caption: "Parliament House, Canberra" },
+  business: { file: "Australian Securities Exchange entrance.jpg", caption: "the Australian Securities Exchange" },
+  sport: { file: "Rugby Lineout.jpg", caption: "a rugby union lineout" },
+  "science-tech": { file: "Kinemetrics seismograph.jpg", caption: "a seismograph" },
+  tech: { file: "BalticServers data center.jpg", caption: "a data centre" },
+  entertainment: { file: "Europa Cinema Auditorium, February 2025.jpg", caption: "a cinema" },
+  "feel-good": { file: "Koala climbing tree.jpg", caption: "a koala" },
+};
 
 /**
  * What to search for when a topic's stand-in is a place ("rugby league ground", "courthouse", "hospital").

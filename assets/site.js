@@ -137,7 +137,8 @@ const store = {
   const update = () => {
     const done = Object.keys(saved).length;
     const right = questions.filter((q, n) => saved[n] === Number(q.dataset.correct)).length;
-    score.textContent = done === 0 ? "" : done < questions.length ? `Score so far: ${right} of ${done}` : `You scored ${right} out of ${questions.length}. New questions tomorrow!`;
+    score.textContent = done === 0 ? "" : done < questions.length ? `${right} of ${done} so far` : `${right} out of ${questions.length}. New questions tomorrow.`;
+    score.style.setProperty("--quiz-fill", `${questions.length ? (right / questions.length) * 100 : 0}%`);
   };
   const answer = (q, n, chosen) => {
     const correct = Number(q.dataset.correct);
@@ -147,6 +148,7 @@ const store = {
       if (i === correct) b.classList.add("right");
       else if (i === chosen) b.classList.add("wrong");
     });
+    q.classList.add(chosen === correct ? "got" : "missed");
     q.querySelector(".q-result").textContent = chosen === correct ? "Correct!" : `Not quite: the answer is ${buttons[correct].textContent.trim().slice(2)}.`;
   };
   questions.forEach((q, n) => {

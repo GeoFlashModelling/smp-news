@@ -175,7 +175,43 @@ function itemSections(item: Item, text: string): readonly Section[] {
   return rest.length ? rest : ["australia"];
 }
 
-function pickSection(items: Item[]): Section {
+/**
+ * A headline that is itself about the price of money. "Bank reduces fixed interest rates…" is Business on that
+ * title alone: a newer science-feed report must not win a tie and file it under Science.
+ */
+const FINANCE_TITLE =
+  /\b(interest rates?|mortgage rates?|fixed rates?|variable rates?|home loans?|cash rate|official cash rate)\b|\b(banks?|lenders?)\b[^.]{0,80}\b(rates?|mortgages?|loans?)\b|\b(rates?|mortgages?|loans?)\b[^.]{0,80}\b(banks?|lenders?)\b/i;
+
+/** The headline readers see: the written one when it exists, otherwise the outlet headline that best represents the group. */
+export function shownTitle(story: Story): string {
+  return story.writeup?.summary?.headline ?? story.headline.title;
+}
+
+/** Golf is left out: a golf-club disclosure is politics, and a sport word in the title is only one vote. */
+const TITLE_SPORT = /\b(AFLW?|NRLW?|cricket|Test match|rugby|A-League|Matildas|Socceroos|Wallabies|Kangaroos|Kiwi Ferns|World Cup|grand final|footy|tennis|Wimbledon|Olympics?|netball|F1|Formula One|Grand Prix|premiership|ODI|T20|Ashes|Super Rugby|NBA|NFL|Brownlow|WTA|ATP|Premier League|Champions League|Melbourne Cup|jockey)\b/i;
+
+/**
+ * What the title itself is about. One extra vote, so it wins a tie and can tip a one-report lead.
+ * A clear majority of reports still wins. A rates title is handled on its own, below.
+ */
+const TITLE_TOPICS: readonly [RegExp, Section][] = [
+  [TITLE_SPORT, "sport"],
+  [/\b(by-election|general election|parliament|prime minister|premier|cabinet|opposition leader|senator)\b/i, "politics"],
+  [/\b(artificial intelligence|chatbot|smartphone|data breach|cyber ?attack|AI)\b/i, "tech"],
+  [/\b(NASA|astronomers?|telescope|physicists?|fossil|quantum)\b/i, "science-tech"],
+  [/\b(box office|film festival|Grammys?|Oscars?)\b/i, "entertainment"],
+];
+
+function titleTopic(title: string): Section | null {
+  return TITLE_TOPICS.find(([re]) => re.test(title))?.[1] ?? null;
+}
+
+/** Re-file from the title readers see, once the written headline is in. */
+export function fileByTitle(story: Story): void {
+  story.section = pickSection(story.items, shownTitle(story));
+}
+
+function pickSection(items: Item[], title = ""): Section {
   const texts = items.map((i) => `${i.title} ${i.summary.slice(0, 200)}`);
   const share = (re: RegExp) => texts.filter((t) => re.test(t)).length / items.length;
   const labelled = items.map((i, n) => ({ sections: itemSections(i, texts[n]!) }));
@@ -196,8 +232,13 @@ function pickSection(items: Item[]): Section {
   // Another state's local news when most reports name its places and no other state comes close.
   const states = (Object.keys(STATE_PLACES) as (keyof typeof STATE_PLACES)[]).map((s) => [s, share(STATE_PLACES[s])] as const).sort((a, b) => b[1] - a[1]);
   if (states[0]![1] >= STATE_SHARE && states[0]![1] > states[1]![1]) return states[0]![0];
+  // A rates title is Business on its own, once the story is not clearly one state's or a match.
+  if (FINANCE_TITLE.test(title)) return "business";
 
-  let best: Section = labelled[0]?.sections[0] ?? "world";
+  const hinted = titleTopic(title);
+  if (hinted) counts.set(hinted, (counts.get(hinted) ?? 0) + 1);
+  // Equal votes follow the title. Otherwise the newest report's feed would decide, which filed a rates story under Science.
+  let best: Section = hinted ?? labelled[0]?.sections[0] ?? "world";
   for (const s of SECTION_PRIORITY) if ((counts.get(s) ?? 0) > (counts.get(best) ?? 0)) best = s;
 
   if (isLocal(best) && items.length > 1) best = "australia";
@@ -271,10 +312,11 @@ export function buildStory(cluster: Cluster, now: Date): Story {
   }
   const front = [...prominence.values()].reduce((a, b) => a + b, 0);
   const lead = Math.pow(1 + agenda + FRONT_WEIGHT * front, AGENDA_WEIGHT) * Math.sqrt(Math.min(Math.max(independent, 1), LEAD_BREADTH_CAP)) * decay;
+  const headline = pickHeadline(items);
   return {
     id: storyId(items),
-    section: pickSection(items),
-    headline: pickHeadline(items),
+    section: pickSection(items, headline.title),
+    headline,
     items,
     independent,
     coverage,
