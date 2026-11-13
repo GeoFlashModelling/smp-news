@@ -100,8 +100,12 @@ const STATE_PLACES: Record<Exclude<LocalSection, "local-wa">, RegExp> = {
 function namesState(section: LocalSection, item: Item, text: string): boolean {
   return section === "local-wa" ? namesWa(item, text) : STATE_PLACES[section].test(text);
 }
-/** Share of a story's reports naming one state's places that makes it that state's local news. */
-const STATE_SHARE = 0.5;
+/**
+ * Share of a story's reports naming one state's places that makes it that state's local news.
+ * 0.5 left a Victorian search in Australia: 0.43 of its reports name Victoria. 0.33 would file a national
+ * Beaconsfield feature as New South Wales. Sport is decided before this, so a match stays in Sport.
+ */
+const STATE_SHARE = 0.4;
 /** The same places in a web address ("…/declining-humpback-numbers-western-australia"), where case says nothing. */
 const WA_PLACES_ANY_CASE = new RegExp(WA_PLACES.source, "i");
 /** Web addresses of WA local pages: PerthNow's /wa/ and community pages, WAtoday's WA pages, The West's WA and regional mastheads. */
@@ -175,9 +179,17 @@ function pickSection(items: Item[]): Section {
   const texts = items.map((i) => `${i.title} ${i.summary.slice(0, 200)}`);
   const share = (re: RegExp) => texts.filter((t) => re.test(t)).length / items.length;
   const labelled = items.map((i, n) => ({ sections: itemSections(i, texts[n]!) }));
+  const informative = labelled.filter((i) => i.sections.length <= MAX_INFORMATIVE_SECTIONS);
+  const counts = new Map<Section, number>();
+  for (const i of informative.length ? informative : labelled) for (const s of i.sections) counts.set(s, (counts.get(s) ?? 0) + 1 / i.sections.length);
   // Sport pages and sport-only feeds keep a club's story in Sport, not its state's local news ("Parramatta Eels…").
+  // A sport word alone does not: a golf-club disclosure is politics, and a world story that mentions a club stays in World.
   const sportOnly = labelled.filter((l) => l.sections.length === 1 && l.sections[0] === "sport").length / items.length;
-  if (share(SPORT_WORDS) >= 0.4 || sportOnly >= 0.5) return "sport";
+  const sportCount = counts.get("sport") ?? 0;
+  const sportWordOnly =
+    sportOnly < 0.5 &&
+    ((counts.get("politics") ?? 0) > sportCount || (counts.get("business") ?? 0) > sportCount || (sportCount === 0 && (counts.get("world") ?? 0) > 0));
+  if ((share(SPORT_WORDS) >= 0.4 || sportOnly >= 0.5) && !sportWordOnly) return "sport";
   if (items.filter((item, n) => namesWa(item, texts[n]!)).length / items.length >= 0.3) return "local-wa";
   // Trans-Tasman stories go to whichever country the reports name more often.
   if (share(NZ_PLACES) >= 0.3 && share(NZ_PLACES) > share(AU_PLACES)) return "new-zealand";
@@ -185,14 +197,15 @@ function pickSection(items: Item[]): Section {
   const states = (Object.keys(STATE_PLACES) as (keyof typeof STATE_PLACES)[]).map((s) => [s, share(STATE_PLACES[s])] as const).sort((a, b) => b[1] - a[1]);
   if (states[0]![1] >= STATE_SHARE && states[0]![1] > states[1]![1]) return states[0]![0];
 
-  const informative = labelled.filter((i) => i.sections.length <= MAX_INFORMATIVE_SECTIONS);
-  const counts = new Map<Section, number>();
-  for (const i of informative.length ? informative : labelled) for (const s of i.sections) counts.set(s, (counts.get(s) ?? 0) + 1 / i.sections.length);
   let best: Section = labelled[0]?.sections[0] ?? "world";
   for (const s of SECTION_PRIORITY) if ((counts.get(s) ?? 0) > (counts.get(best) ?? 0)) best = s;
 
   if (isLocal(best) && items.length > 1) best = "australia";
   if (best === "world" && share(AU_PLACES) >= 0.3) best = "australia";
+  // A company story carried half by a business page and half by World or Australia was landing in the place
+  // section (David Jones in Australia, an RBA rates note in World). When those labels are level, it is Business.
+  const business = counts.get("business") ?? 0;
+  if ((best === "world" || best === "australia") && business > 0 && business === (counts.get(best) ?? 0)) best = "business";
   return best;
 }
 
