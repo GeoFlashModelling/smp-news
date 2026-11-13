@@ -33,6 +33,11 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # The local grouping model (about 25 MB). Restored across runs so the hourly job does not download it again.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/models
+          key: embed-minilm-l6-v2-q8
       # Restored here and saved at the end even when the edition fails or is stopped, so paid work is never lost:
       # photo lookups, searches and each story's photo (images.json); summaries written, today's paid spend, free models
       # used up and stories waiting to be written (summaries.json); story IDs and the reports in each (stories.json).

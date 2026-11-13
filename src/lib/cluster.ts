@@ -30,9 +30,21 @@ export interface ClusterOptions {
    * the same topic, not the same event).
    */
   namedThreshold?: number;
+  /**
+   * Two contest headlines that each name someone the other doesn't stay apart (Andreeva/Svitolina and
+   * Andreeva/Sabalenka are different matches). On by default.
+   */
+  eventWords?: boolean;
+  /** A newsletter line ("impeachment. And, SCOTUS allows…") is clustered on its first story. On by default. */
+  newsletter?: boolean;
+  /** A competition is not a shared name, and a headline's only name is ignored when it is the first word and the place already matches. On by default. */
+  guards?: boolean;
 }
 
-export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = { threshold: 0.32, windowHours: 36, separateRegions: true, useNames: true };
+export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = { threshold: 0.32, windowHours: 36, separateRegions: true, useNames: true, eventWords: true, newsletter: true, guards: true };
+
+/** A result, so two headlines that each name a different opponent are different matches. */
+const CONTEST = /\b(beats?|beaten|past|defeats?|versus|vs\.?|advances?|fights?|fightback|wins?|won)\b/i;
 
 type Vec = Map<string, number>;
 
@@ -56,6 +68,14 @@ function stem(word: string): string {
   if (word.length > 4 && word.endsWith("ies")) return `${word.slice(0, -3)}y`;
   if (word.length > 4 && word.endsWith("s") && !word.endsWith("ss") && !word.endsWith("us")) return word.slice(0, -1);
   return word;
+}
+
+/** The first word of a headline, stemmed. "Pregnant woman rescued" opens on "pregnant". */
+function openingName(title: string): string | null {
+  const m = title.match(/[\p{L}\p{N}](?:[\p{L}\p{N}'’&]|\.(?=\p{Lu}))*/u);
+  if (!m) return null;
+  const word = m[0].replace(/['’]s$/, "").replace(/\./g, "").replace(/['’]+$/, "");
+  return word.length < 2 ? null : stem(word.toLowerCase());
 }
 
 export function tokenize(text: string): string[] {
@@ -87,6 +107,8 @@ const REGIONS: [string, RegExp][] = [
   ["Taranaki", /\b(Taranaki|New Plymouth)\b/],
   ["Hawke's Bay", /\b(Hawke's Bay|Napier)\b/],
   ["Waikato", /\bWaikato\b/],
+  // One city. "Brooklyn" and "New York" were two names, so one building collapse stayed two stories.
+  ["New York", /\b(New York|Brooklyn|Manhattan|Queens|Bronx|Staten Island|NYC)\b/],
 ];
 
 export function regionsIn(title: string): Set<string> {
@@ -111,7 +133,7 @@ const COUNTRIES: [string, RegExp][] = [
   ["Russia", /\b(Russia|Russian|Moscow|Kremlin|Putin)\b/],
   ["Ukraine", /\b(Ukraine|Ukrainian|Kyiv|Zelensky[yi]?)\b/],
   ["China", /\b(China|Chinese|Beijing|Xi Jinping)\b/],
-  ["Japan", /\b(Japan|Japanese|Tokyo)\b/],
+  ["Japan", /\b(Japan|Japanese|Tokyo|Kyoto)\b/],
   ["India", /\b(India|Indian|Delhi|Mumbai|Modi)\b(?! Ocean)/],
   ["Indonesia", /\b(Indonesia|Indonesian|Jakarta|Bali|Prabowo)\b/],
   ["Israel", /\b(Israel|Israeli|Netanyahu|Knesset)\b/],
@@ -148,8 +170,9 @@ const NOT_NAMES = new Set([
 /**
  * Names in each headline: people, companies, products, places. A capitalised word counts as a name when, across this
  * edition's sentence-case headlines, it is mostly capitalised mid-sentence. In title-case headlines ("Trump Is Firmly
- * in Jensen Huang's Corner") only words other outlets capitalise mid-sentence count. Countries, states and regions are
- * left to `COUNTRIES` and `REGIONS`.
+ * in Jensen Huang's Corner") only words other outlets capitalise mid-sentence count. The first word of a sentence-case
+ * headline counts when the edition never writes it in lower case ("Westpac outage…"). Countries, states and regions
+ * are left to `COUNTRIES` and `REGIONS`.
  */
 export function namesIn(titles: string[]): Set<string>[] {
   const split = (title: string) => {
@@ -181,6 +204,9 @@ export function namesIn(titles: string[]): Set<string>[] {
   return words.map((list, n) => {
     const names = new Set<string>();
     for (const w of list) {
+      const prev = list[list.indexOf(w) - 1];
+      // "New York" is a city. The single word "York" would otherwise be a different name from "Brooklyn".
+      if (prev?.key === "new" && (w.key === "york" || w.key === "jersey" || w.key === "orleans" || w.key === "delhi")) continue;
       if (!w.capital || STOPWORDS.has(w.key) || NOT_NAMES.has(w.key) || countriesIn(w.word).size || regionsIn(w.word).size) continue;
       const caps = capital.get(w.key) ?? 0;
       const low = lower.get(w.key) ?? 0;
@@ -220,6 +246,12 @@ function cosine(a: Vec, b: Vec): number {
   return dot;
 }
 
+/** A newsletter headline ("Hegseth impeachment. And, SCOTUS allows…") is two stories. Cluster on the first. */
+export function leadClause(title: string): string {
+  const at = title.search(/\.\s+And,/);
+  return at >= 24 ? title.slice(0, at) : title;
+}
+
 function addInto(sum: Vec, v: Vec): void {
   for (const [t, w] of v) sum.set(t, (sum.get(t) ?? 0) + w);
 }
@@ -245,7 +277,8 @@ interface Working extends Cluster {
 }
 
 export function clusterItems(items: Item[], options: ClusterOptions = DEFAULT_CLUSTER_OPTIONS): Cluster[] {
-  const titleTokens = items.map((i) => tokenize(i.title));
+  const titles = items.map((i) => (options.newsletter !== false ? leadClause(i.title) : i.title));
+  const titleTokens = titles.map((t) => tokenize(t));
   const summaryTokens = items.map((i) => tokenize(i.summary.slice(0, 400)));
 
   const df = new Map<string, number>();
@@ -261,14 +294,17 @@ export function clusterItems(items: Item[], options: ClusterOptions = DEFAULT_CL
   const order = items.map((_, n) => n).sort((a, b) => items[a]!.published.getTime() - items[b]!.published.getTime());
   const clusters: Working[] = [];
   const windowMs = options.windowHours * 3600 * 1000;
-  const itemNames = options.useNames ? namesIn(items.map((i) => i.title)) : items.map(() => new Set<string>());
+  const itemNames = options.useNames ? namesIn(titles) : items.map(() => new Set<string>());
+  // A competition is not a person. Two Shield games that only share "Shield" are not one story.
+  const COMPETITION = new Set(["shield", "sheffield"]);
+  const notable = (pool: Set<string> | Map<string, number>) => new Set([...pool.keys()].filter((name) => !COMPETITION.has(name)));
   const disjoint = (a: Set<string>, b: Set<string> | Map<string, number>) => a.size > 0 && b.size > 0 && ![...a].some((x) => b.has(x));
 
   for (const n of order) {
     const item = items[n]!;
     const headlineOnly = !item.source.ai_input_allowed || item.summary.length === 0;
-    const regions = regionsIn(item.title);
-    const countries = options.separateRegions ? countriesIn(item.title) : new Set<string>();
+    const regions = regionsIn(titles[n]!);
+    const countries = options.separateRegions ? countriesIn(titles[n]!) : new Set<string>();
     const names = itemNames[n]!;
     let best: Working | null = null;
     let bestSim = 0;
@@ -278,8 +314,21 @@ export function clusterItems(items: Item[], options: ClusterOptions = DEFAULT_CL
       if (options.separateRegions && disjoint(regions, c.regions)) continue;
       // Different names or countries keep a report out, unless it shares any name or country with the story: a big
       // story's headlines mention other countries and people in passing.
-      const sharesAny = [...names].some((x) => c.names.has(x) || [...c.names.keys()].some((y) => sameName(x, y))) || [...countries].some((x) => c.countries.has(x));
-      if (!sharesAny && (disjoint(names, c.names) || disjoint(countries, c.countries))) continue;
+      const mineAll = options.guards === false ? names : notable(names);
+      const opener = openingName(titles[n]!);
+      // "Pregnant woman rescued…" and "Firefighters search…" have no person in them. The first word was blocking
+      // them from the Brooklyn collapse, which is the same place. A company that opens a headline ("Westpac outage")
+      // still blocks a different outage, because those headlines do not share a place.
+      const mine = options.guards !== false && mineAll.size === 1 && opener !== null && mineAll.has(opener) && [...regions].some((r) => c.regions.has(r)) ? new Set<string>() : mineAll;
+      const theirs = options.guards === false ? new Set(c.names.keys()) : notable(c.names);
+      const sharesAny = [...mine].some((x) => theirs.has(x) || [...theirs].some((y) => sameName(x, y))) || [...countries].some((x) => c.countries.has(x));
+      if (!sharesAny && (disjoint(mine, theirs) || disjoint(countries, c.countries))) continue;
+      if (options.eventWords !== false && names.size > 0 && c.names.size > 0 && CONTEST.test(titles[n]!) && c.items.some((i) => CONTEST.test(leadClause(i.title)))) {
+        const has = (pool: Set<string> | Map<string, number>, name: string) => pool.has(name) || [...pool.keys()].some((y) => sameName(name, y));
+        const itemOnly = [...names].some((name) => !has(c.names, name));
+        const storyOnly = [...c.names.keys()].some((name) => !has(names, name));
+        if (itemOnly && storyOnly) continue;
+      }
       const sim = headlineOnly
         ? cosine(titleVecs[n]!, c.titleCentroid)
         : Math.max(cosine(fullVecs[n]!, c.fullCentroid), cosine(titleVecs[n]!, c.titleCentroid));

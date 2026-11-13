@@ -7,7 +7,7 @@ import { summarisable, summariseStories } from "./ai/summarise.js";
 import { isLocal, loadSources } from "./config/sources.js";
 import { applyBlocklist, loadBlocklist } from "./lib/blocklist.js";
 import { assignPhotos } from "./images/assign.js";
-import { clusterItems } from "./lib/cluster.js";
+import { groupReports } from "./lib/embed-merge.js";
 import { loadFacts } from "./lib/facts.js";
 import { keepStoryIds } from "./lib/identity.js";
 import { recordEdition, type EditionRecord } from "./lib/history.js";
@@ -42,7 +42,8 @@ async function main(): Promise<void> {
   const fedAt = Date.now();
   const failed = feeds.filter((f) => !f.ok);
   const items = applyBlocklist(normalise(feeds, sources, now), await loadBlocklist());
-  const stories = buildStories(clusterItems(items), now);
+  const grouped = await groupReports(items);
+  const stories = buildStories(grouped.clusters, now);
   await keepStoryIds(stories, resolve(process.env.STORY_IDS ?? ".cache/stories.json"), now);
   const multi = stories.filter((s) => s.independent >= 2);
   let summaryNote = "summaries off";
@@ -74,7 +75,7 @@ async function main(): Promise<void> {
   const [facts, weather, quiz] = await Promise.all([loadFacts(now), loadWeather(), loadQuiz(resolve(process.env.QUIZ_STATE ?? ".cache/quiz.json"), now)]);
   const files = await generateSite(out, stories, front, config.sources, now, { facts, weather, quiz });
 
-  console.log(`Edition ${now.toISOString()}: ${feeds.length - failed.length}/${feeds.length} feeds OK, ${items.length} items, ${stories.length} stories (${multi.length} multi-source), photos for ${photos.size} (event ${counts.event}, object ${counts.object}, broad ${counts.broad}, shared ${counts.shared}, refused as elsewhere ${counts.elsewhere}, off the point ${counts.offPoint}; ${multi.filter((s) => s.photo).length}/${multi.length} multi-source), ${summaryNote}, ${files} files in ${Date.now() - started} ms.`);
+  console.log(`Edition ${now.toISOString()}: ${feeds.length - failed.length}/${feeds.length} feeds OK, ${items.length} items, ${stories.length} stories (${multi.length} multi-source), ${grouped.note}, photos for ${photos.size} (event ${counts.event}, object ${counts.object}, broad ${counts.broad}, shared ${counts.shared}, refused as elsewhere ${counts.elsewhere}, off the point ${counts.offPoint}; ${multi.filter((s) => s.photo).length}/${multi.length} multi-source), ${summaryNote}, ${files} files in ${Date.now() - started} ms.`);
   const done = Date.now();
   await recordEdition(resolve(process.env.HISTORY ?? ".cache/history.json"), {
     at: now.toISOString(),

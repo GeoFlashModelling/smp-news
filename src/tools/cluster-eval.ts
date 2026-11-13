@@ -5,7 +5,8 @@ import { gunzipSync } from "node:zlib";
 import { geminiJson } from "../ai/gemini.js";
 import { loadSources, SECTIONS, type Section } from "../config/sources.js";
 import { applyBlocklist, loadBlocklist } from "../lib/blocklist.js";
-import { clusterItems, tokenize, type Cluster } from "../lib/cluster.js";
+import { tokenize, type Cluster } from "../lib/cluster.js";
+import { groupReports } from "../lib/embed-merge.js";
 import type { FeedSnapshot } from "../lib/fetch-feeds.js";
 import { normalise } from "../lib/normalise.js";
 import { buildStories, type Story } from "../lib/stories.js";
@@ -115,8 +116,8 @@ async function main(): Promise<void> {
   const now = new Date(snapshot.taken_at);
   const config = await loadSources();
   const items = applyBlocklist(normalise(snapshot.feeds, new Map(config.sources.map((s) => [s.id, s])), now), await loadBlocklist());
-  const clusters = clusterItems(items);
-  const stories = buildStories(clusters, now);
+  const grouped = await groupReports(items);
+  const stories = buildStories(grouped.clusters, now);
   const multi = stories.filter((s) => s.independent >= 2).sort((a, b) => b.lead - a.lead).slice(0, TOP);
   let labels: Labels = {};
   try {
@@ -124,7 +125,7 @@ async function main(): Promise<void> {
   } catch {
     // first run
   }
-  console.log(`${file}: ${items.length} items, ${stories.length} stories, ${stories.filter((s) => s.independent >= 2).length} multi-outlet; judging the top ${multi.length} (${MODEL})\n`);
+  console.log(`${file}: ${items.length} items, ${stories.length} stories, ${stories.filter((s) => s.independent >= 2).length} multi-outlet; ${grouped.note}; judging the top ${multi.length} (${MODEL})\n`);
 
   // Purity.
   const purityKey = (s: Story) => `p:${hash(titlesOf(s, 30).sort().join("\n"))}`;
