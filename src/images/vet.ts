@@ -55,12 +55,21 @@ export interface VetItem {
 }
 
 /** Bump when the instructions change, so earlier verdicts are asked again (the rest of the image cache stays). */
-const VET_VERSION = 4;
-const verdictKey = (id: string, photo: Photo) => `vet${VET_VERSION}:${id}|${photo.src.split("?")[0]}`;
+const VET_VERSION = 5;
+
+/** Headlines this verdict was given for. A cached "yes" expires when the reports change. */
+export function reportsMark(story: Story): string {
+  const text = [story.headline.title, ...story.items.slice(0, 5).map((i) => i.title)].join("|");
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) hash = (Math.imul(31, hash) + text.charCodeAt(i)) | 0;
+  return (hash >>> 0).toString(36);
+}
+
+const verdictKey = (id: string, photo: Photo, mark: string) => `vet${VET_VERSION}:${id}|${mark}|${photo.src.split("?")[0]}`;
 
 /** The cached verdict on a story's photo: true suits, false refused, undefined not yet asked. */
-export function verdict(cache: ImageCache, id: string, photo: Photo): boolean | undefined {
-  return cache.get<boolean>(verdictKey(id, photo));
+export function verdict(cache: ImageCache, id: string, photo: Photo, mark: string): boolean | undefined {
+  return cache.get<boolean>(verdictKey(id, photo, mark));
 }
 
 function tidy(text: string | undefined, max: number): string {
@@ -74,7 +83,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * Returns how many were refused.
  */
 export async function vetPhotos(items: VetItem[], cache: ImageCache, budget: { requests: number; until: number }): Promise<number> {
-  const todo = items.filter((i) => verdict(cache, i.story.id, i.photo) === undefined);
+  const todo = items.filter((i) => verdict(cache, i.story.id, i.photo, reportsMark(i.story)) === undefined);
   if (!todo.length || !process.env.GEMINI_API_KEY || process.env.PHOTO_AI === "off") return 0;
   let refused = 0;
   let m = 0;
@@ -98,7 +107,7 @@ export async function vetPhotos(items: VetItem[], cache: ImageCache, budget: { r
       for (const a of answers) {
         const item = batch[Number(String(a.id ?? "").trim()) - 1];
         if (!item || typeof a.fits !== "boolean") continue;
-        cache.set(verdictKey(item.story.id, item.photo), a.fits);
+        cache.set(verdictKey(item.story.id, item.photo, reportsMark(item.story)), a.fits);
         if (!a.fits && refused++ < REJECTIONS_LOGGED) {
           console.log(`Photo refused as off the point: "${item.photo.subject}" for "${item.story.headline.title}" (${tidy(String(a.reason ?? ""), 80)})`);
         }

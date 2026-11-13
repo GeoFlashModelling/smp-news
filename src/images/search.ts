@@ -21,24 +21,37 @@ const PERSON_PHOTO =
 
 /** A place, club or object, so "Golden Boot" and "Sydney Cricket Ground" are not read as people's names. */
 const NOT_A_PERSON =
-  /\b(house|ground|stadium|hospital|bridge|river|park|building|centre|center|tower|airport|beach|bay|street|road|oval|arena|court|club|university|school|station|cathedral|church|palace|castle|museum|library|hall|square|garden|gardens|range|island|mountain|lake|harbour|harbor|opera|mine|port|wharf|pier|dam|reef|valley|gate|wall|memorial|monument|trophy|medal|award|boot|cup|ball|fc|afc|rfc|bank|market|office|zealand|wales|york)\b/i;
+  /\b(house|ground|stadium|hospital|bridge|river|park|building|centre|center|tower|airport|beach|bay|street|road|oval|arena|court|club|university|school|station|cathedral|church|palace|castle|museum|library|hall|square|garden|gardens|range|island|mountain|lake|harbour|harbor|opera|mine|port|wharf|pier|dam|reef|valley|gate|wall|memorial|monument|trophy|medal|award|boot|cup|ball|fc|afc|rfc|bank|market|office|zealand|wales|york|headquarters|software|exchange|entrance|terminal|campus|hotel|store|shop|coast)\b/i;
 /** The parenthetical Wikipedia adds to a person ("Grant Anderson (rugby league)"), not "(cropped)" or "(stadium)". */
 const PERSON_ROLE =
   /\([^)]*\b(rugby|league|union|footballer|football|soccer|cricket|cricketer|basketball|tennis|golf|golfer|athlete|player|coach|actor|actress|singer|musician|politician|minister|journalist|comedian|writer|author|scientist|born|australian|american|british|english|french|german|italian|spanish|irish|scottish|welsh|zealand)\b[^)]*\)/i;
+/** A second word that is never a surname ("House of Commons"). */
+const SMALL_NAME = new Set(["of", "the", "and", "de", "van", "von", "da", "del", "bin", "al", "le", "la", "du"]);
 
 /**
- * A title that names a person ("Kalyn Ponga", "Grant Anderson (rugby league)"), or null when it names a place or thing.
- * Search hits are often another player whose filename merely contains the sport.
+ * A title that names a person ("Kalyn Ponga", "Grant Anderson (rugby league)", "Jensen huang stanford 2026-04-30"),
+ * or null when it names a place or thing. Commons often writes the surname in lowercase. A third Title Case word
+ * is a place or a thing ("Sydney Swans Training", "Cape Breton Island"), not another person.
  */
 export function personShown(title: string): string | null {
   const base = title.replace(/^File:/i, "").replace(/\.(jpe?g|png|webp)$/i, "").replace(/_/g, " ").replace(/\s+/g, " ").trim();
-  const match = base.match(/^(\p{Lu}[\p{L}'’.-]{1,24}(?:\s+\p{Lu}[\p{L}'’.-]{1,24}){1,2})(.*)$/u);
+  const match = base.match(/^(\p{Lu}[\p{L}'’.-]{1,24})\s+(\p{L}[\p{L}'’.-]{1,24})(.*)$/u);
   if (!match) return null;
-  const name = match[1]!;
-  const rest = (match[2] ?? "").trim();
-  if (NOT_A_PERSON.test(name)) return null;
-  if (rest === "" || /^\d{4}$/.test(rest) || PERSON_ROLE.test(rest)) return name;
+  const secondRaw = match[2]!;
+  if (SMALL_NAME.has(secondRaw.toLowerCase())) return null;
+  const name = `${match[1]} ${secondRaw.charAt(0).toUpperCase()}${secondRaw.slice(1)}`;
+  const rest = (match[3] ?? "").trim();
+  if (NOT_A_PERSON.test(name) || NOT_A_PERSON.test(secondRaw)) return null;
+  if (/^\p{Lu}/u.test(rest) && !/^\d{4}\b/.test(rest) && !PERSON_ROLE.test(rest)) return null;
+  if (/^\p{Ll}/u.test(secondRaw) || rest === "" || /^\d{4}\b/.test(rest) || PERSON_ROLE.test(rest)) return name;
   return null;
+}
+
+/** Two or three Title Case words that name a person, not a place ("Mary Anne Smith", not "Sydney Cricket Ground"). */
+export function isPersonName(name: string): boolean {
+  const base = name.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  if (!base || NOT_A_PERSON.test(base)) return false;
+  return /^\p{Lu}[\p{L}'’.-]{1,24}(?:\s+\p{Lu}[\p{L}'’.-]{1,24}){1,2}$/u.test(base);
 }
 
 function nameIn(name: string, text: string): boolean {
@@ -48,13 +61,17 @@ function nameIn(name: string, text: string): boolean {
   return need.every((w) => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(lower));
 }
 
-/** A photo of a named person this text never mentions. */
-export function otherPerson(photo: { subject: string; title?: string }, text: string): boolean {
-  for (const raw of [photo.title, photo.subject]) {
-    const name = raw ? personShown(raw) : null;
-    if (name && !nameIn(name, text)) return true;
+/**
+ * A photo that must not illustrate this story. A Commons or Openverse search is never a person. A Wikipedia lead
+ * image is a person only when this story's own words name them.
+ */
+export function otherPerson(photo: { subject: string; title?: string; kind?: Photo["kind"] }, text: string): boolean {
+  if (photo.kind !== "named") {
+    for (const raw of [photo.title, photo.subject]) if (raw && personShown(raw)) return true;
+    return false;
   }
-  return false;
+  const name = personShown(photo.subject) ?? (isPersonName(photo.subject) ? photo.subject.replace(/\s*\([^)]*\)\s*$/, "").trim() : null);
+  return Boolean(name && !nameIn(name, text));
 }
 
 /** Old photos, scans and generated images: a 1927 team photo or a scanned catalogue isn't a file photo of today. */
@@ -100,8 +117,16 @@ export function captionFromTitle(title: string, max = 90): string {
 
 function usableTitle(query: string, title: string): boolean {
   const text = title.replace(/_/g, " ");
-  const person = personShown(text);
-  return !NOT_A_PHOTO.test(text) && !EVENT_PHOTO.test(text) && !PERSON_PHOTO.test(text) && !NOT_CURRENT.test(text) && relevant(query, text) && !(person && !nameIn(person, query));
+  // A search is for a place or a thing. A file that names a person is never used, even when the query was their name.
+  return !NOT_A_PHOTO.test(text) && !EVENT_PHOTO.test(text) && !PERSON_PHOTO.test(text) && !NOT_CURRENT.test(text) && relevant(query, text) && !personShown(text);
+}
+
+/** Every content word of a suggested search must appear in this story, so a neighbour's subject cannot be searched. */
+export function groundedQuery(query: string, text: string): boolean {
+  const words = fold(query).split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 4 && !STOP.has(w));
+  if (!words.length) return false;
+  const have = fold(text);
+  return words.every((w) => new RegExp(`(?<![\\p{L}\\p{N}])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`, "u").test(have));
 }
 
 /** A query that asks for an incident or a person would find the wrong kind of picture whatever the filters. */
@@ -204,7 +229,7 @@ const COMMONS_GAP_MS = 250;
  */
 export async function searchPhotos(query: string, cache: ImageCache, budget: SearchBudget): Promise<Photo[]> {
   if (!usableQuery(query)) return [];
-  const key = `search3:${fold(query)}`;
+  const key = `search4:${fold(query)}`;
   if (cache.has(key)) return cache.get<Photo[]>(key) ?? [];
   const old = cache.get<Photo | null>(`search2:${fold(query)}`);
   const before = old ? [old] : [];

@@ -1,12 +1,14 @@
-import { isLegalRisk } from "../ai/legal-risk.js";
+import { isLegalRisk, legalMode } from "../ai/legal-risk.js";
+import { namedByOutlets } from "../ai/named.js";
+import type { SourceBlock } from "../ai/prompt.js";
 import { LOCAL_SECTIONS } from "../config/sources.js";
 import type { Story } from "../lib/stories.js";
 import { ImageCache } from "./cache.js";
 import { imageCandidates, placeCandidates } from "./entities.js";
 import { homeGround, venueMentioned } from "./grounds.js";
 import { confirmedPerson, deceasedName, isDeathStory, MEDICAL, medicalFile, photoIdeas, standIns, topicFiles, topicPlaces, TOPICS } from "./ideas.js";
-import { otherPerson, searchPhotos, type SearchBudget } from "./search.js";
-import { verdict, vetPhotos, VET_MINUTES, VET_REQUESTS } from "./vet.js";
+import { groundedQuery, isPersonName, otherPerson, searchPhotos, type SearchBudget } from "./search.js";
+import { reportsMark, verdict, vetPhotos, VET_MINUTES, VET_REQUESTS } from "./vet.js";
 import { findFiles, findPhotos, notAPhotoFile, type Photo } from "./wikimedia.js";
 
 const COMMONS_SEARCHES_PER_EDITION = 300;
@@ -63,6 +65,7 @@ const CITY_COUNTRY: Record<string, string> = {
   Barcelona: "Spain", Lisbon: "Portugal", Amsterdam: "Netherlands", Geneva: "Switzerland", Zurich: "Switzerland", Vienna: "Austria",
   Moscow: "Russia", Kyiv: "Ukraine", Istanbul: "Turkey", Ankara: "Turkey", Antalya: "Turkey", Yerevan: "Armenia", Jerusalem: "Israel",
   "Tel Aviv": "Israel", Dubai: "United Arab Emirates", Ottawa: "Canada", Toronto: "Canada", Vancouver: "Canada", Montreal: "Canada",
+  "Cape Breton": "Canada", "Nova Scotia": "Canada", Halifax: "Canada",
   "New York": "United States", "Los Angeles": "United States", Chicago: "United States", "San Francisco": "United States",
   "Washington, D.C.": "United States", Tokyo: "Japan", Osaka: "Japan", Beijing: "China", Shanghai: "China", Seoul: "South Korea",
   Delhi: "India", Mumbai: "India", Jakarta: "Indonesia", Bali: "Indonesia", Bangkok: "Thailand", Manila: "Philippines",
@@ -288,7 +291,7 @@ interface Remembered {
   rules?: number;
 }
 /** Bump when the order photos are chosen in changes, so every story chooses once more (searches stay cached). */
-const PICK_RULES = 2;
+const PICK_RULES = 3;
 
 /** A photo's subject as a search for other photos of the same thing: "Parliament House, Canberra" → "Parliament House Canberra". */
 function sameThing(subject: string): string {
@@ -297,11 +300,10 @@ function sameThing(subject: string): string {
 
 /**
  * Every story gets a picture, most specific first. Photos of the news event itself are nearly always copyright, so:
- * 1. event: a free photo of who or where the story is about. The main person, organisation or product (its Wikipedia
- *    lead photo), then where it happened: the venue, building or landmark the reports name, then a town or suburb they
- *    name. Sport puts the ground first, since free photos of teams tend to be years old; when the reports don't name
- *    the ground, an Australian club's home ground stands in (grounds.ts). Court and crime stories skip the person:
- *    a file photo next to an allegation can wrongly suggest who is accused;
+ * 1. event: a free photo of who or where the story is about. A person only when the words may already name them
+ *    and the file is the lead image of the English Wikipedia article titled exactly with their name. Then where it
+ *    happened: the venue the reports name, a club's home ground when the club is named (grounds.ts), then a town.
+ *    Sport puts the ground first. A search result is never a person;
  * 2. object: a photo found by searching Wikimedia Commons, then Openverse, for the key object or setting the reports
  *    discuss ("Hawaiian pizza", "open pit gold mine");
  * 3. broad: a common thing that stands for the topic ("wild cat", "Wi-Fi router"), searched the same way, else a
@@ -335,17 +337,43 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     if (!legal.has(story.id)) subjectsOf.set(story.id, imageCandidates(story.items, story.independent >= 2 ? 3 : 2, story.section !== "sport", story.headline.title));
     placesOf.set(story.id, placeCandidates(story.items, story.headline.title));
   }
-  const named = await findPhotos([...ideas.values()].map((i) => i.subject).filter(Boolean), "named", cache);
-  const subjects = await findPhotos([...subjectsOf.values()].flat(), "subject", cache);
+  const toldOf = (story: Story) => [story.headline.title, ...story.items.slice(0, 6).map((i) => `${i.title} ${i.summary}`)].join(" ");
+  const portraitsOf = new Map<string, string[]>();
+  const thingNames: string[] = [];
+  const ideaThings: string[] = [];
+  const ideaPeople: string[] = [];
+  for (const story of stories) {
+    if (death.has(story.id)) continue;
+    const text = toldOf(story);
+    const mode = legalMode(story.items);
+    if (mode === "normal") {
+      const people = (subjectsOf.get(story.id) ?? []).filter((n) => isPersonName(n));
+      if (people.length) portraitsOf.set(story.id, people);
+      thingNames.push(...(subjectsOf.get(story.id) ?? []).filter((n) => !isPersonName(n)));
+      const subject = ideas.get(story.id)?.subject ?? "";
+      if (subject && groundedQuery(subject, text)) (isPersonName(subject) ? ideaPeople : ideaThings).push(subject);
+    } else {
+      const blocks: SourceBlock[] = story.items.slice(0, 8).map((item, n) => ({
+        id: `S${n + 1}`,
+        item,
+        text: `${item.title}. ${item.summary ?? ""}`,
+      }));
+      const people = [...namedByOutlets(blocks, mode).values()];
+      if (people.length) portraitsOf.set(story.id, people);
+    }
+  }
+  const named = await findPhotos(ideaThings, "named", cache);
+  const namedPortraits = await findPhotos(ideaPeople, "person", cache);
+  const portraits = await findPhotos([...portraitsOf.values()].flat(), "person", cache);
+  const subjects = await findPhotos(thingNames, "subject", cache);
   const places = await findPhotos([...placesOf.values()].flat(), "place", cache);
   const venueOf = new Map<string, string>();
   for (const story of stories) {
     if (death.has(story.id)) continue;
     const suggested = ideas.get(story.id)?.venue || null;
     const stated = suggested && venueMentioned(suggested, story) ? suggested : null;
-    // A venue the reports name beats a club's home ground, which beats the model's guess. Outside sport a guessed
-    // place could be the wrong one, so only a named place counts.
-    const venue = story.section === "sport" ? (stated ?? homeGround(story) ?? suggested) : stated;
+    // A venue the reports name beats a club's home ground. Outside sport the model's guess is not used.
+    const venue = story.section === "sport" ? (stated ?? homeGround(story) ?? suggested) : (stated ?? homeGround(story));
     if (venue) venueOf.set(story.id, venue);
   }
   const venues = await findPhotos([...venueOf.values()], "place", cache);
@@ -363,7 +391,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
   // The same file comes back with different tracking parameters ("?utm_source=en.wikipedia.org" or commons).
   const fileOf = (p: Photo) => p.src.split("?")[0]!;
 
-  const pick = async (story: Story): Promise<void> => {
+  const pick = async (story: Story, floorOnly = false): Promise<void> => {
     // The best photo no other story uses yet; failing that, the best one even if shared.
     let fallback: [Photo, keyof PhotoCounts] | null = null;
     // A small original looks blurry in a card: only shown when nothing else is found.
@@ -371,10 +399,11 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     let tier: keyof PhotoCounts = "event";
     // Good photos another story already shows, with their tier: other photos of the same thing are looked for.
     const taken: [Photo, keyof PhotoCounts][] = [];
-    const told = [story.headline.title, ...story.items.slice(0, 6).map((i) => `${i.title} ${i.summary}`)].join(" ");
+    const told = toldOf(story);
+    const mark = reportsMark(story);
     const fresh = (p: Photo | null | undefined): Photo | null => {
       // Cached lookups predate some filters, so maps are checked again here.
-      if (!p || notAPhotoFile(p.src) || verdict(cache, story.id, p) === false) return null;
+      if (!p || notAPhotoFile(p.src) || verdict(cache, story.id, p, mark) === false) return null;
       if (otherPerson(p, told)) {
         if (otherLogged < REFUSALS_LOGGED) console.log(`Photo refused as someone else: "${p.subject}" for "${story.headline.title}"`);
         otherLogged++;
@@ -449,6 +478,12 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       if (photo && chosenTier !== "broad") cache.set(`chosen:${story.id}`, { photo: chosen, tier: chosenTier, death: death.has(story.id), rules: PICK_RULES } satisfies Remembered);
       return true;
     };
+    // A refused photo is replaced with a topic photo. Searching again is what put the wrong person back.
+    if (floorOnly) {
+      tier = "broad";
+      choose(fromLibrary(topicFiles(story)));
+      return;
+    }
     if (death.has(story.id)) {
       const person = people.get(deceasedOf.get(story.id) ?? "") ?? null;
       const own = person?.description && confirmedPerson(story, person.description, now) ? person : null;
@@ -462,17 +497,24 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     const idea = ideas.get(story.id);
     const where = settingOf(story);
     const localPlaces = where ? topicPlaces(story).map((p) => `${p} ${where}`) : [];
-    const theme = idea?.theme ?? "";
+    const searches = (idea?.searches ?? []).filter((q) => groundedQuery(q, told));
+    const theme = idea?.theme && groundedQuery(idea.theme, told) ? idea.theme : "";
     const placedTheme = where && theme && PLACED_THEME.test(theme) && !theme.toLowerCase().includes(where.toLowerCase()) ? `${theme} ${where}` : "";
     const venue = place(venues.get(venueOf.get(story.id) ?? ""));
-    const subjectList = [idea?.subject && !legal.has(story.id) ? named.get(idea.subject) : null, ...(subjectsOf.get(story.id) ?? []).map((n) => subjects.get(n))];
+    const subjectName = idea?.subject && !legal.has(story.id) && groundedQuery(idea.subject, told) ? idea.subject : "";
+    const ideaPhoto = subjectName ? (isPersonName(subjectName) ? namedPortraits.get(subjectName) : named.get(subjectName)) : null;
+    const subjectList = [
+      ideaPhoto,
+      ...(portraitsOf.get(story.id) ?? []).map((n) => portraits.get(n)),
+      ...(subjectsOf.get(story.id) ?? []).filter((n) => !isPersonName(n)).map((n) => subjects.get(n)),
+    ];
     const placeList = (placesOf.get(story.id) ?? []).map((n) => place(places.get(n)));
     // In science and tech a town in the reports is usually just where the researchers or company are (a galaxy study
     // from Salt Lake City), so the object the story is about comes before the town.
     const townsLast = story.section === "science-tech" || story.section === "tech";
     const eventList = [...(story.section === "sport" ? [venue, ...subjectList] : [...subjectList, venue]), ...(townsLast ? [] : placeList)];
     let photo = first(eventList);
-    if (photo && !fits(photo)) {
+    if (photo && !fits(photo) && !(photo.kind === "named" && isPersonName(photo.subject))) {
       // Portrait or too small for the lead: the same subject in landscape; for a place, another place the reports name.
       const ofPlace = !subjectList.includes(photo);
       photo = (await wider(photo)) ?? (ofPlace ? eventList.slice(eventList.indexOf(photo) + 1).find((p): p is Photo => Boolean(p && fits(p) && fresh(p))) : undefined) ?? photo;
@@ -487,7 +529,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     }
     if (!photo) {
       tier = "object";
-      photo = await firstSearch(idea?.searches ?? []);
+      photo = await firstSearch(searches);
     }
     if (!photo && townsLast) {
       tier = "event";
@@ -519,7 +561,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
     const p = memory?.photo;
     if (!p || memory.rules !== PICK_RULES || memory.death !== death.has(story.id) || used.has(fileOf(p)) || notAPhotoFile(p.src) || p.width < MIN_SHARP_WIDTH) continue;
     const told = [story.headline.title, ...story.items.slice(0, 6).map((i) => `${i.title} ${i.summary}`)].join(" ");
-    if ((story.id === leadId && p.large === undefined) || shotElsewhere(p, story) || otherPerson(p, told) || (memory.tier === "object" && takenAbroad(p, story)) || verdict(cache, story.id, p) === false) continue;
+    if ((story.id === leadId && p.large === undefined) || shotElsewhere(p, story) || otherPerson(p, told) || (memory.tier === "object" && takenAbroad(p, story)) || verdict(cache, story.id, p, reportsMark(story)) === false) continue;
     photos.set(story.id, p);
     used.add(fileOf(p));
     chosenOf.set(story.id, { photo: p, tier: memory.tier, shared: false });
@@ -528,8 +570,8 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
   }
   for (const story of stories) if (!settled.has(story.id)) await pick(story);
 
-  // Every chosen photo is read against its story; refused ones go and the story chooses again. Death stories keep
-  // their medical or confirmed photo.
+  // Every chosen photo is read against its story. A refusal is replaced with a topic photo, not another search.
+  // Death stories keep their medical or confirmed photo. A cached yes expires when the reports change.
   const vetBudget = { requests: VET_REQUESTS, until: Date.now() + VET_MINUTES * 60_000 };
   for (let round = 0; round < VET_ROUNDS; round++) {
     const items = stories.filter((s) => !death.has(s.id) && chosenOf.has(s.id)).map((s) => {
@@ -537,7 +579,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       return { story: s, photo, takenIn: photo.lat !== undefined && photo.lon !== undefined ? regionOf(photo.lat, photo.lon).replace("abroad", "outside Australia and New Zealand") : undefined };
     });
     counts.offPoint += await vetPhotos(items, cache, vetBudget);
-    const redo = items.filter((i) => verdict(cache, i.story.id, i.photo) === false).map((i) => i.story);
+    const redo = items.filter((i) => verdict(cache, i.story.id, i.photo, reportsMark(i.story)) === false).map((i) => i.story);
     if (!redo.length) break;
     for (const s of redo) {
       const file = fileOf(chosenOf.get(s.id)!.photo);
@@ -546,7 +588,7 @@ export async function assignPhotos(shown: Story[], cacheFile: string, now: Date,
       cache.delete(`chosen:${s.id}`);
       if (![...chosenOf.values()].some((c) => fileOf(c.photo) === file)) used.delete(file);
     }
-    for (const s of redo) await pick(s);
+    for (const s of redo) await pick(s, true);
   }
   for (const c of chosenOf.values()) {
     counts[c.tier]++;
